@@ -448,13 +448,13 @@
   revision = "19e3f5aa3adca672c153d324e6b7d82ff8935f03"
 
 [[projects]]
-  branch = "master"
+  branch = "release-1.9"
   name = "k8s.io/apiserver"
   packages = [
     "pkg/authentication/serviceaccount",
     "pkg/authentication/user"
   ]
-  revision = "2c9ceac00829cefa4f558441d585004a51bf5ff6"
+  revision = "5343f14b1d39e19add5eb0245eca715d8b37b164"
 
 [[projects]]
   branch = "release-6.0"
@@ -558,6 +558,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c09fd4a9326c08c7962eee4f51f5b42beec709fb8c451a205ebc9438c56f6902"
+  inputs-digest = "7935b7ecdfc2936247e49104bad023ff2bd95cbcd8baeab21e2c9bab4b884860"
   solver-name = "gps-cdcl"
   solver-version = 1
