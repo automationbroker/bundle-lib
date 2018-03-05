@@ -26,10 +26,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/runtime"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 )
 
@@ -199,7 +199,6 @@ func (e *executor) executeApb(
 		return executionContext, err
 	}
 	//Sandbox (i.e Namespace) was created.
-	metrics.SandboxCreated()
 	executionContext.Namespace = ns.ObjectMeta.Name
 	err = copySecretsToNamespace(executionContext, clusterConfig, k8scli, secrets)
 	if err != nil {
@@ -240,7 +239,7 @@ func (e *executor) executeApb(
 		},
 	}
 
-	log.Notice(fmt.Sprintf("Creating pod %q in the %s namespace", pod.Name, executionContext.Namespace))
+	log.Infof(fmt.Sprintf("Creating pod %q in the %s namespace", pod.Name, executionContext.Namespace))
 	_, err = k8scli.Client.CoreV1().Pods(executionContext.Namespace).Create(pod)
 
 	return executionContext, err

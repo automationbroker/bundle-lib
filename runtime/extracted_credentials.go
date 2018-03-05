@@ -3,7 +3,8 @@ package runtime
 import (
 	"errors"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
+	"github.com/automationbroker/bundle-lib/clients"
+	log "github.com/sirupsen/logrus"
 )
 
 var (

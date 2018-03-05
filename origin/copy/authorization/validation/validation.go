@@ -12,8 +12,8 @@ import (
 	kutilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	authorizationapi "github.com/openshift/ansible-service-broker/pkg/origin/copy/authorization"
-	uservalidation "github.com/openshift/ansible-service-broker/pkg/origin/copy/user/validation"
+	authorizationapi "github.com/automationbroker/bundle-lib/origin/copy/authorization"
+	uservalidation "github.com/automationbroker/bundle-lib/origin/copy/user/validation"
 )
 
 // ValidateSelfSubjectRulesReview -

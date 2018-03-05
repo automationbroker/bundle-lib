@@ -24,9 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	logging "github.com/op/go-logging"
-
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
+	ft "github.com/stretchr/testify/assert"
 )
 
 const RhccResponse = `
@@ -135,16 +133,15 @@ func TestGetImages(t *testing.T) {
 		fmt.Fprintf(w, response)
 	}))
 
-	var log = &logging.Logger{}
 	u, err := url.Parse(serv.URL)
 	if err != nil {
 		t.Fatal("ERROR: ", err)
 	}
 	config := Configuration{URL: u}
-	adapter := RHCCAdapter{Config: config, Log: log}
+	adapter := RHCCAdapter{Config: config}
 	imageNames, err := adapter.GetImageNames()
-	ft.AssertEqual(t, len(imageNames), 3)
-	ft.AssertNotNil(t, imageNames)
+	ft.Equal(t, len(imageNames), 3)
+	ft.NotNil(t, imageNames)
 	if err != nil {
 		t.Fatal("ERROR: ", err)
 	}

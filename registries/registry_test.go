@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/openshift/ansible-service-broker/pkg/apb"
-	"github.com/openshift/ansible-service-broker/pkg/config"
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
-	"github.com/openshift/ansible-service-broker/pkg/registries/adapters"
+	"github.com/automationbroker/bundle-lib/apb"
+	"github.com/automationbroker/bundle-lib/registries/adapters"
+	"github.com/automationbroker/config"
+	ft "github.com/stretchr/testify/assert"
 )
 
 var SpecTags = []string{"latest", "old-release"}
@@ -260,57 +260,57 @@ func TestRegistryLoadSpecsNoError(t *testing.T) {
 	r := setUp()
 	specs, numImages, err := r.LoadSpecs()
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
-	ft.AssertTrue(t, a.Called["GetImageNames"])
-	ft.AssertTrue(t, a.Called["FetchSpecs"])
-	ft.AssertEqual(t, numImages, 2)
-	ft.AssertEqual(t, len(specs), 1)
-	ft.AssertEqual(t, specs[0], &s)
+	ft.True(t, a.Called["GetImageNames"])
+	ft.True(t, a.Called["FetchSpecs"])
+	ft.Equal(t, numImages, 2)
+	ft.Equal(t, len(specs), 1)
+	ft.Equal(t, specs[0], &s)
 }
 
 func TestRegistryLoadSpecsNoPlans(t *testing.T) {
 	r := setUpNoPlans()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
-	ft.AssertTrue(t, a.Called["GetImageNames"])
-	ft.AssertTrue(t, a.Called["FetchSpecs"])
-	ft.AssertEqual(t, len(specs), 0)
+	ft.True(t, a.Called["GetImageNames"])
+	ft.True(t, a.Called["FetchSpecs"])
+	ft.Equal(t, len(specs), 0)
 }
 
 func TestRegistryLoadSpecsNoVersion(t *testing.T) {
 	r := setUpNoVersion()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
-	ft.AssertTrue(t, a.Called["GetImageNames"])
-	ft.AssertTrue(t, a.Called["FetchSpecs"])
-	ft.AssertEqual(t, len(specs), 0)
+	ft.True(t, a.Called["GetImageNames"])
+	ft.True(t, a.Called["FetchSpecs"])
+	ft.Equal(t, len(specs), 0)
 }
 
 func TestRegistryLoadSpecsBadVersion(t *testing.T) {
 	r := setUpBadVersion()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
-	ft.AssertTrue(t, a.Called["GetImageNames"])
-	ft.AssertTrue(t, a.Called["FetchSpecs"])
-	ft.AssertEqual(t, len(specs), 0)
+	ft.True(t, a.Called["GetImageNames"])
+	ft.True(t, a.Called["FetchSpecs"])
+	ft.Equal(t, len(specs), 0)
 }
 
 func TestRegistryLoadSpecsBadRuntime(t *testing.T) {
 	r := setUpBadRuntime()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
-	ft.AssertTrue(t, a.Called["GetImageNames"])
-	ft.AssertTrue(t, a.Called["FetchSpecs"])
-	ft.AssertEqual(t, len(specs), 0)
+	ft.True(t, a.Called["GetImageNames"])
+	ft.True(t, a.Called["FetchSpecs"])
+	ft.Equal(t, len(specs), 0)
 }
 
 func TestFail(t *testing.T) {
@@ -318,7 +318,7 @@ func TestFail(t *testing.T) {
 	r.config.Fail = true
 
 	fail := r.Fail(fmt.Errorf("new error"))
-	ft.AssertTrue(t, fail)
+	ft.True(t, fail)
 }
 
 func TestFailIsFalse(t *testing.T) {
@@ -326,46 +326,46 @@ func TestFailIsFalse(t *testing.T) {
 	r.config.Fail = false
 
 	fail := r.Fail(fmt.Errorf("new error"))
-	ft.AssertFalse(t, fail)
+	ft.False(t, fail)
 }
 
 func TestNewRegistryRHCC(t *testing.T) {
 	c, err := config.CreateConfig("testdata/registry.yaml")
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 	reg, err := NewRegistry(c.GetSubConfig("registry.rhcc"), "")
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 	_, ok := reg.adapter.(*adapters.RHCCAdapter)
-	ft.AssertTrue(t, ok)
+	ft.True(t, ok)
 }
 
 func TestNewRegistryDockerHub(t *testing.T) {
 	c, err := config.CreateConfig("testdata/registry.yaml")
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 	reg, err := NewRegistry(c.GetSubConfig("registry.dh"), "")
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 	_, ok := reg.adapter.(*adapters.DockerHubAdapter)
-	ft.AssertTrue(t, ok)
+	ft.True(t, ok)
 }
 
 func TestNewRegistryMock(t *testing.T) {
 	c, err := config.CreateConfig("testdata/registry.yaml")
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 	reg, err := NewRegistry(c.GetSubConfig("registry.mock"), "")
 	if err != nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 	_, ok := reg.adapter.(*adapters.MockAdapter)
-	ft.AssertTrue(t, ok)
+	ft.True(t, ok)
 }
 
 func TestPanicOnUnknow(t *testing.T) {
@@ -373,7 +373,7 @@ func TestPanicOnUnknow(t *testing.T) {
 		r := recover()
 		fmt.Printf("%v", r)
 		if r == nil {
-			ft.AssertTrue(t, false)
+			ft.True(t, false)
 		}
 	}()
 	c, _ := config.CreateConfig("testdata/registry.yaml")
@@ -385,29 +385,29 @@ func TestValidateName(t *testing.T) {
 	c, _ := config.CreateConfig("testdata/registry.yaml")
 	_, err := NewRegistry(c.GetSubConfig("registry.makes_no_sense"), "")
 	if err == nil {
-		ft.AssertTrue(t, false)
+		ft.True(t, false)
 	}
 }
 
 func TestVersionCheck(t *testing.T) {
 	// Test equal versions
-	ft.AssertTrue(t, isCompatibleVersion("1.0", "1.0", "1.0"))
+	ft.True(t, isCompatibleVersion("1.0", "1.0", "1.0"))
 	// Test out of range by major version
-	ft.AssertFalse(t, isCompatibleVersion("2.0", "1.0", "1.0"))
+	ft.False(t, isCompatibleVersion("2.0", "1.0", "1.0"))
 	// Test out of range by minor version
-	ft.AssertTrue(t, isCompatibleVersion("1.10", "1.0", "1.0"))
+	ft.True(t, isCompatibleVersion("1.10", "1.0", "1.0"))
 	// Test out of range by major and minor version
-	ft.AssertTrue(t, isCompatibleVersion("2.4", "1.0", "2.0"))
+	ft.True(t, isCompatibleVersion("2.4", "1.0", "2.0"))
 	// Test in range with differing  major and minor version
-	ft.AssertTrue(t, isCompatibleVersion("1.10", "1.0", "2.0"))
+	ft.True(t, isCompatibleVersion("1.10", "1.0", "2.0"))
 	// Test out of range by major and minor version
-	ft.AssertFalse(t, isCompatibleVersion("0.6", "1.0", "2.0"))
+	ft.False(t, isCompatibleVersion("0.6", "1.0", "2.0"))
 	// Test out of range by major and minor version and invalid version
-	ft.AssertFalse(t, isCompatibleVersion("0.1.0", "1.0", "1.0"))
+	ft.False(t, isCompatibleVersion("0.1.0", "1.0", "1.0"))
 	// Test in range of long possible window
-	ft.AssertTrue(t, isCompatibleVersion("2.5", "1.0", "3.0"))
+	ft.True(t, isCompatibleVersion("2.5", "1.0", "3.0"))
 	// Test invalid version
-	ft.AssertFalse(t, isCompatibleVersion("1", "1.0", "3.0"))
+	ft.False(t, isCompatibleVersion("1", "1.0", "3.0"))
 	// Test invalid version
-	ft.AssertFalse(t, isCompatibleVersion("2.5", "3.0", "4.0"))
+	ft.False(t, isCompatibleVersion("2.5", "3.0", "4.0"))
 }

@@ -20,10 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
+	"github.com/automationbroker/bundle-lib/clients"
 
-	logutil "github.com/openshift/ansible-service-broker/pkg/util/logging"
+	log "github.com/sirupsen/logrus"
 	apicorev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1beta1"
@@ -31,8 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeversiontypes "k8s.io/apimachinery/pkg/version"
 )
-
-var log = logutil.NewLog()
 
 // Provider - Variable for accessing provider functions
 var Provider Runtime
@@ -270,7 +267,6 @@ func (p provider) DestroySandbox(podName string,
 			log.Debug("Deleting namespace %s", namespace)
 			k8scli.Client.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
 			// This is keeping track of namespaces.
-			metrics.SandboxDeleted()
 		} else {
 			// We should not be attempting to run pods in the ASB namespace, if we are, something is seriously wrong.
 			panic(fmt.Errorf("Broker is attempting to delete its own namespace"))
@@ -286,7 +282,7 @@ func (p provider) DestroySandbox(podName string,
 		log.Error("Something went wrong trying to destroy the rolebinding! - %v", err)
 		return
 	}
-	log.Notice("Successfully deleted rolebinding %s, namespace %s", podName, namespace)
+	log.Infof("Successfully deleted rolebinding %s, namespace %s", podName, namespace)
 
 	for _, target := range targets {
 		log.Debugf("Deleting rolebinding %s, namespace %s", podName, target)
@@ -295,7 +291,7 @@ func (p provider) DestroySandbox(podName string,
 			log.Error("Something went wrong trying to destroy the rolebinding!")
 			return
 		}
-		log.Notice("Successfully deleted rolebinding %s, namespace %s", podName, target)
+		log.Infof("Successfully deleted rolebinding %s, namespace %s", podName, target)
 	}
 
 	log.Debugf("Deleting network policy for pod: %v to grant network access to ns: %v", podName, targets[0])

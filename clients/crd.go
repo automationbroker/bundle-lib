@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	clientset "github.com/automationbroker/broker-client-go/client/clientset/versioned"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/homedir"
 )

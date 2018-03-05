@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
-	"github.com/openshift/ansible-service-broker/pkg/version"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/runtime"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -111,7 +111,7 @@ func ExtractCredentialsAsFile(podname string, namespace string) (*ExtractedCrede
 			Stderr: stderrWriter,
 		})
 		if cmderr == nil {
-			log.Notice("[%v] bind credentials found", podname)
+			log.Infof("[%v] bind credentials found", podname)
 			decodedOutput, err := decodeOutput(stdoutBuffer.Bytes())
 			if err != nil {
 				return nil, err
@@ -131,7 +131,7 @@ func ExtractCredentialsAsFile(podname string, namespace string) (*ExtractedCrede
 			log.Errorf("pod: %v in namespace: %v failed", podname, namespace)
 			return nil, fmt.Errorf("[%v] APB failed", podname)
 		case v1.PodSucceeded:
-			log.Noticef("pod: %v in namespace: %v has been completed")
+			log.Infof("pod: %v in namespace: %v has been completed", podname, namespace)
 			return nil, nil
 		default:
 			log.Infof("command output: %v - err: %v", stdoutBuffer.String(), stderrBuffer.String())
@@ -167,8 +167,8 @@ func getExtractCreds(runtimeVersion int) (extractCreds, error) {
 		return nil, fmt.Errorf(
 			"Unexpected runtime version [%v], support %v <= runtimeVersion <= %v",
 			runtimeVersion,
-			version.MinRuntimeVersion,
-			version.MaxRuntimeVersion,
+			1,
+			2,
 		)
 	}
 }

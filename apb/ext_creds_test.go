@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
+	ft "github.com/stretchr/testify/assert"
 )
 
 func TestBuildExtractedCredentials(t *testing.T) {
@@ -32,17 +32,17 @@ func TestBuildExtractedCredentials(t *testing.T) {
 	}
 
 	bd, _ := buildExtractedCredentials(decoded)
-	ft.AssertNotNil(t, bd, "credential is nil")
-	ft.AssertEqual(t, bd.Credentials["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
-	ft.AssertEqual(t, bd.Credentials["user"], "duder_two", "user is not duder_two")
-	ft.AssertEqual(t, bd.Credentials["pass"], "dog8two", "password is not dog8two")
+	ft.NotNil(t, bd, "credential is nil")
+	ft.Equal(t, bd.Credentials["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
+	ft.Equal(t, bd.Credentials["user"], "duder_two", "user is not duder_two")
+	ft.Equal(t, bd.Credentials["pass"], "dog8two", "password is not dog8two")
 }
 
 func TestExitGracefully(t *testing.T) {
 	output := []byte("eyJkYiI6ICJmdXNvcl9ndWVzdGJvb2tfZGIiLCAidXNlciI6ICJkdWRlcl90d28iLCAicGFzcyI6ICJkb2c4dHdvIn0=")
 
 	_, err := decodeOutput(output)
-	ft.AssertEqual(t, err, nil)
+	ft.Equal(t, err, nil)
 }
 
 func TestInt(t *testing.T) {
@@ -55,18 +55,18 @@ func TestInt(t *testing.T) {
 
 	do := make(map[string]interface{})
 	json.Unmarshal(decoded, &do)
-	ft.AssertEqual(t, do["DB_NAME"], "foobar", "name does not match")
-	ft.AssertEqual(t, do["DB_PASSWORD"], "supersecret", "password does not match")
-	ft.AssertEqual(t, do["DB_TYPE"], "mysql", "type does not match")
-	ft.AssertEqual(t, do["DB_PORT"], float64(3306), "port does not match")
-	ft.AssertEqual(t, do["DB_USER"], "duder", "user does not match")
-	ft.AssertEqual(t, do["DB_HOST"], "myinstance.123456789012.us-east-1.rds.amazonaws.com", "invalid hostname")
+	ft.Equal(t, do["DB_NAME"], "foobar", "name does not match")
+	ft.Equal(t, do["DB_PASSWORD"], "supersecret", "password does not match")
+	ft.Equal(t, do["DB_TYPE"], "mysql", "type does not match")
+	ft.Equal(t, do["DB_PORT"], float64(3306), "port does not match")
+	ft.Equal(t, do["DB_USER"], "duder", "user does not match")
+	ft.Equal(t, do["DB_HOST"], "myinstance.123456789012.us-east-1.rds.amazonaws.com", "invalid hostname")
 }
 
 // didn't think this was generic enough to go in ft.
 func assertError(t *testing.T, err error, verifystr string) {
 	if err != nil {
-		ft.AssertEqual(t, err.Error(), verifystr, "error output didn't match expected output")
+		ft.Equal(t, err.Error(), verifystr, "error output didn't match expected output")
 	} else {
 		t.Fatal(fmt.Sprintf("method should return '%s' error", verifystr))
 	}

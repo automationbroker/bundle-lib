@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	authorizationapi "github.com/openshift/ansible-service-broker/pkg/origin/copy/authorization"
+	authorizationapi "github.com/automationbroker/bundle-lib/origin/copy/authorization"
 )
 
 func TestValidatePolicy(t *testing.T) {

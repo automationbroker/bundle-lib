@@ -20,10 +20,7 @@ import (
 	"sync"
 
 	etcd "github.com/coreos/etcd/client"
-	logging "github.com/openshift/ansible-service-broker/pkg/util/logging"
 )
-
-var log = logging.NewLog()
 
 var instances struct {
 	Etcd       etcd.Client

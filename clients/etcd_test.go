@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/coreos/etcd/version"
-	logging "github.com/op/go-logging"
 )
 
 func TestEtcd(t *testing.T) {
@@ -22,7 +21,7 @@ func TestEtcd(t *testing.T) {
 		panic("GOPATH not set!")
 	}
 
-	filePath := strings.Join([]string{gopath, "src", "github.com", "openshift", "ansible-service-broker", "pkg", "clients", "testdata"}, "/")
+	filePath := strings.Join([]string{gopath, "src", "github.com", "automationbroker", "bundle-lib", "clients", "testdata"}, "/")
 
 	testCases := []struct {
 		Config               EtcdConfig
@@ -82,7 +81,6 @@ func TestEtcd(t *testing.T) {
 				}
 			}()
 
-			log = logging.MustGetLogger("test")
 			if tc.ResetRun {
 				once.Etcd = sync.Once{}
 			}
@@ -123,7 +121,7 @@ func TestNewTransport(t *testing.T) {
 		panic("GOPATH not set!")
 	}
 
-	filePath := strings.Join([]string{gopath, "src", "github.com", "openshift", "ansible-service-broker", "pkg", "clients", "testdata"}, "/")
+	filePath := strings.Join([]string{gopath, "src", "github.com", "automationbroker", "bundle-lib", "clients", "testdata"}, "/")
 
 	testCases := []struct {
 		Config      EtcdConfig

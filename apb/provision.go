@@ -17,19 +17,20 @@
 package apb
 
 import (
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
+	"github.com/automationbroker/bundle-lib/runtime"
+	log "github.com/sirupsen/logrus"
 )
 
 // Provision - will run the abp with the provision action.
 func (e *executor) Provision(instance *ServiceInstance) <-chan StatusMessage {
-	log.Notice("============================================================")
-	log.Notice("                       PROVISIONING                         ")
-	log.Notice("============================================================")
-	log.Noticef("Spec.ID: %s", instance.Spec.ID)
-	log.Noticef("Spec.Name: %s", instance.Spec.FQName)
-	log.Noticef("Spec.Image: %s", instance.Spec.Image)
-	log.Noticef("Spec.Description: %s", instance.Spec.Description)
-	log.Notice("============================================================")
+	log.Infof("============================================================")
+	log.Infof("                       PROVISIONING                         ")
+	log.Infof("============================================================")
+	log.Infof("Spec.ID: %s", instance.Spec.ID)
+	log.Infof("Spec.Name: %s", instance.Spec.FQName)
+	log.Infof("Spec.Image: %s", instance.Spec.Image)
+	log.Infof("Spec.Description: %s", instance.Spec.Description)
+	log.Infof("============================================================")
 
 	go func() {
 		e.actionStarted()

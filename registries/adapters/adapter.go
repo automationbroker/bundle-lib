@@ -25,8 +25,8 @@ import (
 	"net/url"
 	"strconv"
 
-	logging "github.com/op/go-logging"
-	"github.com/openshift/ansible-service-broker/pkg/apb"
+	"github.com/automationbroker/bundle-lib/apb"
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v1"
 )
 
@@ -58,7 +58,7 @@ type Configuration struct {
 }
 
 // Retrieve the spec from a registry manifest request
-func imageToSpec(log *logging.Logger, req *http.Request, image string) (*apb.Spec, error) {
+func imageToSpec(req *http.Request, image string) (*apb.Spec, error) {
 	log.Debug("Registry::imageToSpec")
 	spec := &apb.Spec{}
 	req.Header.Add("Accept", "application/json")
@@ -139,7 +139,7 @@ func imageToSpec(log *logging.Logger, req *http.Request, image string) (*apb.Spe
 		return nil, err
 	}
 
-	spec.Runtime, err = getAPBRuntimeVersion(log, conf.Config.Label.Runtime)
+	spec.Runtime, err = getAPBRuntimeVersion(conf.Config.Label.Runtime)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func imageToSpec(log *logging.Logger, req *http.Request, image string) (*apb.Spe
 	return spec, nil
 }
 
-func getAPBRuntimeVersion(log *logging.Logger, version string) (int, error) {
+func getAPBRuntimeVersion(version string) (int, error) {
 
 	if version == "" {
 		log.Infof("No runtime label found. Set runtime=1. Will use 'exec' to gather bind credentials")

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	userapi "github.com/openshift/ansible-service-broker/pkg/origin/copy/user"
+	userapi "github.com/automationbroker/bundle-lib/origin/copy/user"
 )
 
 // ValidateUserName -

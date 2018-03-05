@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
+	ft "github.com/stretchr/testify/assert"
 )
 
 func TestBind(t *testing.T) {
@@ -52,8 +52,8 @@ localhost                  : ok=3    changed=1    unreachable=0    failed=0
 	result := make(map[string]interface{})
 	json.Unmarshal(decoded, &result)
 
-	ft.AssertNotNil(t, result, "result")
-	ft.AssertEqual(t, result["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
-	ft.AssertEqual(t, result["user"], "duder_two", "user is not duder_two")
-	ft.AssertEqual(t, result["pass"], "dog8two", "password is not dog8two")
+	ft.NotNil(t, result, "result")
+	ft.Equal(t, result["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
+	ft.Equal(t, result["user"], "duder_two", "user is not duder_two")
+	ft.Equal(t, result["pass"], "dog8two", "password is not dog8two")
 }

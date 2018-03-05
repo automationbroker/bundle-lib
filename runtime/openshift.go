@@ -5,7 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/automationbroker/bundle-lib/clients"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -25,7 +27,7 @@ func (o openshift) shouldJoinNetworks() (bool, PostSandboxCreate, PostSandboxDes
 	if err != nil {
 		// The plugins could not be defined. ex: when using oc cluster up
 		// or a pure k8s cluster. Therefore making this a notice.
-		log.Noticef("unable to retrieve the network plugin, defaulting to not joining networks - %v", err)
+		log.Infof("unable to retrieve the network plugin, defaulting to not joining networks - %v", err)
 		// Defaulting to not join the networks.
 		return false, nil, nil
 	}

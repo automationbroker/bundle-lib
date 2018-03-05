@@ -19,13 +19,13 @@ package adapters
 import (
 	"io/ioutil"
 
-	logging "github.com/op/go-logging"
-	"github.com/openshift/ansible-service-broker/pkg/apb"
+	"github.com/automationbroker/bundle-lib/apb"
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
 // MockFile - Mock file contains fake regitry data
-var MockFile = "/etc/ansible-service-broker/mock-registry-data.yaml"
+var MockFile = "/etc/automationbroker/bundle-lib/mock-registry-data.yaml"
 
 // mockRegistryName - mock registry name
 var mockRegistryName = "mock"
@@ -33,17 +33,16 @@ var mockRegistryName = "mock"
 // MockAdapter - a adapter that is for mocking data
 type MockAdapter struct {
 	Config Configuration
-	Log    *logging.Logger
 	specs  map[string]*apb.Spec
 }
 
 // GetImageNames - retrieve the image names
 func (r *MockAdapter) GetImageNames() ([]string, error) {
-	r.Log.Debug("MockRegistry::LoadSpecs")
+	log.Debug("MockRegistry::LoadSpecs")
 
 	specYaml, err := ioutil.ReadFile(MockFile)
 	if err != nil {
-		r.Log.Debug("Failed to read registry data from %s", MockFile)
+		log.Debug("Failed to read registry data from %s", MockFile)
 		return nil, err
 	}
 
@@ -53,13 +52,13 @@ func (r *MockAdapter) GetImageNames() ([]string, error) {
 
 	err = yaml.Unmarshal(specYaml, &parsedData)
 	if err != nil {
-		r.Log.Error("Failed to ummarshal yaml file")
+		log.Error("Failed to ummarshal yaml file")
 		return nil, err
 	}
 
-	r.Log.Debug("Loaded Specs: %v", parsedData)
+	log.Debug("Loaded Specs: %v", parsedData)
 
-	r.Log.Info("Loaded [ %d ] specs from %s registry", len(parsedData.Apps), "Mock")
+	log.Info("Loaded [ %d ] specs from %s registry", len(parsedData.Apps), "Mock")
 	var names []string
 	r.specs = map[string]*apb.Spec{}
 

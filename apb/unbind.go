@@ -17,29 +17,26 @@
 package apb
 
 import (
-	"fmt"
-
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/runtime"
+	log "github.com/sirupsen/logrus"
 )
 
 // Unbind - runs the abp with the unbind action.
 func (e *executor) Unbind(
 	instance *ServiceInstance, parameters *Parameters, bindingID string,
 ) <-chan StatusMessage {
-	log.Notice("============================================================")
-	log.Notice("                       UNBINDING                            ")
-	log.Notice("============================================================")
-	log.Notice(fmt.Sprintf("ServiceInstance.ID: %s", instance.Spec.ID))
-	log.Notice(fmt.Sprintf("ServiceInstance.Name: %v", instance.Spec.FQName))
-	log.Notice(fmt.Sprintf("ServiceInstance.Image: %s", instance.Spec.Image))
-	log.Notice(fmt.Sprintf("ServiceInstance.Description: %s", instance.Spec.Description))
-	log.Notice("============================================================")
+	log.Infof("============================================================")
+	log.Infof("                       UNBINDING                            ")
+	log.Infof("============================================================")
+	log.Infof("ServiceInstance.ID: %s", instance.Spec.ID)
+	log.Infof("ServiceInstance.Name: %v", instance.Spec.FQName)
+	log.Infof("ServiceInstance.Image: %s", instance.Spec.Image)
+	log.Infof("ServiceInstance.Description: %s", instance.Spec.Description)
+	log.Infof("============================================================")
 
 	go func() {
 		e.actionStarted()
-		metrics.ActionStarted("unbind")
 		executionContext, err := e.executeApb("unbind", instance.Spec,
 			instance.Context, parameters)
 		defer runtime.Provider.DestroySandbox(

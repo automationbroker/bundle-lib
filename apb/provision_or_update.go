@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/runtime"
+	log "github.com/sirupsen/logrus"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -61,7 +61,6 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 		return fmt.Errorf("Project %s does not exist", ns)
 	}
 
-	metrics.ActionStarted(string(method))
 	executionContext, err := e.executeApb(string(method), instance.Spec,
 		instance.Context, instance.Parameters)
 	defer runtime.Provider.DestroySandbox(

@@ -21,8 +21,9 @@ import (
 
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/config"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/config"
+	log "github.com/sirupsen/logrus"
 )
 
 // SecretsConfig - Entry for a secret config block in broker config

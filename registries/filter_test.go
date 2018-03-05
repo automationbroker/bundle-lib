@@ -24,7 +24,8 @@ import (
 
 	yaml "gopkg.in/yaml.v1"
 
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
+	log "github.com/sirupsen/logrus"
+	ft "github.com/stretchr/testify/assert"
 )
 
 const testWhitelistFile = "whitelist.yaml"
@@ -39,8 +40,8 @@ func testGetRegexFromFile(file string) []string {
 	}
 
 	filePath := strings.Join([]string{
-		gopath, "src", "github.com", "openshift",
-		"ansible-service-broker", "pkg", "registries", "testdata", file,
+		gopath, "src", "github.com", "automationbroker",
+		"bundle-lib", "registries", "testdata", file,
 	}, "/")
 	contents, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -122,9 +123,9 @@ func TestOnlyBlacklist(t *testing.T) {
 	validNames, filteredNames := filter.Run(testNames())
 
 	expectedTotal := append(expectedValidNames, expectedFilteredNames...)
-	ft.AssertTrue(t, testSetEq(expectedValidNames, validNames))
-	ft.AssertTrue(t, testSetEq(expectedFilteredNames, filteredNames))
-	ft.AssertTrue(t, testSetEq(expectedTotal, testNames()))
+	ft.True(t, testSetEq(expectedValidNames, validNames))
+	ft.True(t, testSetEq(expectedFilteredNames, filteredNames))
+	ft.True(t, testSetEq(expectedTotal, testNames()))
 }
 
 func TestOnlyWhitelist(t *testing.T) {
@@ -152,9 +153,9 @@ func TestOnlyWhitelist(t *testing.T) {
 	validNames, filteredNames := filter.Run(testNames())
 
 	expectedTotal := append(expectedValidNames, expectedFilteredNames...)
-	ft.AssertTrue(t, testSetEq(expectedValidNames, validNames))
-	ft.AssertTrue(t, testSetEq(expectedFilteredNames, filteredNames))
-	ft.AssertTrue(t, testSetEq(expectedTotal, testNames()))
+	ft.True(t, testSetEq(expectedValidNames, validNames))
+	ft.True(t, testSetEq(expectedFilteredNames, filteredNames))
+	ft.True(t, testSetEq(expectedTotal, testNames()))
 }
 
 func TestEmptyWhitelist(t *testing.T) {
@@ -180,9 +181,9 @@ func TestEmptyWhitelist(t *testing.T) {
 	validNames, filteredNames := filter.Run(testNames())
 
 	expectedTotal := append(expectedValidNames, expectedFilteredNames...)
-	ft.AssertTrue(t, testSetEq(expectedValidNames, validNames))
-	ft.AssertTrue(t, testSetEq(expectedFilteredNames, filteredNames))
-	ft.AssertTrue(t, testSetEq(expectedTotal, testNames()))
+	ft.True(t, testSetEq(expectedValidNames, validNames))
+	ft.True(t, testSetEq(expectedFilteredNames, filteredNames))
+	ft.True(t, testSetEq(expectedTotal, testNames()))
 }
 
 func TestBlackAndWhitelistOverride(t *testing.T) {
@@ -214,9 +215,9 @@ func TestBlackAndWhitelistOverride(t *testing.T) {
 	validNames, filteredNames := filter.Run(testNames())
 
 	expectedTotal := append(expectedValidNames, expectedFilteredNames...)
-	ft.AssertTrue(t, testSetEq(expectedValidNames, validNames))
-	ft.AssertTrue(t, testSetEq(expectedFilteredNames, filteredNames))
-	ft.AssertTrue(t, testSetEq(expectedTotal, testNames()))
+	ft.True(t, testSetEq(expectedValidNames, validNames))
+	ft.True(t, testSetEq(expectedFilteredNames, filteredNames))
+	ft.True(t, testSetEq(expectedTotal, testNames()))
 }
 
 func TestBlackAndWhitelistNoOverride(t *testing.T) {
@@ -247,9 +248,9 @@ func TestBlackAndWhitelistNoOverride(t *testing.T) {
 	validNames, filteredNames := filter.Run(testNames())
 
 	expectedTotal := append(expectedValidNames, expectedFilteredNames...)
-	ft.AssertTrue(t, testSetEq(expectedValidNames, validNames))
-	ft.AssertTrue(t, testSetEq(expectedFilteredNames, filteredNames))
-	ft.AssertTrue(t, testSetEq(expectedTotal, testNames()))
+	ft.True(t, testSetEq(expectedValidNames, validNames))
+	ft.True(t, testSetEq(expectedFilteredNames, filteredNames))
+	ft.True(t, testSetEq(expectedTotal, testNames()))
 }
 
 func TestOnlyWhitelistWithEmptyString(t *testing.T) {
@@ -280,7 +281,7 @@ func TestOnlyWhitelistWithEmptyString(t *testing.T) {
 	log.Debugf("validNames: %#v", validNames)
 	log.Debugf("filteredNames: %#v", filteredNames)
 	log.Debugf("expectedTotal: %#v", expectedTotal)
-	ft.AssertTrue(t, testSetEq(nil, validNames))
-	ft.AssertTrue(t, testSetEq(expectedFilteredNames, filteredNames))
-	ft.AssertTrue(t, testSetEq(expectedTotal, testNames()))
+	ft.True(t, testSetEq(nil, validNames))
+	ft.True(t, testSetEq(expectedFilteredNames, filteredNames))
+	ft.True(t, testSetEq(expectedTotal, testNames()))
 }

@@ -19,10 +19,10 @@ package adapters
 import (
 	"testing"
 
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
+	ft "github.com/stretchr/testify/assert"
 )
 
 func TestDockerhubName(t *testing.T) {
 	dha := DockerHubAdapter{}
-	ft.AssertEqual(t, dha.RegistryName(), "docker.io", "dockerhub name does not match docker.io")
+	ft.Equal(t, dha.RegistryName(), "docker.io", "dockerhub name does not match docker.io")
 }

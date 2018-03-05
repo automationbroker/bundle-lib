@@ -17,22 +17,22 @@
 package apb
 
 import (
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/runtime"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Deprovision - runs the abp with the deprovision action.
 func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
-	log.Notice("============================================================")
-	log.Notice("                      DEPROVISIONING                        ")
-	log.Notice("============================================================")
-	log.Noticef("ServiceInstance.Id: %s", instance.Spec.ID)
-	log.Noticef("ServiceInstance.Name: %v", instance.Spec.FQName)
-	log.Noticef("ServiceInstance.Image: %s", instance.Spec.Image)
-	log.Noticef("ServiceInstance.Description: %s", instance.Spec.Description)
-	log.Notice("============================================================")
+	log.Infof("============================================================")
+	log.Infof("                      DEPROVISIONING                        ")
+	log.Infof("============================================================")
+	log.Infof("ServiceInstance.Id: %s", instance.Spec.ID)
+	log.Infof("ServiceInstance.Name: %v", instance.Spec.FQName)
+	log.Infof("ServiceInstance.Image: %s", instance.Spec.Image)
+	log.Infof("ServiceInstance.Description: %s", instance.Spec.Description)
+	log.Infof("============================================================")
 
 	go func() {
 		e.actionStarted()
@@ -45,7 +45,6 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 		}
 
 		// Might need to change up this interface to feed in instance ids
-		metrics.ActionStarted("deprovision")
 		executionContext, err := e.executeApb("deprovision", instance.Spec,
 			instance.Context, instance.Parameters)
 		defer runtime.Provider.DestroySandbox(

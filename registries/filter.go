@@ -19,6 +19,8 @@ package registries
 import (
 	"regexp"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type filterMode uint8

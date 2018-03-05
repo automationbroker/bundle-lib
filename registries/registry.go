@@ -27,20 +27,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/openshift/ansible-service-broker/pkg/apb"
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/config"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
-	"github.com/openshift/ansible-service-broker/pkg/registries/adapters"
+	"github.com/automationbroker/bundle-lib/apb"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/registries/adapters"
+	"github.com/automationbroker/config"
+	log "github.com/sirupsen/logrus"
 
-	logutil "github.com/openshift/ansible-service-broker/pkg/util/logging"
-	"github.com/openshift/ansible-service-broker/pkg/version"
 	yaml "gopkg.in/yaml.v1"
 )
 
 var regex = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*`)
-
-var log = logutil.NewLog()
 
 // Config - Configuration for the registry
 type Config struct {
@@ -150,9 +146,8 @@ func (r Registry) LoadSpecs() ([]*apb.Spec, int, error) {
 			"%d specs of %d discovered specs failed validation from registry: %s",
 			failedSpecsCount, len(specs), r.adapter.RegistryName())
 	} else {
-		log.Notice("All specs passed validation!")
+		log.Infof("All specs passed validation!")
 	}
-	metrics.SpecsLoaded(r.RegistryName(), len(validatedSpecs))
 
 	return validatedSpecs, len(imageNames), nil
 }
@@ -224,15 +219,15 @@ func NewRegistry(con *config.Config, asbNamespace string) (Registry, error) {
 
 	switch strings.ToLower(configuration.Type) {
 	case "rhcc":
-		adapter = &adapters.RHCCAdapter{Config: c, Log: log}
+		adapter = &adapters.RHCCAdapter{Config: c}
 	case "dockerhub":
-		adapter = &adapters.DockerHubAdapter{Config: c, Log: log}
+		adapter = &adapters.DockerHubAdapter{Config: c}
 	case "mock":
-		adapter = &adapters.MockAdapter{Config: c, Log: log}
+		adapter = &adapters.MockAdapter{Config: c}
 	case "openshift":
-		adapter = &adapters.OpenShiftAdapter{Config: c, Log: log}
+		adapter = &adapters.OpenShiftAdapter{Config: c}
 	case "local_openshift":
-		adapter = &adapters.LocalOpenShiftAdapter{Config: c, Log: log}
+		adapter = &adapters.LocalOpenShiftAdapter{Config: c}
 	default:
 		panic("Unknown registry")
 	}
@@ -316,22 +311,22 @@ func validateSpecs(inSpecs []*apb.Spec) []*apb.Spec {
 
 func validateSpecFormat(spec *apb.Spec) (bool, string) {
 	// Specs must have compatible version
-	if !isCompatibleVersion(spec.Version, version.MinAPBVersion, version.MaxAPBVersion) {
+	if !isCompatibleVersion(spec.Version, "1.0", "1.0") {
 		return false, fmt.Sprintf(
 			"APB Spec version [%v] out of bounds %v <= %v",
 			spec.Version,
-			version.MinAPBVersion,
-			version.MaxAPBVersion,
+			"1.0",
+			"1.0",
 		)
 	}
 
 	// Specs must have compatible runtime version
-	if !isCompatibleRuntime(spec.Runtime, version.MinRuntimeVersion, version.MaxRuntimeVersion) {
+	if !isCompatibleRuntime(spec.Runtime, 1, 2) {
 		return false, fmt.Sprintf(
 			"APB Runtime version [%v] out of bounds %v <= %v",
 			spec.Runtime,
-			version.MinRuntimeVersion,
-			version.MaxRuntimeVersion,
+			1,
+			2,
 		)
 	}
 

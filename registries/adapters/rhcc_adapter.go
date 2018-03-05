@@ -23,14 +23,13 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	logging "github.com/op/go-logging"
-	"github.com/openshift/ansible-service-broker/pkg/apb"
+	"github.com/automationbroker/bundle-lib/apb"
+	log "github.com/sirupsen/logrus"
 )
 
 // RHCCAdapter - Red Hat Container Catalog Registry
 type RHCCAdapter struct {
 	Config Configuration
-	Log    *logging.Logger
 }
 
 // RHCCImage - RHCC Registry Image that is returned from the RHCC Catalog api.
@@ -73,13 +72,13 @@ func (r RHCCAdapter) GetImageNames() ([]string, error) {
 
 // FetchSpecs - retrieve the spec from the image names
 func (r RHCCAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
-	r.Log.Debug("RHCCAdapter::FetchSpecs")
+	log.Debug("RHCCAdapter::FetchSpecs")
 	specs := []*apb.Spec{}
 	for _, imageName := range imageNames {
-		r.Log.Debug("%v", imageName)
+		log.Debug("%v", imageName)
 		spec, err := r.loadSpec(imageName)
 		if err != nil {
-			r.Log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
+			log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
 		}
 		if spec != nil {
 			specs = append(specs, spec)
@@ -90,8 +89,8 @@ func (r RHCCAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
 
 // LoadImages - Get all the images for a particular query
 func (r RHCCAdapter) loadImages(Query string) (RHCCImageResponse, error) {
-	r.Log.Debug("RHCCRegistry::LoadImages")
-	r.Log.Debug("Using " + r.Config.URL.String() + " to source APB images using query:" + Query)
+	log.Debug("RHCCRegistry::LoadImages")
+	log.Debug("Using " + r.Config.URL.String() + " to source APB images using query:" + Query)
 	req, err := http.NewRequest("GET",
 		fmt.Sprintf("%v/v1/search?q=%v", r.Config.URL.String(), Query), nil)
 	if err != nil {
@@ -114,13 +113,13 @@ func (r RHCCAdapter) loadImages(Query string) (RHCCImageResponse, error) {
 	if err != nil {
 		return RHCCImageResponse{}, err
 	}
-	r.Log.Debug("Properly unmarshalled image response")
+	log.Debug("Properly unmarshalled image response")
 
 	return imageResp, nil
 }
 
 func (r RHCCAdapter) loadSpec(imageName string) (*apb.Spec, error) {
-	r.Log.Debug("RHCCAdapter::LoadSpec")
+	log.Debug("RHCCAdapter::LoadSpec")
 	if r.Config.Tag == "" {
 		r.Config.Tag = "latest"
 	}
@@ -130,5 +129,5 @@ func (r RHCCAdapter) loadSpec(imageName string) (*apb.Spec, error) {
 		return nil, err
 	}
 
-	return imageToSpec(r.Log, req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
+	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
 }

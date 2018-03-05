@@ -17,29 +17,27 @@
 package apb
 
 import (
-	"fmt"
+	"github.com/automationbroker/bundle-lib/clients"
+	"github.com/automationbroker/bundle-lib/runtime"
 
-	"github.com/openshift/ansible-service-broker/pkg/clients"
-	"github.com/openshift/ansible-service-broker/pkg/metrics"
-	"github.com/openshift/ansible-service-broker/pkg/runtime"
+	log "github.com/sirupsen/logrus"
 )
 
 // Bind - Will run the APB with the bind action.
 func (e *executor) Bind(
 	instance *ServiceInstance, parameters *Parameters, bindingID string,
 ) <-chan StatusMessage {
-	log.Notice("============================================================")
-	log.Notice("                       BINDING                              ")
-	log.Notice("============================================================")
-	log.Notice(fmt.Sprintf("ServiceInstance.ID: %s", instance.Spec.ID))
-	log.Notice(fmt.Sprintf("ServiceInstance.Name: %v", instance.Spec.FQName))
-	log.Notice(fmt.Sprintf("ServiceInstance.Image: %s", instance.Spec.Image))
-	log.Notice(fmt.Sprintf("ServiceInstance.Description: %s", instance.Spec.Description))
-	log.Notice("============================================================")
+	log.Info("============================================================")
+	log.Info("                       BINDING                              ")
+	log.Info("============================================================")
+	log.Infof("ServiceInstance.ID: %s", instance.Spec.ID)
+	log.Infof("ServiceInstance.Name: %v", instance.Spec.FQName)
+	log.Infof("ServiceInstance.Image: %s", instance.Spec.Image)
+	log.Infof("ServiceInstance.Description: %s", instance.Spec.Description)
+	log.Infof("============================================================")
 
 	go func() {
 		e.actionStarted()
-		metrics.ActionStarted("bind")
 		executionContext, err := e.executeApb(
 			"bind", instance.Spec, instance.Context, parameters)
 		defer runtime.Provider.DestroySandbox(

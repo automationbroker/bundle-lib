@@ -23,8 +23,8 @@ import (
 	"reflect"
 	"testing"
 
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
 	"github.com/pborman/uuid"
+	ft "github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -179,14 +179,19 @@ func TestSpecLoadJSON(t *testing.T) {
 		panic(err)
 	}
 
-	ft.AssertEqual(t, s.Description, SpecDescription)
-	ft.AssertEqual(t, s.FQName, SpecName)
-	ft.AssertEqual(t, s.Version, SpecVersion)
-	ft.AssertEqual(t, s.Runtime, SpecRuntime)
-	ft.AssertEqual(t, s.Image, SpecImage)
-	ft.AssertEqual(t, s.Bindable, SpecBindable)
-	ft.AssertEqual(t, s.Async, SpecAsync)
-	ft.AssertTrue(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
+	ft.Equal(t, s.Description, SpecDescription)
+	ft.Equal(t, s.FQName, SpecName)
+	ft.Equal(t, s.Version, SpecVersion)
+	ft.Equal(t, s.Runtime, SpecRuntime)
+	ft.Equal(t, s.Image, SpecImage)
+	ft.Equal(t, s.Bindable, SpecBindable)
+	ft.Equal(t, s.Async, SpecAsync)
+	ft.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
+}
+
+func EncodedApb() string {
+	apb := `bmFtZTogbWVkaWF3aWtpMTIzLWFwYgppbWFnZTogYW5zaWJsZXBsYXlib29rYnVuZGxlL21lZGlhd2lraTEyMy1hcGIKZGVzY3JpcHRpb246ICJNZWRpYXdpa2kxMjMgYXBiIGltcGxlbWVudGF0aW9uIgpiaW5kYWJsZTogZmFsc2UKYXN5bmM6IG9wdGlvbmFsCm1ldGFkYXRhOgogIGRpc3BsYXluYW1lOiAiUmVkIEhhdCBNZWRpYXdpa2kiCiAgbG9uZ0Rlc2NyaXB0aW9uOiAiQW4gYXBiIHRoYXQgZGVwbG95cyBNZWRpYXdpa2kgMS4yMyIKICBpbWFnZVVSTDogImh0dHBzOi8vdXBsb2FkLndpa2ltZWRpYS5vcmcvd2lraXBlZGlhL2NvbW1vbnMvMC8wMS9NZWRpYVdpa2ktc21hbGxlci1sb2dvLnBuZyIKICBkb2N1bWVudGF0aW9uVVJMOiAiaHR0cHM6Ly93d3cubWVkaWF3aWtpLm9yZy93aWtpL0RvY3VtZW50YXRpb24iCnBsYW5zOgogIC0gbmFtZTogZGV2CiAgICBkZXNjcmlwdGlvbjogIk1lZGlhd2lraTEyMyBhcGIgaW1wbGVtZW50YXRpb24iCiAgICBmcmVlOiB0cnVlCiAgICBiaW5kYWJsZTogdHJ1ZQogICAgbWV0YWRhdGE6CiAgICAgIGRpc3BsYXlOYW1lOiBEZXZlbG9wbWVudAogICAgICBsb25nRGVzY3JpcHRpb246IEJhc2ljIGRldmVsb3BtZW50IHBsYW4KICAgICAgY29zdDogJDAuMDAKICAgIHBhcmFtZXRlcnM6CiAgICAgIC0gbmFtZTogbWVkaWF3aWtpX2RiX3NjaGVtYQogICAgICAgIHRpdGxlOiBNZWRpYXdpa2kgREIgU2NoZW1hCiAgICAgICAgdHlwZTogc3RyaW5nCiAgICAgICAgZGVmYXVsdDogbWVkaWF3aWtpCiAgICAgICAgcmVxdWlyZWQ6IHRydWUKICAgICAgLSBuYW1lOiBtZWRpYXdpa2lfc2l0ZV9uYW1lCiAgICAgICAgdGl0bGU6IE1lZGlhd2lraSBTaXRlIE5hbWUKICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICBkZWZhdWx0OiBNZWRpYVdpa2kKICAgICAgICByZXF1aXJlZDogdHJ1ZQogICAgICAtIG5hbWU6IG1lZGlhd2lraV9zaXRlX2xhbmcKICAgICAgICB0aXRsZTogTWVkaWF3aWtpIFNpdGUgTGFuZ3VhZ2UKICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICBkZWZhdWx0OiBlbgogICAgICAgIHJlcXVpcmVkOiB0cnVlCiAgICAgIC0gbmFtZTogbWVkaWF3aWtpX2FkbWluX3VzZXIKICAgICAgICB0aXRsZTogTWVkaWF3aWtpIEFkbWluIFVzZXIKICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICBkZWZhdWx0OiBhZG1pbgogICAgICAgIHJlcXVpcmVkOiB0cnVlCiAgICAgIC0gbmFtZTogbWVkaWF3aWtpX2FkbWluX3Bhc3MKICAgICAgICB0aXRsZTogTWVkaWF3aWtpIEFkbWluIFVzZXIgUGFzc3dvcmQKICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICByZXF1aXJlZDogdHJ1ZQogICAgYmluZF9wYXJhbWV0ZXJzOgogICAgICAtIG5hbWU6IGJpbmRfcGFyYW1fMQogICAgICAgIHRpdGxlOiBCaW5kIFBhcmFtIDEKICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICByZXF1aXJlZDogdHJ1ZQogICAgICAtIG5hbWU6IGJpbmRfcGFyYW1fMgogICAgICAgIHRpdGxlOiBCaW5kIFBhcmFtIDIKICAgICAgICB0eXBlOiBpbnQKICAgICAgICByZXF1aXJlZDogdHJ1ZQogICAgICAtIG5hbWU6IGJpbmRfcGFyYW1fMwogICAgICAgIHRpdGxlOiBCaW5kIFBhcmFtIDMKICAgICAgICB0eXBlOiBzdHJpbmcKCg==`
+	return apb
 }
 
 func TestSpecDumpJSON(t *testing.T) {
@@ -211,11 +216,11 @@ func TestSpecDumpJSON(t *testing.T) {
 
 	json.Unmarshal([]byte(SpecJSON), &knownMap)
 	json.Unmarshal([]byte(raw), &subjectMap)
-	ft.AssertTrue(t, reflect.DeepEqual(knownMap, subjectMap))
+	ft.True(t, reflect.DeepEqual(knownMap, subjectMap))
 }
 
 func TestEncodedParameters(t *testing.T) {
-	decodedyaml, err := base64.StdEncoding.DecodeString(ft.EncodedApb())
+	decodedyaml, err := base64.StdEncoding.DecodeString(EncodedApb())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,20 +230,20 @@ func TestEncodedParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("%#v", spec)
-	ft.AssertEqual(t, spec.FQName, "mediawiki123-apb")
-	ft.AssertEqual(t, len(spec.Plans[0].Parameters), 5)
+	ft.Equal(t, spec.FQName, "mediawiki123-apb")
+	ft.Equal(t, len(spec.Plans[0].Parameters), 5)
 
 	// picking something other than the first one
 	sitelang := spec.Plans[0].Parameters[2] // mediawiki_site_lang
 
-	ft.AssertEqual(t, sitelang.Name, "mediawiki_site_lang")
-	ft.AssertEqual(t, sitelang.Title, "Mediawiki Site Language")
-	ft.AssertEqual(t, sitelang.Type, "string")
-	ft.AssertEqual(t, sitelang.Description, "")
-	ft.AssertEqual(t, sitelang.Default, "en")
-	ft.AssertEqual(t, sitelang.DeprecatedMaxlength, 0)
-	ft.AssertEqual(t, sitelang.Pattern, "")
-	ft.AssertEqual(t, len(sitelang.Enum), 0)
+	ft.Equal(t, sitelang.Name, "mediawiki_site_lang")
+	ft.Equal(t, sitelang.Title, "Mediawiki Site Language")
+	ft.Equal(t, sitelang.Type, "string")
+	ft.Equal(t, sitelang.Description, "")
+	ft.Equal(t, sitelang.Default, "en")
+	ft.Equal(t, sitelang.DeprecatedMaxlength, 0)
+	ft.Equal(t, sitelang.Pattern, "")
+	ft.Equal(t, len(sitelang.Enum), 0)
 }
 
 func TestBindInstanceUserParamsNil(t *testing.T) {
@@ -247,7 +252,7 @@ func TestBindInstanceUserParamsNil(t *testing.T) {
 		ServiceID: uuid.NewUUID(),
 	}
 	up := a.UserParameters()
-	ft.AssertTrue(t, up == nil)
+	ft.True(t, up == nil)
 }
 
 func TestBindInstanceUserParams(t *testing.T) {
@@ -265,12 +270,12 @@ func TestBindInstanceUserParams(t *testing.T) {
 	up := a.UserParameters()
 
 	// Make sure the "foo" key is still included
-	ft.AssertTrue(t, up["foo"] == "bar")
+	ft.True(t, up["foo"] == "bar")
 
 	// Make sure all of these got filtered out
 	for _, key := range []string{"cluster", "namespace", "_apb_provision_creds"} {
 		_, ok := up[key]
-		ft.AssertFalse(t, ok)
+		ft.False(t, ok)
 	}
 
 }
@@ -286,8 +291,8 @@ func TestBindInstanceEqual(t *testing.T) {
 		ServiceID:  a.ServiceID,
 		Parameters: &Parameters{"foo": "bar"},
 	}
-	ft.AssertTrue(t, a.IsEqual(&b))
-	ft.AssertTrue(t, b.IsEqual(&a))
+	ft.True(t, a.IsEqual(&b))
+	ft.True(t, b.IsEqual(&a))
 }
 
 func TestBindInstanceNotEqual(t *testing.T) {

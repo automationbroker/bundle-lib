@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	"github.com/openshift/ansible-service-broker/pkg/origin/copy/user/validation"
+	"github.com/automationbroker/bundle-lib/origin/copy/user/validation"
 )
 
 // reconcileProtectAnnotation is the name of an annotation which prevents reconciliation if set to "true"

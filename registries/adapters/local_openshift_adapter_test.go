@@ -19,10 +19,10 @@ package adapters
 import (
 	"testing"
 
-	ft "github.com/openshift/ansible-service-broker/pkg/fusortest"
+	ft "github.com/stretchr/testify/assert"
 )
 
 func TestLocalOpenshiftName(t *testing.T) {
 	loa := LocalOpenShiftAdapter{}
-	ft.AssertEqual(t, loa.RegistryName(), "openshift-registry", "local_openshift name does not match openshift-registry")
+	ft.Equal(t, loa.RegistryName(), "openshift-registry", "local_openshift name does not match openshift-registry")
 }

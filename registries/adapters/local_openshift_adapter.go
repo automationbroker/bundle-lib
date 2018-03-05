@@ -19,9 +19,9 @@ package adapters
 import (
 	"strings"
 
-	logging "github.com/op/go-logging"
-	"github.com/openshift/ansible-service-broker/pkg/apb"
-	"github.com/openshift/ansible-service-broker/pkg/clients"
+	"github.com/automationbroker/bundle-lib/apb"
+	"github.com/automationbroker/bundle-lib/clients"
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,7 +31,6 @@ const localOpenShiftName = "openshift-registry"
 // LocalOpenShiftAdapter - Docker Hub Adapter
 type LocalOpenShiftAdapter struct {
 	Config Configuration
-	Log    *logging.Logger
 }
 
 // RegistryName - Retrieve the registry name
@@ -41,18 +40,18 @@ func (r LocalOpenShiftAdapter) RegistryName() string {
 
 // GetImageNames - retrieve the images
 func (r LocalOpenShiftAdapter) GetImageNames() ([]string, error) {
-	r.Log.Debug("LocalOpenShiftAdapter::GetImageNames")
-	r.Log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
+	log.Debug("LocalOpenShiftAdapter::GetImageNames")
+	log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
 
 	openshiftClient, err := clients.Openshift()
 	if err != nil {
-		r.Log.Errorf("Failed to instantiate OpenShift client")
+		log.Errorf("Failed to instantiate OpenShift client")
 		return nil, err
 	}
 
 	images, err := openshiftClient.ListRegistryImages()
 	if err != nil {
-		r.Log.Errorf("Failed to load registry images")
+		log.Errorf("Failed to load registry images")
 		return nil, err
 	}
 
@@ -61,49 +60,49 @@ func (r LocalOpenShiftAdapter) GetImageNames() ([]string, error) {
 
 // FetchSpecs - retrieve the spec for the image names.
 func (r LocalOpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
-	r.Log.Debug("LocalOpenShiftAdapter::FetchSpecs")
+	log.Debug("LocalOpenShiftAdapter::FetchSpecs")
 	specList := []*apb.Spec{}
 	registryIP, err := r.getServiceIP("docker-registry", "default")
 	if err != nil {
-		r.Log.Errorf("Failed get docker-registry service information.")
+		log.Errorf("Failed get docker-registry service information.")
 		return nil, err
 	}
 
 	openshiftClient, err := clients.Openshift()
 	if err != nil {
-		r.Log.Errorf("Failed to instantiate OpenShift client.")
+		log.Errorf("Failed to instantiate OpenShift client.")
 		return nil, err
 	}
 
 	fqImages, err := openshiftClient.ConvertRegistryImagesToSpecs(imageNames)
 	if err != nil {
-		r.Log.Errorf("Failed to load registry images")
+		log.Errorf("Failed to load registry images")
 		return nil, err
 	}
 
 	for _, image := range fqImages {
 		spec, err := r.loadSpec(image.DecodedSpec)
 		if err != nil {
-			r.Log.Errorf("Failed to load image spec")
+			log.Errorf("Failed to load image spec")
 			continue
 		}
-		spec.Runtime, err = getAPBRuntimeVersion(r.Log, image.Runtime)
+		spec.Runtime, err = getAPBRuntimeVersion(image.Runtime)
 		if err != nil {
-			r.Log.Errorf("Failed to parse image runtime version")
+			log.Errorf("Failed to parse image runtime version")
 			continue
 		}
 		if strings.HasPrefix(image.Name, registryIP) == false {
-			r.Log.Debugf("Image does not have a registry IP as prefix. This might cause problems but not erroring out.")
+			log.Debugf("Image does not have a registry IP as prefix. This might cause problems but not erroring out.")
 		}
 		if r.Config.Namespaces == nil {
-			r.Log.Debugf("Namespace not set. Assuming `openshift`")
+			log.Debugf("Namespace not set. Assuming `openshift`")
 			r.Config.Namespaces = append(r.Config.Namespaces, "openshift")
 		}
 		spec.Image = image.Name
 		nsList := strings.Split(image.Name, "/")
 		var namespace string
 		if len(nsList) == 0 {
-			r.Log.Errorf("Image [%v] is not in the proper format. Erroring.", image.Name)
+			log.Errorf("Image [%v] is not in the proper format. Erroring.", image.Name)
 			continue
 		} else if len(nsList) < 3 {
 			// Image does not have any registry prefix. May be a product of S2I
@@ -117,12 +116,12 @@ func (r LocalOpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, err
 			// logging to warn users about the potential bug if
 			// the svc-acct does not have access to the namespace.
 			if ns != "openshift" {
-				r.Log.Warningf("You may not be able to load provision images from the namespace: %v.\n"+
+				log.Warningf("You may not be able to load provision images from the namespace: %v.\n"+
 					"You should make sure that the namespace has given the permissions for the "+
 					"system:authenticated group.", ns)
 			}
 			if ns == namespace {
-				r.Log.Debugf("Image [%v] is in configured namespace [%v]. Adding to SpecList.", image.Name, ns)
+				log.Debugf("Image [%v] is in configured namespace [%v]. Adding to SpecList.", image.Name, ns)
 				specList = append(specList, spec)
 			}
 		}
@@ -132,12 +131,12 @@ func (r LocalOpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, err
 }
 
 func (r LocalOpenShiftAdapter) loadSpec(yamlSpec []byte) (*apb.Spec, error) {
-	r.Log.Debug("LocalOpenShiftAdapter::LoadSpec")
+	log.Debug("LocalOpenShiftAdapter::LoadSpec")
 	spec := &apb.Spec{}
 
 	err := yaml.Unmarshal(yamlSpec, spec)
 	if err != nil {
-		r.Log.Errorf("Something went wrong loading decoded spec yaml, %s", err)
+		log.Errorf("Something went wrong loading decoded spec yaml, %s", err)
 		return nil, err
 	}
 	return spec, nil
@@ -151,10 +150,10 @@ func (r LocalOpenShiftAdapter) getServiceIP(service string, namespace string) (s
 
 	serviceData, err := k8s.Client.CoreV1().Services(namespace).Get(service, meta_v1.GetOptions{})
 	if err != nil {
-		r.Log.Warningf("Unable to load service '%s' from namespace '%s'", service, namespace)
+		log.Warningf("Unable to load service '%s' from namespace '%s'", service, namespace)
 		return "", err
 	}
-	r.Log.Debugf("Found service with name %v", service)
+	log.Debugf("Found service with name %v", service)
 
 	return serviceData.Spec.ClusterIP, nil
 }

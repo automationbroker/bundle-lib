@@ -25,9 +25,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/automationbroker/config"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/version"
-	"github.com/openshift/ansible-service-broker/pkg/config"
+	log "github.com/sirupsen/logrus"
 
 	etcd "github.com/coreos/etcd/client"
 )

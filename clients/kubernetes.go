@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -253,7 +254,7 @@ func (k KubernetesClient) CreateRoleBinding(
 	targetNamespace string,
 	roleRef rbac.RoleRef) error {
 
-	log.Noticef("Creating RoleBinding %s", roleBindingName)
+	log.Infof("Creating RoleBinding %s", roleBindingName)
 	roleBinding := &rbac.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      roleBindingName,

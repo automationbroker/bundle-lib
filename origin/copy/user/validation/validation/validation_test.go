@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	userapi "github.com/openshift/ansible-service-broker/pkg/origin/copy/user"
+	userapi "github.com/automationbroker/bundle-lib/origin/copy/user"
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
