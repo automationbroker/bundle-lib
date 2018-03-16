@@ -66,7 +66,7 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			e.actionFinishedWithError(err)
 			return
 		}
-		err = watchPod(executionContext.PodName, executionContext.Namespace,
+		err = runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
 			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
 		if err != nil {
 			log.Errorf("Deprovision action failed - %v", err)

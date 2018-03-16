@@ -61,7 +61,7 @@ func (e *executor) Bind(
 		}
 
 		if instance.Spec.Runtime >= 2 {
-			err := watchPod(executionContext.PodName, executionContext.Namespace,
+			err := runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
 				k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
 			if err != nil {
 				log.Errorf("Bind action failed - %v", err)
