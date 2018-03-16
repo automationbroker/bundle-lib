@@ -44,7 +44,7 @@ var (
 
 // KubernetesClient - Client to interact with Kubernetes API
 type KubernetesClient struct {
-	Client       *clientset.Clientset
+	Client       clientset.Interface
 	ClientConfig *rest.Config
 }
 
