@@ -1,4 +1,4 @@
-package apb
+package runtime
 
 import (
 	"testing"
@@ -164,7 +164,7 @@ func TestWatchPod(t *testing.T) {
 			done := make(chan bool)
 
 			go func() {
-				watchErr = watchPod("test", "test", podClient, func(d string) {
+				watchErr = WatchPod("test", "test", podClient, func(d string) {
 					fmt.Printf("NSK: got d -> %v\n", d)
 					descriptions = append(descriptions, d)
 				})

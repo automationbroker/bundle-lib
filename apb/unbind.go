@@ -60,7 +60,7 @@ func (e *executor) Unbind(
 			return
 		}
 
-		err = watchPod(executionContext.PodName, executionContext.Namespace,
+		err = runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
 			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
 		if err != nil {
 			log.Errorf("Unbind action failed - %v", err)

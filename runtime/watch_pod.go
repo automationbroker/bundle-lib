@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package apb
+package runtime
 
 import (
 	"fmt"
@@ -35,12 +35,12 @@ var (
 	ErrorActionNotFound = fmt.Errorf("action not found")
 )
 
-type updateDescriptionFn func(string)
+// UpdateDescriptionFn function that will should handle the LastDescription from the bundle.
+type UpdateDescriptionFn func(string)
 
-func watchPod(
-	podName string, namespace string, podClient v1.PodInterface,
-	updateDescription updateDescriptionFn,
-) error {
+// WatchPod - watches the pod until completion and will update the last
+// description using the UpdateDescriptionFunction
+func WatchPod(podName string, namespace string, podClient v1.PodInterface, updateFunc UpdateDescriptionFn) error {
 	log.Debugf(
 		"Watching pod [ %s ] in namespace [ %s ] for completion",
 		podName,
@@ -64,7 +64,7 @@ func watchPod(
 
 		lastOp := pod.Annotations["apb_last_operation"]
 		if lastOp != "" {
-			updateDescription(lastOp)
+			updateFunc(lastOp)
 		}
 		podStatus := pod.Status
 		log.Debugf("pod [%s] in phase %s", podName, podStatus.Phase)
