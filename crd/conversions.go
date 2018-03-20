@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/automationbroker/broker-client-go/pkg/apis/automationbroker.io/v1"
 	"github.com/automationbroker/bundle-lib/apb"
 	"github.com/pborman/uuid"
@@ -489,7 +491,7 @@ func convertParametersToAPB(param v1.Parameters) (apb.ParameterDescriptor, error
 func convertJobStateToAPB(js v1.JobStateSpec, id string) (*apb.JobState, error) {
 	return &apb.JobState{
 		Token:       id,
-		State:       convertStateToAPB(js.State),
+		State:       ConvertStateToAPB(js.State),
 		Method:      convertJobMethodToAPB(js.Method),
 		Podname:     js.PodName,
 		Error:       js.Error,
