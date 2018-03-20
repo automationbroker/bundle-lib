@@ -20,10 +20,7 @@ fmtcheck: ## Check go formatting
 	@gofmt -l $(SOURCES) | grep ".*\.go"; if [ "$$?" = "0" ]; then exit 1; fi
 
 test: ## Run unit tests
-	@$(foreach dir,$(SOURCE_DIRS),\
-		pushd $(dir);\
-		go test -cover .;\
-		popd;)
+	@go test -cover $(addprefix ./, $(addsuffix /... , $(SOURCE_DIRS)))
 
 vet: ## Run go vet
 	@$(foreach dir,$(SOURCE_DIRS),\
