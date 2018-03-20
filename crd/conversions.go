@@ -97,7 +97,7 @@ func ConvertBundleToSpec(spec v1.BundleSpec, id string) (*apb.Spec, error) {
 	}, nil
 }
 
-// ConvertServiceInstancetoCRD will take a bundle ServiceInstance and convert
+// ConvertServiceInstanceToCRD will take a bundle ServiceInstance and convert
 // it to a ServiceInstanceSpec CRD type.
 func ConvertServiceInstanceToCRD(si *apb.ServiceInstance) (v1.ServiceInstanceSpec, error) {
 	var b []byte
