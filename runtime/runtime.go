@@ -279,7 +279,7 @@ func (p provider) DestroySandbox(podName string,
 
 	err = k8scli.DeleteRoleBinding(podName, namespace)
 	if err != nil {
-		log.Error("Something went wrong trying to destroy the rolebinding! - %v", err)
+		log.Errorf("Something went wrong trying to destroy the rolebinding! - %v", err)
 		return
 	}
 	log.Infof("Successfully deleted rolebinding %s, namespace %s", podName, namespace)
