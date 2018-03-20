@@ -21,6 +21,7 @@ import (
 
 	"reflect"
 
+	"github.com/automationbroker/bundle-lib/clients"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,9 +55,17 @@ func IsErrorCustomMsg(err error) bool {
 	return ok
 }
 
-// WatchPod - watches the pod until completion and will update the last
+// WatchRunningBundle - watches the pod until completion and will update the last
 // description using the UpdateDescriptionFunction
-func WatchPod(podName string, namespace string, podClient v1.PodInterface, updateFunc UpdateDescriptionFn) error {
+type WatchRunningBundle func(string, string, UpdateDescriptionFn) error
+
+func defaultWatchRunningBundle(podName string, namespace string, podClient v1.PodInterface, updateFunc UpdateDescriptionFn) error {
+	k8scli, err := clients.Kubernetes()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve kubernetes client %v", err)
+	}
+	podClient := k8scli.Client.CoreV1().Pods(namespace)
+
 	log.Debugf(
 		"Watching pod [ %s ] in namespace [ %s ] for completion",
 		podName,
