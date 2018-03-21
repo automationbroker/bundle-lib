@@ -2,9 +2,11 @@ language: go
 go:
   - "1.10.x"
 dist: trusty
+sudo: required
 before_script:
   - "go get -u golang.org/x/lint/golint"
   - "go get -u github.com/golang/dep/cmd/dep"
+  - "sudo mkdir -p /var/run/secrets/kubernetes.io/serviceaccount && sudo touch /var/run/secrets/kubernetes.io/serviceaccount/token"
 script:
   - "make fmtcheck"
   - "make vet"
