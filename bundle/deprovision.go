@@ -14,22 +14,21 @@
 // limitations under the License.
 //
 
-package apb
+package bundle
 
 import (
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-// Unbind - runs the abp with the unbind action.
-func (e *executor) Unbind(
-	instance *ServiceInstance, parameters *Parameters, bindingID string,
-) <-chan StatusMessage {
+// Deprovision - runs the abp with the deprovision action.
+func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 	log.Infof("============================================================")
-	log.Infof("                       UNBINDING                            ")
+	log.Infof("                      DEPROVISIONING                        ")
 	log.Infof("============================================================")
-	log.Infof("ServiceInstance.ID: %s", instance.Spec.ID)
+	log.Infof("ServiceInstance.Id: %s", instance.Spec.ID)
 	log.Infof("ServiceInstance.Name: %v", instance.Spec.FQName)
 	log.Infof("ServiceInstance.Image: %s", instance.Spec.Image)
 	log.Infof("ServiceInstance.Description: %s", instance.Spec.Description)
@@ -37,8 +36,17 @@ func (e *executor) Unbind(
 
 	go func() {
 		e.actionStarted()
-		executionContext, err := e.executeApb("unbind", instance.Spec,
-			instance.Context, parameters)
+		if instance.Spec.Image == "" {
+			log.Error("No image field found on the apb instance.Spec (apb.yaml)")
+			log.Error("apb instance.Spec requires [name] and [image] fields to be separate")
+			log.Error("Are you trying to run a legacy ansibleapp without an image field?")
+			e.actionFinishedWithError(errors.New("No image field found on instance.Spec"))
+			return
+		}
+
+		// Might need to change up this interface to feed in instance ids
+		executionContext, err := e.executeApb("deprovision", instance.Spec,
+			instance.Context, instance.Parameters)
 		defer runtime.Provider.DestroySandbox(
 			executionContext.PodName,
 			executionContext.Namespace,
@@ -48,29 +56,28 @@ func (e *executor) Unbind(
 			clusterConfig.KeepNamespaceOnError,
 		)
 		if err != nil {
-			log.Errorf("Problem executing apb [%s] unbind", executionContext.PodName)
+			log.Errorf("Problem executing apb [%s] deprovision", executionContext.PodName)
 			e.actionFinishedWithError(err)
 			return
 		}
-
 		k8scli, err := clients.Kubernetes()
 		if err != nil {
 			log.Error("Something went wrong getting kubernetes client")
 			e.actionFinishedWithError(err)
 			return
 		}
-
 		err = runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
 			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
 		if err != nil {
-			log.Errorf("Unbind action failed - %v", err)
+			log.Errorf("Deprovision action failed - %v", err)
 			e.actionFinishedWithError(err)
 			return
 		}
-		// Delete the binding extracted credential here.
-		err = runtime.Provider.DeleteExtractedCredential(bindingID, clusterConfig.Namespace)
+		err = runtime.Provider.DeleteExtractedCredential(instance.ID.String(), clusterConfig.Namespace)
 		if err != nil {
-			log.Infof("Unbind failed to delete extracted credential m- %v", err)
+			log.Errorf("unable to delete the extracted credentials - %v", err)
+			e.actionFinishedWithError(err)
+			return
 		}
 
 		e.actionFinishedWithSuccess()

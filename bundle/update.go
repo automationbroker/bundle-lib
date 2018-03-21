@@ -14,17 +14,17 @@
 // limitations under the License.
 //
 
-package apb
+package bundle
 
 import (
 	"github.com/automationbroker/bundle-lib/runtime"
 	log "github.com/sirupsen/logrus"
 )
 
-// Provision - will run the abp with the provision action.
-func (e *executor) Provision(instance *ServiceInstance) <-chan StatusMessage {
+// Update - will run the abp with the provision action.
+func (e *executor) Update(instance *ServiceInstance) <-chan StatusMessage {
 	log.Infof("============================================================")
-	log.Infof("                       PROVISIONING                         ")
+	log.Infof("                       UPDATING                             ")
 	log.Infof("============================================================")
 	log.Infof("Spec.ID: %s", instance.Spec.ID)
 	log.Infof("Spec.Name: %s", instance.Spec.FQName)
@@ -34,23 +34,23 @@ func (e *executor) Provision(instance *ServiceInstance) <-chan StatusMessage {
 
 	go func() {
 		e.actionStarted()
-		err := e.provisionOrUpdate(executionMethodProvision, instance)
+		err := e.provisionOrUpdate(executionMethodUpdate, instance)
 		if err != nil {
-			log.Errorf("Provision APB error: %v", err)
+			log.Errorf("Update APB error: %v", err)
 			e.actionFinishedWithError(err)
 			return
 		}
-		// Provision can not have extracted credentials.
 		if e.extractedCredentials != nil {
-			labels := map[string]string{"apbAction": string(executionMethodProvision), "apbName": instance.Spec.FQName}
-			err := runtime.Provider.CreateExtractedCredential(instance.ID.String(), clusterConfig.Namespace, e.extractedCredentials.Credentials, labels)
+			labels := map[string]string{"apbAction": string(executionMethodUpdate), "apbName": instance.Spec.FQName}
+			err := runtime.Provider.UpdateExtractedCredential(instance.ID.String(), clusterConfig.Namespace, e.extractedCredentials.Credentials, labels)
 			if err != nil {
-				log.Errorf("apb::%v error occurred - %v", executionMethodProvision, err)
+				log.Errorf("apb::%v error occurred - %v", executionMethodUpdate, err)
 				e.actionFinishedWithError(err)
 				return
 			}
 		}
 		e.actionFinishedWithSuccess()
 	}()
+
 	return e.statusChan
 }

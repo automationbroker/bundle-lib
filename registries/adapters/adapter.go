@@ -25,7 +25,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/automationbroker/bundle-lib/apb"
+	"github.com/automationbroker/bundle-lib/bundle"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v1"
 )
@@ -38,12 +38,12 @@ type Adapter interface {
 	// GetImageNames will return all the image names for the adapter configuration.
 	GetImageNames() ([]string, error)
 	// FetchSpecs will retrieve all the specs for the list of images names.
-	FetchSpecs([]string) ([]*apb.Spec, error)
+	FetchSpecs([]string) ([]*bundle.Spec, error)
 }
 
 // BundleSpecLabel - label on the image that we should use to pull out the abp spec.
 // TODO: needs to remain ansibleapp UNTIL we redo the apps in dockerhub
-const BundleSpecLabel = "com.redhat.apb.spec"
+const BundleSpecLabel = "com.redhat.bundle.spec"
 
 // Configuration - Adapter configuration. Contains the info that the adapter
 // would need to complete its request to the images.
@@ -59,9 +59,9 @@ type Configuration struct {
 }
 
 // Retrieve the spec from a registry manifest request
-func imageToSpec(req *http.Request, image string) (*apb.Spec, error) {
+func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 	log.Debug("Registry::imageToSpec")
-	spec := &apb.Spec{}
+	spec := &bundle.Spec{}
 	req.Header.Add("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -71,8 +71,8 @@ func imageToSpec(req *http.Request, image string) (*apb.Spec, error) {
 	defer resp.Body.Close()
 
 	type label struct {
-		Spec    string `json:"com.redhat.apb.spec"`
-		Runtime string `json:"com.redhat.apb.runtime"`
+		Spec    string `json:"com.redhat.bundle.spec"`
+		Runtime string `json:"com.redhat.bundle.runtime"`
 	}
 
 	type config struct {

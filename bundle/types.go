@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package apb
+package bundle
 
 import (
 	"encoding/json"
