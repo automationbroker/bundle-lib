@@ -229,6 +229,19 @@ func ConvertStateToCRD(s apb.State) v1.State {
 	return v1.StateFailed
 }
 
+// ConvertJobStateToAPB will take a CRD JobStateSpec and name and convert to a
+// bundle JobState
+func ConvertJobStateToAPB(js v1.JobStateSpec, id string) (*bundle.JobState, error) {
+	return &bundle.JobState{
+		Token:       id,
+		State:       ConvertStateToAPB(js.State),
+		Method:      convertJobMethodToAPB(js.Method),
+		Podname:     js.PodName,
+		Error:       js.Error,
+		Description: js.Description,
+	}, nil
+}
+
 // ConvertStateToAPB will take a bundle-client-go State type and convert it to a
 // bundle State type.
 func ConvertStateToAPB(s v1.State) apb.State {
@@ -488,18 +501,7 @@ func convertParametersToAPB(param v1.Parameters) (apb.ParameterDescriptor, error
 	}, nil
 }
 
-func convertJobStateToAPB(js v1.JobStateSpec, id string) (*apb.JobState, error) {
-	return &apb.JobState{
-		Token:       id,
-		State:       ConvertStateToAPB(js.State),
-		Method:      convertJobMethodToAPB(js.Method),
-		Podname:     js.PodName,
-		Error:       js.Error,
-		Description: js.Description,
-	}, nil
-}
-
-func convertJobMethodToAPB(j v1.JobMethod) apb.JobMethod {
+func convertJobMethodToAPB(j v1.JobMethod) bundle.JobMethod {
 	switch j {
 	case v1.JobMethodProvision:
 		return apb.JobMethodProvision
