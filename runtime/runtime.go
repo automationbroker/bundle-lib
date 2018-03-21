@@ -36,10 +36,14 @@ var Provider Runtime
 
 // Configuration - The configuration for the runtime
 type Configuration struct {
-	PostCreateSandboxHooks  []PostSandboxCreate
+	// PostCreateSandboxHooks - The sandbox hooks that you would like to run.
+	PostCreateSandboxHooks []PostSandboxCreate
+	// PostDestroySandboxHooks - The sandbox hooks that you would like to run.
 	PostDestroySandboxHooks []PostSandboxDestroy
-	PreCreateSandboxHooks   []PreSandboxCreate
-	PreDestroySandboxHooks  []PreSandboxDestroy
+	// PreCreateSandboxHooks - The sandbox hooks that you would like to run.
+	PreCreateSandboxHooks []PreSandboxCreate
+	// PreDestroySandboxHooks - The sandbox hooks that you would like to run.
+	PreDestroySandboxHooks []PreSandboxDestroy
 	ExtractedCredential
 }
 
