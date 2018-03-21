@@ -5,7 +5,7 @@ dist: trusty
 before_script:
   - "go get -u golang.org/x/lint/golint"
   - "go get -u github.com/golang/dep/cmd/dep"
-  - "touch /var/run/secrects/kubernetes.io/serviceaccount/token"
+  - "mkdir -p /var/run/secrects/kubernetes.io/serviceaccount && touch /var/run/secrects/kubernetes.io/serviceaccount/token"
 script:
   - "make fmtcheck"
   - "make vet"
