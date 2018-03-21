@@ -5,7 +5,13 @@ dist: trusty
 before_script:
   - "go get -u golang.org/x/lint/golint"
   - "go get -u github.com/golang/dep/cmd/dep"
-  - "mkdir -p ~/.kube && touch ~/.kube/config"
+  # setting fake configuration.
+  "kubectl config set-credentials myself --username=admin --password=secret"
+  "kubectl config set-cluster local-server --server=http://localhost:8080"
+  "kubectl config set-context default-context --cluster=local-server --user=myself"
+  "kubectl config use-context default-context"
+  "kubectl config set contexts.default-context.namespace the-right-prefix"
+  "kubectl config view"
 script:
   - "make fmtcheck"
   - "make vet"
