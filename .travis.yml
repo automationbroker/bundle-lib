@@ -5,17 +5,10 @@ dist: trusty
 before_script:
   - "go get -u golang.org/x/lint/golint"
   - "go get -u github.com/golang/dep/cmd/dep"
-  # setting fake configuration.
-  "kubectl config set-credentials myself --username=admin --password=secret"
-  "kubectl config set-cluster local-server --server=http://localhost:8080"
-  "kubectl config set-context default-context --cluster=local-server --user=myself"
-  "kubectl config use-context default-context"
-  "kubectl config set contexts.default-context.namespace the-right-prefix"
-  "kubectl config view"
 script:
   - "make fmtcheck"
   - "make vet"
   - "make lint"
   - "make ensure"
   - "make build"
-  - "make test"
+  - "KUBERNETES_SERVICE_HOST=localhost KUBERNETES_SERVICE_PORT=8000 make test"
