@@ -1,0 +1,10 @@
+language: go
+go:
+  - "1.10.x"
+dist: trusty
+script:
+  - "make fmtcheck"
+  - "make vet"
+  - "make lint"
+  - "make build"
+  - "make test"
