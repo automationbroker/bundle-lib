@@ -58,8 +58,8 @@ type secretsCache struct {
 
 var secrets secretsCache
 
-// GetSecrets - Returns a list of secrets to be attached to a specified spec
-func GetSecrets(spec *Spec) []string {
+// getSecrets - Returns a list of secrets to be attached to a specified spec
+func getSecrets(spec *Spec) []string {
 	secrets.rwSync.RLock()
 	defer secrets.rwSync.RUnlock()
 	keys := []string{}
@@ -122,7 +122,7 @@ func InitializeSecretsCache(secretConfigs []*config.Config) {
 func FilterSecrets(inSpecs []*Spec) ([]*Spec, error) {
 	for _, spec := range inSpecs {
 		log.Debugf("Filtering secrets from spec %v", spec.FQName)
-		for _, secret := range GetSecrets(spec) {
+		for _, secret := range getSecrets(spec) {
 			secretKeys, err := getSecretKeys(secret, clusterConfig.Namespace)
 			if err != nil {
 				return nil, err
