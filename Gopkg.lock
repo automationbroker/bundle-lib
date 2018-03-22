@@ -523,6 +523,7 @@
     "kubernetes/typed/storage/v1beta1/fake",
     "pkg/version",
     "rest",
+    "rest/fake",
     "rest/watch",
     "testing",
     "tools/auth",
@@ -558,6 +559,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7935b7ecdfc2936247e49104bad023ff2bd95cbcd8baeab21e2c9bab4b884860"
+  inputs-digest = "79f9b59d40b7665b54720085f509da88c66b4b351f7218f432da30e8668806cd"
   solver-name = "gps-cdcl"
   solver-version = 1
