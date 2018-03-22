@@ -34,14 +34,25 @@ import (
 // Provider - Variable for accessing provider functions
 var Provider Runtime
 
+// Configuration - The configuration for the runtime
+type Configuration struct {
+	// PostCreateSandboxHooks - The sandbox hooks that you would like to run.
+	PostCreateSandboxHooks []PostSandboxCreate
+	// PostDestroySandboxHooks - The sandbox hooks that you would like to run.
+	PostDestroySandboxHooks []PostSandboxDestroy
+	// PreCreateSandboxHooks - The sandbox hooks that you would like to run.
+	PreCreateSandboxHooks []PreSandboxCreate
+	// PreDestroySandboxHooks - The sandbox hooks that you would like to run.
+	PreDestroySandboxHooks []PreSandboxDestroy
+	ExtractedCredential
+}
+
 // Runtime - Abstraction for broker actions
 type Runtime interface {
 	ValidateRuntime() error
 	GetRuntime() string
 	CreateSandbox(string, string, []string, string) (string, error)
 	DestroySandbox(string, string, []string, string, bool, bool)
-	AddPostCreateSandbox(f PostSandboxCreate)
-	AddPostDestroySandbox(f PostSandboxDestroy)
 	ExtractedCredential
 }
 
@@ -50,7 +61,9 @@ type provider struct {
 	coe
 	ExtractedCredential
 	postSandboxCreate  []PostSandboxCreate
+	preSandboxCreate   []PreSandboxCreate
 	postSandboxDestroy []PostSandboxDestroy
+	preSandboxDestroy  []PreSandboxDestroy
 }
 
 // Abstraction for actions that are different between runtimes
@@ -68,7 +81,7 @@ type kubernetes struct{}
 // be used to do CRUD operations. If you want to use the default pass nil
 // and we will use the built-in default of saving them as secrets in the
 // broker namespace.
-func NewRuntime(extCreds ExtractedCredential) {
+func NewRuntime(config Configuration) {
 	k8scli, err := clients.Kubernetes()
 	if err != nil {
 		log.Error(err.Error())
@@ -98,22 +111,39 @@ func NewRuntime(extCreds ExtractedCredential) {
 	}
 
 	var c ExtractedCredential
-	if extCreds == nil {
+	if config.ExtractedCredential == nil {
 		c = defaultExtractedCredential{}
 	} else {
-		c = extCreds
+		c = config.ExtractedCredential
+	}
+	p := &provider{coe: cluster, ExtractedCredential: c}
+
+	if len(config.PreCreateSandboxHooks) > 0 {
+		p.preSandboxCreate = config.PreCreateSandboxHooks
 	}
 
-	Provider = &provider{coe: cluster, ExtractedCredential: c}
+	if len(config.PostCreateSandboxHooks) > 0 {
+		p.postSandboxCreate = config.PostCreateSandboxHooks
+	}
+
+	if len(config.PreDestroySandboxHooks) > 0 {
+		p.preSandboxDestroy = config.PreDestroySandboxHooks
+	}
+
+	if len(config.PostDestroySandboxHooks) > 0 {
+		p.postSandboxDestroy = config.PostDestroySandboxHooks
+	}
+
 	if ok, postCreateHook, postDestroyHook := cluster.shouldJoinNetworks(); ok {
 		log.Debugf("adding posthook to provider now.")
 		if postCreateHook != nil {
-			Provider.AddPostCreateSandbox(postCreateHook)
+			p.addPostCreateSandbox(postCreateHook)
 		}
 		if postDestroyHook != nil {
-			Provider.AddPostDestroySandbox(postDestroyHook)
+			p.addPostDestroySandbox(postDestroyHook)
 		}
 	}
+	Provider = p
 
 }
 
@@ -158,6 +188,15 @@ func (p provider) CreateSandbox(podName string,
 	targets []string,
 	apbRole string) (string, error) {
 
+	for i, f := range p.preSandboxCreate {
+		log.Debugf("Running pre create sandbox function: %v", i+1)
+		err := f(podName, namespace, targets, apbRole)
+		if err != nil {
+			// Log the error and continue processing hooks. Expect hook to
+			// clean up after itself.
+			log.Warningf("Pre create sandbox function failed with err: %v", err)
+		}
+	}
 	k8scli, err := clients.Kubernetes()
 	if err != nil {
 		return "", err
@@ -247,6 +286,16 @@ func (p provider) DestroySandbox(podName string,
 	keepNamespace bool,
 	keepNamespaceOnError bool) {
 
+	for i, f := range p.preSandboxDestroy {
+		log.Debugf("Running pre sandbox destroy:  %v", i+1)
+		err := f(podName, namespace, targets)
+		if err != nil {
+			// Log the error and continue processing hooks. Expect hook to
+			// clean up after itself.
+			log.Warningf("Pre destroy sandbox function failed with err: %v", err)
+		}
+	}
+
 	log.Info("Destroying APB sandbox...")
 	if podName == "" {
 		log.Info("Requested destruction of APB sandbox with empty handle, skipping.")
@@ -306,7 +355,12 @@ func (p provider) DestroySandbox(podName string,
 	log.Debugf("Running post sandbox destroy hooks")
 	for i, f := range p.postSandboxDestroy {
 		log.Debugf("Running post sandbox destroy:  %v", i+1)
-		f(podName, namespace, targets)
+		err := f(podName, namespace, targets)
+		if err != nil {
+			// Log the error and continue processing hooks. Expect hook to
+			// clean up after itself.
+			log.Warningf("Post destroy sandbox function failed with err: %v", err)
+		}
 	}
 	return
 }
