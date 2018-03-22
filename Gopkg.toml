@@ -25,20 +25,8 @@
   name = "github.com/automationbroker/broker-client-go"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/automationbroker/config"
-
-[[constraint]]
   name = "github.com/coreos/etcd"
-  version = "3.3.1"
-
-[[constraint]]
-  name = "github.com/op/go-logging"
-  version = "1.0.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/openshift/api"
+  version = "~3.3.0"
 
 [[constraint]]
   name = "github.com/pborman/uuid"
@@ -63,23 +51,3 @@
 [[constraint]]
   name = "gopkg.in/yaml.v2"
   version = "2.1.1"
-
-[[constraint]]
-  branch = "master"
-  name = "k8s.io/api"
-
-[[constraint]]
-  branch = "release-1.9"
-  name = "k8s.io/apimachinery"
-
-[[constraint]]
-  branch = "release-1.9"
-  name = "k8s.io/apiserver"
-
-[[constraint]]
-  branch = "release-6.0"
-  name = "k8s.io/client-go"
-
-[[constraint]]
-  name = "k8s.io/kubernetes"
-  version = "1.9.3"
