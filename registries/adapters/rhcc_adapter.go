@@ -59,7 +59,7 @@ func (r RHCCAdapter) RegistryName() string {
 
 // GetImageNames - retrieve the images from the registry
 func (r RHCCAdapter) GetImageNames() ([]string, error) {
-	imageList, err := r.loadImages("\"*-bundle\"")
+	imageList, err := r.loadImages("\"*-apb\"")
 	if err != nil {
 		return nil, err
 	}

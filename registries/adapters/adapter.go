@@ -43,7 +43,7 @@ type Adapter interface {
 
 // BundleSpecLabel - label on the image that we should use to pull out the abp spec.
 // TODO: needs to remain ansibleapp UNTIL we redo the apps in dockerhub
-const BundleSpecLabel = "com.redhat.bundle.spec"
+const BundleSpecLabel = "com.redhat.apb.spec"
 
 // Configuration - Adapter configuration. Contains the info that the adapter
 // would need to complete its request to the images.
@@ -71,7 +71,7 @@ func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 	defer resp.Body.Close()
 
 	type label struct {
-		Spec    string `json:"com.redhat.bundle.spec"`
+		Spec    string `json:"com.redhat.apb.spec"`
 		Runtime string `json:"com.redhat.bundle.runtime"`
 	}
 
