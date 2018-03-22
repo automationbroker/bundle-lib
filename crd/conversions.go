@@ -231,8 +231,8 @@ func ConvertStateToCRD(s apb.State) v1.State {
 
 // ConvertJobStateToAPB will take a CRD JobStateSpec and name and convert to a
 // bundle JobState
-func ConvertJobStateToAPB(js v1.JobStateSpec, id string) (*bundle.JobState, error) {
-	return &bundle.JobState{
+func ConvertJobStateToAPB(js v1.JobStateSpec, id string) (*apb.JobState, error) {
+	return &apb.JobState{
 		Token:       id,
 		State:       ConvertStateToAPB(js.State),
 		Method:      convertJobMethodToAPB(js.Method),
@@ -501,7 +501,7 @@ func convertParametersToAPB(param v1.Parameters) (apb.ParameterDescriptor, error
 	}, nil
 }
 
-func convertJobMethodToAPB(j v1.JobMethod) bundle.JobMethod {
+func convertJobMethodToAPB(j v1.JobMethod) apb.JobMethod {
 	switch j {
 	case v1.JobMethodProvision:
 		return apb.JobMethodProvision
