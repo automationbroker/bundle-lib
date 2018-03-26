@@ -44,13 +44,6 @@ var PlanUpdatesTo = []string{"foo"}
 
 var expectedPlanParameters = []ParameterDescriptor{
 	ParameterDescriptor{
-		Name:      "mediawiki_db_schema",
-		Title:     "Mediawiki DB Schema",
-		Type:      "string",
-		Default:   "mediawiki",
-		Updatable: false,
-		Required:  true},
-	ParameterDescriptor{
 		Name:      "mediawiki_site_name",
 		Title:     "Mediawiki Site Name",
 		Type:      "string",
@@ -65,18 +58,37 @@ var expectedPlanParameters = []ParameterDescriptor{
 		Updatable: false,
 		Required:  true},
 	ParameterDescriptor{
-		Name:      "mediawiki_admin_user",
-		Title:     "Mediawiki Admin User",
-		Type:      "string",
-		Default:   "admin",
-		Updatable: false,
-		Required:  true},
+		Name:      "mediawiki_db_persistent",
+		Title:     "Mediawiki DB Persistent",
+		Type:      "boolean",
+		Default:   true,
+		Updatable: true},
 	ParameterDescriptor{
-		Name:      "mediawiki_admin_pass",
-		Title:     "Mediawiki Admin User Password",
-		Type:      "string",
-		Updatable: false,
-		Required:  true},
+		Name:        "mediawiki_db_schema",
+		Title:       "Mediawiki DB Schema",
+		Type:        "string",
+		Default:     "mediawiki",
+		Updatable:   false,
+		Required:    true,
+		DisplayWhen: "_mediawiki_db_persistent"},
+	ParameterDescriptor{
+		Name:         "mediawiki_admin_user",
+		Title:        "Mediawiki Admin User",
+		Type:         "string",
+		Default:      "admin",
+		Updatable:    false,
+		Required:     true,
+		DisplayGroup: "Credentials",
+		DisplayWhen:  "_mediawiki_db_persistent"},
+	ParameterDescriptor{
+		Name:         "mediawiki_admin_pass",
+		Title:        "Mediawiki Admin User Password",
+		Type:         "string",
+		Updatable:    false,
+		Required:     true,
+		DisplayType:  "password",
+		DisplayGroup: "Credentials",
+		DisplayWhen:  "_mediawiki_db_persistent"},
 }
 
 var p = Plan{
@@ -110,47 +122,61 @@ const SpecPlans = `
 			"longDescription": "Basic development plan",
 			"cost": "$0.00"
 		},
-        "updates_to": ["foo"],
+		"updates_to": ["foo"],
 		"parameters": [
-		{
-			"name": "mediawiki_db_schema",
-			"title": "Mediawiki DB Schema",
-			"type": "string",
-			"default": "mediawiki",
-            "updatable": false,
-			"required": true
-		},
-		{
-			"name": "mediawiki_site_name",
-			"title": "Mediawiki Site Name",
-			"type": "string",
-			"default": "MediaWiki",
-            "updatable": true,
-			"required": true
-		},
-		{
-			"name": "mediawiki_site_lang",
-			"title": "Mediawiki Site Language",
-			"type": "string",
-			"default": "en",
-            "updatable": false,
-			"required": true
-		},
-		{
-			"name": "mediawiki_admin_user",
-			"title": "Mediawiki Admin User",
-			"type": "string",
-			"default": "admin",
-            "updatable": false,
-			"required": true
-		},
-		{
-			"name": "mediawiki_admin_pass",
-			"title": "Mediawiki Admin User Password",
-			"type": "string",
-            "updatable": false,
-			"required": true
-		}
+			{
+				"name": "mediawiki_site_name",
+				"title": "Mediawiki Site Name",
+				"type": "string",
+				"default": "MediaWiki",
+				"updatable": true,
+				"required": true
+			},
+			{
+				"name": "mediawiki_site_lang",
+				"title": "Mediawiki Site Language",
+				"type": "string",
+				"default": "en",
+				"updatable": false,
+				"required": true
+			},
+			{
+				"name": "mediawiki_db_persistent",
+				"title": "Mediawiki DB Persistent",
+				"type": "boolean",
+				"default": true,
+				"updatable": true,
+				"required": false
+			},
+			{
+				"name": "mediawiki_db_schema",
+				"title": "Mediawiki DB Schema",
+				"type": "string",
+				"default": "mediawiki",
+				"updatable": false,
+				"required": true,
+				"displayWhen": "_mediawiki_db_persistent"
+			},
+			{
+				"name": "mediawiki_admin_user",
+				"title": "Mediawiki Admin User",
+				"type": "string",
+				"default": "admin",
+				"updatable": false,
+				"required": true,
+				"displayGroup": "Credentials",
+				"displayWhen": "_mediawiki_db_persistent"
+			},
+			{
+				"name": "mediawiki_admin_pass",
+				"title": "Mediawiki Admin User Password",
+				"type": "string",
+				"updatable": false,
+				"required": true,
+				"displayType": "password",
+				"displayGroup": "Credentials",
+				"displayWhen": "_mediawiki_db_persistent"
+			}
 		]
 	}
 ]
