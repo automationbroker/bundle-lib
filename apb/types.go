@@ -60,6 +60,7 @@ type ParameterDescriptor struct {
 	Updatable    bool     `json:"updatable"`
 	DisplayType  string   `json:"displayType,omitempty" yaml:"display_type,omitempty"`
 	DisplayGroup string   `json:"displayGroup,omitempty" yaml:"display_group,omitempty"`
+	DisplayWhen  string   `json:"displayWhen,omitempty" yaml:"display_when,omitempty"`
 }
 
 // Plan - Plan object describing an APB deployment plan and associated parameters
