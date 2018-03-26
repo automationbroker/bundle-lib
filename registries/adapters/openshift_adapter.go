@@ -23,8 +23,8 @@ import (
 	"net/http"
 	"strings"
 
-	logging "github.com/op/go-logging"
-	"github.com/openshift/ansible-service-broker/pkg/apb"
+	"github.com/automationbroker/bundle-lib/apb"
+	log "github.com/sirupsen/logrus"
 )
 
 const openShiftName = "openshift"
@@ -33,7 +33,6 @@ const openShiftManifestURL = "%v/v2/%v/manifests/%v"
 // OpenShiftAdapter - Docker Hub Adapter
 type OpenShiftAdapter struct {
 	Config Configuration
-	Log    *logging.Logger
 }
 
 // OpenShiftImage - Image from a OpenShift registry.
@@ -49,24 +48,24 @@ func (r OpenShiftAdapter) RegistryName() string {
 
 // GetImageNames - retrieve the images
 func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
-	r.Log.Debug("OpenShiftAdapter::GetImageNames")
-	r.Log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
+	log.Debug("OpenShiftAdapter::GetImageNames")
+	log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
 
 	images := r.Config.Images
-	r.Log.Debug("Configured to use images: %v", images)
+	log.Debug("Configured to use images: %v", images)
 
 	return images, nil
 }
 
 // FetchSpecs - retrieve the spec for the image names.
 func (r OpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
-	r.Log.Debug("OpenShiftAdapter::FetchSpecs")
+	log.Debug("OpenShiftAdapter::FetchSpecs")
 	specs := []*apb.Spec{}
 	for _, imageName := range imageNames {
-		r.Log.Debug("%v", imageName)
+		log.Debug("%v", imageName)
 		spec, err := r.loadSpec(imageName)
 		if err != nil {
-			r.Log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
+			log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
 		}
 		if spec != nil {
 			specs = append(specs, spec)
@@ -133,7 +132,7 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 }
 
 func (r OpenShiftAdapter) loadSpec(imageName string) (*apb.Spec, error) {
-	r.Log.Debug("OpenShiftAdapter::LoadSpec")
+	log.Debug("OpenShiftAdapter::LoadSpec")
 	if r.Config.Tag == "" {
 		r.Config.Tag = "latest"
 	}
@@ -146,5 +145,5 @@ func (r OpenShiftAdapter) loadSpec(imageName string) (*apb.Spec, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	return imageToSpec(r.Log, req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
+	return imageToSpec(log, req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
 }
