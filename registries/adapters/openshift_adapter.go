@@ -18,22 +18,22 @@ package adapters
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
-	b64 "encoding/base64"
-
-	"github.com/automationbroker/bundle-lib/apb"
-	log "github.com/sirupsen/logrus"
+	logging "github.com/op/go-logging"
+	"github.com/openshift/ansible-service-broker/pkg/apb"
 )
 
-const openShiftName = "registry.connect.redhat.com"
-const openShiftAuthURL = "https://sso.redhat.com/auth/realms/rhc4tp/protocol/docker-v2/auth?service=docker-registry"
-const openShiftManifestURL = "https://registry.connect.redhat.com/v2/%v/manifests/%v"
+const openShiftName = "openshift"
+const openShiftManifestURL = "%v/v2/%v/manifests/%v"
 
 // OpenShiftAdapter - Docker Hub Adapter
 type OpenShiftAdapter struct {
 	Config Configuration
+	Log    *logging.Logger
 }
 
 // OpenShiftImage - Image from a OpenShift registry.
@@ -49,24 +49,24 @@ func (r OpenShiftAdapter) RegistryName() string {
 
 // GetImageNames - retrieve the images
 func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
-	log.Debug("OpenShiftAdapter::GetImageNames")
-	log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
+	r.Log.Debug("OpenShiftAdapter::GetImageNames")
+	r.Log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
 
 	images := r.Config.Images
-	log.Debug("Configured to use images: %v", images)
+	r.Log.Debug("Configured to use images: %v", images)
 
 	return images, nil
 }
 
 // FetchSpecs - retrieve the spec for the image names.
 func (r OpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
-	log.Debug("OpenShiftAdapter::FetchSpecs")
+	r.Log.Debug("OpenShiftAdapter::FetchSpecs")
 	specs := []*apb.Spec{}
 	for _, imageName := range imageNames {
-		log.Debug("%v", imageName)
+		r.Log.Debug("%v", imageName)
 		spec, err := r.loadSpec(imageName)
 		if err != nil {
-			log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
+			r.Log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
 		}
 		if spec != nil {
 			specs = append(specs, spec)
@@ -82,17 +82,43 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 	}
 	username := r.Config.User
 	password := r.Config.Pass
-	authString := fmt.Sprintf("%v:%v", username, password)
 
-	authString = b64.StdEncoding.EncodeToString([]byte(authString))
-
-	req, err := http.NewRequest("GET", openShiftAuthURL, nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%v/v2/", r.Config.URL), nil)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", authString))
-
 	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Ensure that response holds data we expect
+	if resp.Header.Get("Www-Authenticate") == "" {
+		return "", errors.New("failed to find www-authenticate header from response")
+	}
+
+	authChallenge := resp.Header.Get("Www-Authenticate")
+	if strings.Index(authChallenge, "realm=\"") == -1 {
+		return "", errors.New("failed to find realm in www-authenticate header")
+	}
+	if strings.Index(authChallenge, ",") == -1 {
+		return "", errors.New("failed to find realm options in www-authenticate header")
+	}
+	authRealm := strings.Split(strings.Split(authChallenge, "realm=\"")[1], "\"")[0]
+	authOptions := strings.Split(authChallenge, ",")[1]
+	authURL := fmt.Sprintf("%v?%v", authRealm, authOptions)
+	// Replace any quotes that exist in header from authOptions
+	authURL = strings.Replace(authURL, "\"", "", -1)
+
+	req, err = http.NewRequest("GET", authURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(username, password)
+
+	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -107,11 +133,11 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 }
 
 func (r OpenShiftAdapter) loadSpec(imageName string) (*apb.Spec, error) {
-	log.Debug("OpenShiftAdapter::LoadSpec")
+	r.Log.Debug("OpenShiftAdapter::LoadSpec")
 	if r.Config.Tag == "" {
 		r.Config.Tag = "latest"
 	}
-	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftManifestURL, imageName, r.Config.Tag), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftManifestURL, r.Config.URL, imageName, r.Config.Tag), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -120,5 +146,5 @@ func (r OpenShiftAdapter) loadSpec(imageName string) (*apb.Spec, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
+	return imageToSpec(r.Log, req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
 }
