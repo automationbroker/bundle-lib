@@ -148,6 +148,6 @@ func TestOpenShiftFetchSpecs(t *testing.T) {
 		t.Fatal("Error: did not find fetch any valid specs")
 	}
 	if len(specs) != 3 {
-		t.Fatal("Error: did not find 3 expected specs, only found: %v", len(specs))
+		t.Fatal("Error: did not find 3 expected specs, only found: ", len(specs))
 	}
 }
