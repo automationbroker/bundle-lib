@@ -45,8 +45,8 @@ func (c SecretsConfig) Validate() bool {
 
 // AssociationRule - A rule to associate an apb with a secret
 type AssociationRule struct {
-	apbName string
-	secret  string
+	BundleName string
+	Secret     string
 }
 
 type secretsCache struct {
@@ -92,11 +92,11 @@ func AddSecretsFor(spec *Spec) {
 
 func addSecret(spec *Spec, rule AssociationRule) {
 	secrets.mapping[spec.FQName] = make(map[string]bool)
-	secrets.mapping[spec.FQName][rule.secret] = true
+	secrets.mapping[spec.FQName][rule.Secret] = true
 }
 
 func match(spec *Spec, rule AssociationRule) bool {
-	return spec.FQName == rule.apbName
+	return spec.FQName == rule.BundleName
 }
 
 // InitializeSecretsCache - Generates AssociationRules from config and
