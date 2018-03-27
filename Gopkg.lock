@@ -26,12 +26,6 @@
   revision = "417a1c5029bb8be34758b0e41a6a785f78890c7f"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/automationbroker/config"
-  packages = ["."]
-  revision = "ab30f839b77471fd1d7b796315742518f283eac5"
-
-[[projects]]
   name = "github.com/coreos/etcd"
   packages = [
     "client",
@@ -553,6 +547,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cc2686552015574dcfcc36d2e44db5bb767e3fd769bcf84d47fb4665aa7e5145"
+  inputs-digest = "e963eb20de527e45b54198afcea9121fc8d9394e52d6481ae5b9ed1309b79383"
   solver-name = "gps-cdcl"
   solver-version = 1
