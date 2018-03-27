@@ -22,7 +22,6 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/automationbroker/bundle-lib/clients"
-	"github.com/automationbroker/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -102,14 +101,7 @@ func match(spec *Spec, rule AssociationRule) bool {
 
 // InitializeSecretsCache - Generates AssociationRules from config and
 // initializes the global secrets cache
-func InitializeSecretsCache(secretConfigs []*config.Config) {
-	rules := []AssociationRule{}
-	for _, secretConfig := range secretConfigs {
-		rules = append(rules, AssociationRule{
-			apbName: secretConfig.GetString("apb_name"),
-			secret:  secretConfig.GetString("secret"),
-		})
-	}
+func InitializeSecretsCache(rules []AssociationRule) {
 	secrets = secretsCache{
 		mapping: make(map[string]map[string]bool),
 		rwSync:  sync.RWMutex{},
