@@ -49,7 +49,7 @@ type HelmAdapter struct {
 // Implements a sorter on Version.
 type ChartVersions []*ChartVersion
 
-// Len returns the length.
+// Len returns the length of the list of versioned chart references.
 func (c ChartVersions) Len() int { return len(c) }
 
 // Swap swaps the position of two items in the versions slice.
@@ -152,6 +152,7 @@ func (r *HelmAdapter) GetImageNames() ([]string, error) {
 	}
 
 	for name, entry := range index.Entries {
+		// Do not add a chart w/o at least one chart version
 		if len(entry) == 0 {
 			continue
 		}
@@ -181,7 +182,10 @@ func (r *HelmAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
 		for _, chart := range charts {
 			chartVersions = append(chartVersions, chart.Version)
 		}
-		// Use the latest chart for creating the bundle
+
+		// Use the latest chart for creating the bundle:
+		// This works works because we previously sorted the chart's versions
+		// and excluded charts w/o at least one chart version.
 		chart := charts[0]
 
 		if len(chart.URLs) > 0 {
@@ -263,7 +267,7 @@ func (r *HelmAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
 	return specs, nil
 }
 
-// getHelmIndex returns an helm repository IndexFile object
+// getHelmIndex returns a helm repository IndexFile object
 // https://github.com/kubernetes/helm/blob/48e703997016f3edeb4f0b90e6cfdb3456ce3db0/pkg/repo/index.go#L271
 func (r *HelmAdapter) getHelmIndex() (*IndexFile, error) {
 	index := &IndexFile{}
@@ -294,7 +298,7 @@ func (r *HelmAdapter) getHelmIndex() (*IndexFile, error) {
 	return index, nil
 }
 
-// loadArchive returns Helm Chart values as a string
+// loadArchive returns the Helm Chart values as a string
 // https://github.com/kubernetes/helm/blob/48e703997016f3edeb4f0b90e6cfdb3456ce3db0/pkg/chartutil/load.go#L66
 func (r *HelmAdapter) loadArchive(in io.Reader) string {
 	unzipped, err := gzip.NewReader(in)
