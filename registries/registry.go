@@ -52,6 +52,7 @@ type Config struct {
 	Tag        string
 	Type       string
 	Name       string
+	Runner     string
 	Images     []string
 	Namespaces []string
 	// Fail will tell the registry that it is ok to fail the bootstrap if
@@ -192,13 +193,16 @@ func NewRegistry(configuration Config, asbNamespace string) (Registry, error) {
 	if u.Scheme == "" {
 		u.Scheme = "http"
 	}
-	c := adapters.Configuration{URL: u,
+	c := adapters.Configuration{
+		URL:        u,
 		User:       configuration.User,
 		Pass:       configuration.Pass,
 		Org:        configuration.Org,
+		Runner:     configuration.Runner,
 		Images:     configuration.Images,
 		Namespaces: configuration.Namespaces,
-		Tag:        configuration.Tag}
+		Tag:        configuration.Tag,
+	}
 
 	switch strings.ToLower(configuration.Type) {
 	case "rhcc":
@@ -211,6 +215,8 @@ func NewRegistry(configuration Config, asbNamespace string) (Registry, error) {
 		adapter = &adapters.OpenShiftAdapter{Config: c}
 	case "local_openshift":
 		adapter = &adapters.LocalOpenShiftAdapter{Config: c}
+	case "helm":
+		adapter = &adapters.HelmAdapter{Config: c}
 	default:
 		panic("Unknown registry")
 	}
