@@ -1,6 +1,6 @@
 SOURCE_DIRS      = apb clients crd registries runtime
 SOURCES          := $(shell find . -name '*.go' -not -path "*/vendor/*" -not -path "*/.git/*")
-PACKAGES         := $(shell go list $(addprefix ./, $(addsuffix /... , $(shell /usr/bin/ls -d */ | grep -v vendor))))
+PACKAGES         := $(shell go list $(addprefix ./, $(addsuffix /... , $(shell ls -d */ | grep -v vendor))))
 COVERAGE_SVC     := travis-ci
 .DEFAULT_GOAL    := build
 
