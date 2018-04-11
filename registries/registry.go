@@ -27,7 +27,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/automationbroker/bundle-lib/apb"
+	"github.com/automationbroker/bundle-lib/bundle"
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/registries/adapters"
 	log "github.com/sirupsen/logrus"
@@ -100,12 +100,12 @@ type Registry struct {
 }
 
 // LoadSpecs - Load the specs for the registry.
-func (r Registry) LoadSpecs() ([]*apb.Spec, int, error) {
+func (r Registry) LoadSpecs() ([]*bundle.Spec, int, error) {
 	imageNames, err := r.adapter.GetImageNames()
 	if err != nil {
 		log.Errorf("unable to retrieve image names for registry %v - %v",
 			r.config.Name, err)
-		return []*apb.Spec{}, 0, err
+		return []*bundle.Spec{}, 0, err
 	}
 	validNames, filteredNames := r.filter.Run(imageNames)
 
@@ -134,7 +134,7 @@ func (r Registry) LoadSpecs() ([]*apb.Spec, int, error) {
 	if err != nil {
 		log.Errorf("unable to fetch specs for registry %v - %v",
 			r.config.Name, err)
-		return []*apb.Spec{}, 0, err
+		return []*bundle.Spec{}, 0, err
 	}
 
 	log.Infof("Validating specs...")
@@ -258,19 +258,19 @@ func createFilter(config Config) Filter {
 	return filter
 }
 
-func validateSpecs(inSpecs []*apb.Spec) []*apb.Spec {
+func validateSpecs(inSpecs []*bundle.Spec) []*bundle.Spec {
 	var wg sync.WaitGroup
 	wg.Add(len(inSpecs))
 
 	type resultT struct {
 		ok         bool
-		spec       *apb.Spec
+		spec       *bundle.Spec
 		failReason string
 	}
 
 	out := make(chan resultT)
 	for _, spec := range inSpecs {
-		go func(s *apb.Spec) {
+		go func(s *bundle.Spec) {
 			defer wg.Done()
 			ok, failReason := validateSpecFormat(s)
 			out <- resultT{ok, s, failReason}
@@ -282,7 +282,7 @@ func validateSpecs(inSpecs []*apb.Spec) []*apb.Spec {
 		close(out)
 	}()
 
-	validSpecs := make([]*apb.Spec, 0, len(inSpecs))
+	validSpecs := make([]*bundle.Spec, 0, len(inSpecs))
 	for result := range out {
 		if result.ok {
 			validSpecs = append(validSpecs, result.spec)
@@ -298,7 +298,7 @@ func validateSpecs(inSpecs []*apb.Spec) []*apb.Spec {
 	return validSpecs
 }
 
-func validateSpecFormat(spec *apb.Spec) (bool, string) {
+func validateSpecFormat(spec *bundle.Spec) (bool, string) {
 	// Specs must have compatible version
 	if !isCompatibleVersion(spec.Version, "1.0", "1.0") {
 		return false, fmt.Sprintf(

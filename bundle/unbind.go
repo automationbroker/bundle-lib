@@ -14,22 +14,21 @@
 // limitations under the License.
 //
 
-package apb
+package bundle
 
 import (
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime"
-
 	log "github.com/sirupsen/logrus"
 )
 
-// Bind - Will run the APB with the bind action.
-func (e *executor) Bind(
+// Unbind - runs the abp with the unbind action.
+func (e *executor) Unbind(
 	instance *ServiceInstance, parameters *Parameters, bindingID string,
 ) <-chan StatusMessage {
-	log.Info("============================================================")
-	log.Info("                       BINDING                              ")
-	log.Info("============================================================")
+	log.Infof("============================================================")
+	log.Infof("                       UNBINDING                            ")
+	log.Infof("============================================================")
 	log.Infof("ServiceInstance.ID: %s", instance.Spec.ID)
 	log.Infof("ServiceInstance.Name: %v", instance.Spec.FQName)
 	log.Infof("ServiceInstance.Image: %s", instance.Spec.Image)
@@ -38,8 +37,8 @@ func (e *executor) Bind(
 
 	go func() {
 		e.actionStarted()
-		executionContext, err := e.executeApb(
-			"bind", instance.Spec, instance.Context, parameters)
+		executionContext, err := e.executeApb("unbind", instance.Spec,
+			instance.Context, parameters)
 		defer runtime.Provider.DestroySandbox(
 			executionContext.PodName,
 			executionContext.Namespace,
@@ -49,10 +48,11 @@ func (e *executor) Bind(
 			clusterConfig.KeepNamespaceOnError,
 		)
 		if err != nil {
-			log.Errorf("Problem executing apb [%s] bind", executionContext.PodName)
+			log.Errorf("Problem executing apb [%s] unbind", executionContext.PodName)
 			e.actionFinishedWithError(err)
 			return
 		}
+
 		k8scli, err := clients.Kubernetes()
 		if err != nil {
 			log.Error("Something went wrong getting kubernetes client")
@@ -60,36 +60,19 @@ func (e *executor) Bind(
 			return
 		}
 
-		if instance.Spec.Runtime >= 2 {
-			err := runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
-				k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
-			if err != nil {
-				log.Errorf("Bind action failed - %v", err)
-				e.actionFinishedWithError(err)
-				return
-			}
-		}
-
-		creds, err := ExtractCredentials(
-			executionContext.PodName,
-			executionContext.Namespace,
-			instance.Spec.Runtime,
-		)
-
+		err = runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
+			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
 		if err != nil {
-			log.Errorf("apb::bind error occurred - %v", err)
+			log.Errorf("Unbind action failed - %v", err)
 			e.actionFinishedWithError(err)
 			return
 		}
-
-		labels := map[string]string{"apbAction": "bind", "apbName": instance.Spec.FQName}
-		err = runtime.Provider.CreateExtractedCredential(bindingID, clusterConfig.Namespace, creds.Credentials, labels)
+		// Delete the binding extracted credential here.
+		err = runtime.Provider.DeleteExtractedCredential(bindingID, clusterConfig.Namespace)
 		if err != nil {
-			log.Errorf("apb::%v error occurred - %v", executionMethodProvision, err)
-			e.actionFinishedWithError(err)
-			return
+			log.Infof("Unbind failed to delete extracted credential m- %v", err)
 		}
-		e.extractedCredentials = creds
+
 		e.actionFinishedWithSuccess()
 	}()
 

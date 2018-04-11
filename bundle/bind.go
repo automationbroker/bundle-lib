@@ -14,21 +14,23 @@
 // limitations under the License.
 //
 
-package apb
+package bundle
 
 import (
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime"
-	"github.com/pkg/errors"
+
 	log "github.com/sirupsen/logrus"
 )
 
-// Deprovision - runs the abp with the deprovision action.
-func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
-	log.Infof("============================================================")
-	log.Infof("                      DEPROVISIONING                        ")
-	log.Infof("============================================================")
-	log.Infof("ServiceInstance.Id: %s", instance.Spec.ID)
+// Bind - Will run the APB with the bind action.
+func (e *executor) Bind(
+	instance *ServiceInstance, parameters *Parameters, bindingID string,
+) <-chan StatusMessage {
+	log.Info("============================================================")
+	log.Info("                       BINDING                              ")
+	log.Info("============================================================")
+	log.Infof("ServiceInstance.ID: %s", instance.Spec.ID)
 	log.Infof("ServiceInstance.Name: %v", instance.Spec.FQName)
 	log.Infof("ServiceInstance.Image: %s", instance.Spec.Image)
 	log.Infof("ServiceInstance.Description: %s", instance.Spec.Description)
@@ -36,17 +38,8 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 
 	go func() {
 		e.actionStarted()
-		if instance.Spec.Image == "" {
-			log.Error("No image field found on the apb instance.Spec (apb.yaml)")
-			log.Error("apb instance.Spec requires [name] and [image] fields to be separate")
-			log.Error("Are you trying to run a legacy ansibleapp without an image field?")
-			e.actionFinishedWithError(errors.New("No image field found on instance.Spec"))
-			return
-		}
-
-		// Might need to change up this interface to feed in instance ids
-		executionContext, err := e.executeApb("deprovision", instance.Spec,
-			instance.Context, instance.Parameters)
+		executionContext, err := e.executeApb(
+			"bind", instance.Spec, instance.Context, parameters)
 		defer runtime.Provider.DestroySandbox(
 			executionContext.PodName,
 			executionContext.Namespace,
@@ -56,7 +49,7 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			clusterConfig.KeepNamespaceOnError,
 		)
 		if err != nil {
-			log.Errorf("Problem executing apb [%s] deprovision", executionContext.PodName)
+			log.Errorf("Problem executing apb [%s] bind", executionContext.PodName)
 			e.actionFinishedWithError(err)
 			return
 		}
@@ -66,20 +59,37 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			e.actionFinishedWithError(err)
 			return
 		}
-		err = runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
-			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
-		if err != nil {
-			log.Errorf("Deprovision action failed - %v", err)
-			e.actionFinishedWithError(err)
-			return
+
+		if instance.Spec.Runtime >= 2 {
+			err := runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
+				k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
+			if err != nil {
+				log.Errorf("Bind action failed - %v", err)
+				e.actionFinishedWithError(err)
+				return
+			}
 		}
-		err = runtime.Provider.DeleteExtractedCredential(instance.ID.String(), clusterConfig.Namespace)
+
+		creds, err := ExtractCredentials(
+			executionContext.PodName,
+			executionContext.Namespace,
+			instance.Spec.Runtime,
+		)
+
 		if err != nil {
-			log.Errorf("unable to delete the extracted credentials - %v", err)
+			log.Errorf("apb::bind error occurred - %v", err)
 			e.actionFinishedWithError(err)
 			return
 		}
 
+		labels := map[string]string{"apbAction": "bind", "apbName": instance.Spec.FQName}
+		err = runtime.Provider.CreateExtractedCredential(bindingID, clusterConfig.Namespace, creds.Credentials, labels)
+		if err != nil {
+			log.Errorf("apb::%v error occurred - %v", executionMethodProvision, err)
+			e.actionFinishedWithError(err)
+			return
+		}
+		e.extractedCredentials = creds
 		e.actionFinishedWithSuccess()
 	}()
 

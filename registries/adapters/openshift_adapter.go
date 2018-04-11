@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/automationbroker/bundle-lib/apb"
+	"github.com/automationbroker/bundle-lib/bundle"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,9 +58,9 @@ func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 }
 
 // FetchSpecs - retrieve the spec for the image names.
-func (r OpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
+func (r OpenShiftAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, error) {
 	log.Debug("OpenShiftAdapter::FetchSpecs")
-	specs := []*apb.Spec{}
+	specs := []*bundle.Spec{}
 	for _, imageName := range imageNames {
 		log.Debug("%v", imageName)
 		spec, err := r.loadSpec(imageName)
@@ -131,7 +131,7 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 	return tokenResp.Token, nil
 }
 
-func (r OpenShiftAdapter) loadSpec(imageName string) (*apb.Spec, error) {
+func (r OpenShiftAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 	log.Debug("OpenShiftAdapter::LoadSpec")
 	if r.Config.Tag == "" {
 		r.Config.Tag = "latest"
