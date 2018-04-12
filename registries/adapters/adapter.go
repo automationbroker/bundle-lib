@@ -124,7 +124,7 @@ func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 		return nil, nil
 	}
 	if conf.Config.Label.Spec == "" {
-		log.Infof("Didn't find encoded Spec label. Assuming image is not APB and skiping")
+		log.Infof("Didn't find encoded Spec label. Assuming image is not APB and skipping")
 		return nil, nil
 	}
 
