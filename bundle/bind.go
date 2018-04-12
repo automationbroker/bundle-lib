@@ -70,12 +70,18 @@ func (e *executor) Bind(
 			}
 		}
 
-		creds, err := ExtractCredentials(
+		credBytes, err := runtime.Provider.ExtractCredentials(
 			executionContext.PodName,
 			executionContext.Namespace,
 			instance.Spec.Runtime,
 		)
+		if err != nil {
+			log.Errorf("apb::bind error occurred - %v", err)
+			e.actionFinishedWithError(err)
+			return
+		}
 
+		creds, err := buildExtractedCredentials(credBytes)
 		if err != nil {
 			log.Errorf("apb::bind error occurred - %v", err)
 			e.actionFinishedWithError(err)

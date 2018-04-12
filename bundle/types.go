@@ -145,6 +145,15 @@ type ExtractedCredentials struct {
 	Credentials map[string]interface{} `json:"credentials,omitempty"`
 }
 
+func buildExtractedCredentials(output []byte) (*ExtractedCredentials, error) {
+	creds := make(map[string]interface{})
+	err := json.Unmarshal(output, &creds)
+	if err != nil {
+		return nil, err
+	}
+	return &ExtractedCredentials{Credentials: creds}, nil
+}
+
 // State - Job State
 type State string
 
@@ -211,10 +220,6 @@ const (
 	StateSucceeded State = "succeeded"
 	// StateFailed - Failed state
 	StateFailed State = "failed"
-
-	// 5s x 7200 retries, 2 hours
-	apbWatchInterval = 5
-	apbWatchRetries  = 7200
 
 	// ApbContainerName - The name of the apb container
 	ApbContainerName = "apb"
