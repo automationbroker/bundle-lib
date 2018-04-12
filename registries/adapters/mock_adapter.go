@@ -52,7 +52,7 @@ func (r *MockAdapter) GetImageNames() ([]string, error) {
 
 	err = yaml.Unmarshal(specYaml, &parsedData)
 	if err != nil {
-		log.Error("Failed to ummarshal yaml file")
+		log.Error("Failed to unmarshal yaml file")
 		return nil, err
 	}
 
