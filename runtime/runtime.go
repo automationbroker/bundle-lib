@@ -44,6 +44,10 @@ type Configuration struct {
 	PreCreateSandboxHooks []PreSandboxCreate
 	// PreDestroySandboxHooks - The sandbox hooks that you would like to run.
 	PreDestroySandboxHooks []PreSandboxDestroy
+	// WatchBundle - this is the method that watches the bundle for completion.
+	// The UpdateDescriptionFunc in the default case will call this function when the last description
+	// annonation on the running bundle is changed.
+	WatchBundle WatchRunningBundleFunc
 	ExtractedCredential
 }
 
@@ -54,6 +58,7 @@ type Runtime interface {
 	CreateSandbox(string, string, []string, string) (string, error)
 	DestroySandbox(string, string, []string, string, bool, bool)
 	ExtractedCredential
+	WatchRunningBundle(string, string, UpdateDescriptionFn) error
 }
 
 // Variables for interacting with runtimes
@@ -64,6 +69,7 @@ type provider struct {
 	preSandboxCreate   []PreSandboxCreate
 	postSandboxDestroy []PostSandboxDestroy
 	preSandboxDestroy  []PreSandboxDestroy
+	watchBundle        WatchRunningBundleFunc
 }
 
 // Abstraction for actions that are different between runtimes
@@ -368,6 +374,10 @@ func (p provider) DestroySandbox(podName string,
 // GetRuntime - Return a string value of the runtime
 func (p provider) GetRuntime() string {
 	return p.coe.getRuntime()
+}
+
+func (p provider) WatchRunningBundle(podName string, namespace string, updateFunc UpdateDescriptionFn) error {
+	return p.watchBundle(podName, namespace, updateFunc)
 }
 
 func shouldDeleteNamespace(keepNamespace bool,

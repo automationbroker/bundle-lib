@@ -78,8 +78,7 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 
 	if instance.Spec.Runtime >= 2 || !instance.Spec.Bindable {
 		log.Debugf("watching pod for serviceinstance %#v", instance.Spec)
-		err := runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
-			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
+		err := runtime.Provider.WatchRunningBundle(executionContext.PodName, executionContext.Namespace, e.updateDescription)
 		if err != nil {
 			log.Errorf("Provision or Update action failed - %v", err)
 			return err

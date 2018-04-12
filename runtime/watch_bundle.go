@@ -26,7 +26,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 var (
@@ -55,11 +54,11 @@ func IsErrorCustomMsg(err error) bool {
 	return ok
 }
 
-// WatchRunningBundle - watches the pod until completion and will update the last
+// WatchRunningBundleFunc - watches the pod until completion and will update the last
 // description using the UpdateDescriptionFunction
-type WatchRunningBundle func(string, string, UpdateDescriptionFn) error
+type WatchRunningBundleFunc func(string, string, UpdateDescriptionFn) error
 
-func defaultWatchRunningBundle(podName string, namespace string, podClient v1.PodInterface, updateFunc UpdateDescriptionFn) error {
+func defaultWatchRunningBundle(podName string, namespace string, updateFunc UpdateDescriptionFn) error {
 	k8scli, err := clients.Kubernetes()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve kubernetes client %v", err)
