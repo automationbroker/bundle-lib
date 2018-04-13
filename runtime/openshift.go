@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+type openshift struct{}
+
 func (o openshift) getRuntime() string {
 	return "openshift"
 }

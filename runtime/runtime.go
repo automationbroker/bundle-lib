@@ -72,10 +72,6 @@ type coe interface {
 	shouldJoinNetworks() (bool, PostSandboxCreate, PostSandboxDestroy)
 }
 
-// Different runtimes
-type openshift struct{}
-type kubernetes struct{}
-
 // NewRuntime - Initialize provider variable
 // extCreds - You can pass an ExtractedCredential conforming object this will
 // be used to do CRUD operations. If you want to use the default pass nil
