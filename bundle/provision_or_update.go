@@ -90,12 +90,17 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 		return nil
 	}
 
-	creds, err := ExtractCredentials(
+	credBytes, err := runtime.Provider.ExtractCredentials(
 		executionContext.PodName,
 		executionContext.Namespace,
 		instance.Spec.Runtime,
 	)
+	if err != nil {
+		log.Errorf("apb::%v error occurred - %v", method, err)
+		return err
+	}
 
+	creds, err := buildExtractedCredentials(credBytes)
 	if err != nil {
 		log.Errorf("apb::%v error occurred - %v", method, err)
 		return err

@@ -53,6 +53,7 @@ type Runtime interface {
 	GetRuntime() string
 	CreateSandbox(string, string, []string, string) (string, error)
 	DestroySandbox(string, string, []string, string, bool, bool)
+	ExtractCredentials(string, string, int) ([]byte, error)
 	ExtractedCredential
 }
 

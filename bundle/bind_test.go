@@ -17,43 +17,29 @@
 package bundle
 
 import (
-	"encoding/json"
 	"testing"
-
-	ft "github.com/stretchr/testify/assert"
 )
 
 func TestBind(t *testing.T) {
 	t.Skip("skipping bind until we can pass in a mock client")
-	output := []byte(`
-Login failed (401 Unauthorized)
+	/*output := []byte(`
+	Login failed (401 Unauthorized)
 
-PLAY [all] *********************************************************************
+	PLAY [all] *********************************************************************
 
-TASK [setup] *******************************************************************
-ok: [localhost]
+	TASK [setup] *******************************************************************
+	ok: [localhost]
 
-TASK [Bind] ********************************************************************
-changed: [localhost]
+	TASK [Bind] ********************************************************************
+	changed: [localhost]
 
-TASK [debug] *******************************************************************
-ok: [localhost] => {
-    "msg": "eyJkYiI6ICJmdXNvcl9ndWVzdGJvb2tfZGIiLCAidXNlciI6ICJkdWRlcl90d28iLCAicGFzcyI6ICJkb2c4dHdvIn0="
-}
-
-PLAY RECAP *********************************************************************
-localhost                  : ok=3    changed=1    unreachable=0    failed=0
-`)
-	decoded, err := decodeOutput(output)
-	if err != nil {
-		t.Fatal(err)
+	TASK [debug] *******************************************************************
+	ok: [localhost] => {
+	    "msg": "eyJkYiI6ICJmdXNvcl9ndWVzdGJvb2tfZGIiLCAidXNlciI6ICJkdWRlcl90d28iLCAicGFzcyI6ICJkb2c4dHdvIn0="
 	}
 
-	result := make(map[string]interface{})
-	json.Unmarshal(decoded, &result)
-
-	ft.NotNil(t, result, "result")
-	ft.Equal(t, result["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
-	ft.Equal(t, result["user"], "duder_two", "user is not duder_two")
-	ft.Equal(t, result["pass"], "dog8two", "password is not dog8two")
+	PLAY RECAP *********************************************************************
+	localhost                  : ok=3    changed=1    unreachable=0    failed=0
+	`)
+	*/
 }
