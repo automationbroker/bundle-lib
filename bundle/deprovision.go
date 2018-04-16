@@ -17,7 +17,6 @@
 package bundle
 
 import (
-	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -60,14 +59,7 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			e.actionFinishedWithError(err)
 			return
 		}
-		k8scli, err := clients.Kubernetes()
-		if err != nil {
-			log.Error("Something went wrong getting kubernetes client")
-			e.actionFinishedWithError(err)
-			return
-		}
-		err = runtime.WatchPod(executionContext.PodName, executionContext.Namespace,
-			k8scli.Client.CoreV1().Pods(executionContext.Namespace), e.updateDescription)
+		err = runtime.Provider.WatchRunningBundle(executionContext.PodName, executionContext.Namespace, e.updateDescription)
 		if err != nil {
 			log.Errorf("Deprovision action failed - %v", err)
 			e.actionFinishedWithError(err)
