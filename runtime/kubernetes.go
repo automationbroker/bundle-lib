@@ -16,6 +16,8 @@
 
 package runtime
 
+type kubernetes struct{}
+
 func (k kubernetes) getRuntime() string {
 	return "kubernetes"
 }
