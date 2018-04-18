@@ -156,6 +156,13 @@ const SpecPlans = `
 ]
 `
 
+var SpecAlpha = map[string]interface{}{"dashboard_redirect": true}
+var SpecAlphaStr = `
+{
+	"dashboard_redirect": true
+}
+`
+
 var SpecJSON = fmt.Sprintf(`
 {
 	"id": "",
@@ -167,12 +174,12 @@ var SpecJSON = fmt.Sprintf(`
 	"image": "%s",
 	"bindable": %t,
 	"async": "%s",
-	"plans": %s
+	"plans": %s,
+	"alpha": %s
 }
-`, SpecDescription, SpecVersion, SpecRuntime, SpecName, SpecImage, SpecBindable, SpecAsync, SpecPlans)
+`, SpecDescription, SpecVersion, SpecRuntime, SpecName, SpecImage, SpecBindable, SpecAsync, SpecPlans, SpecAlphaStr)
 
 func TestSpecLoadJSON(t *testing.T) {
-
 	s := Spec{}
 	err := LoadJSON(SpecJSON, &s)
 	if err != nil {
@@ -187,6 +194,7 @@ func TestSpecLoadJSON(t *testing.T) {
 	ft.Equal(t, s.Bindable, SpecBindable)
 	ft.Equal(t, s.Async, SpecAsync)
 	ft.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
+	ft.True(t, reflect.DeepEqual(s.Alpha, SpecAlpha))
 }
 
 func EncodedApb() string {
@@ -204,6 +212,7 @@ func TestSpecDumpJSON(t *testing.T) {
 		Bindable:    SpecBindable,
 		Async:       SpecAsync,
 		Plans:       []Plan{p},
+		Alpha:       SpecAlpha,
 	}
 
 	var knownMap interface{}
