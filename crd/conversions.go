@@ -38,12 +38,18 @@ func (a arrayErrors) Error() string {
 // ConvertSpecToBundle will convert a bundle Spec to a Bundle CRD resource type.
 func ConvertSpecToBundle(spec *bundle.Spec) (v1alpha1.BundleSpec, error) {
 	// encode the metadata as string
-	b, err := json.Marshal(spec.Metadata)
+	metadataBytes, err := json.Marshal(spec.Metadata)
 	if err != nil {
 		log.Errorf("unable to marshal the metadata for spec to a json byte array - %v", err)
 		return v1alpha1.BundleSpec{}, err
 	}
 	plans := []v1alpha1.Plan{}
+	// encode the alpha as string
+	alphaBytes, err := json.Marshal(spec.Alpha)
+	if err != nil {
+		log.Errorf("unable to marshal the alpha for spec to a json byte array - %v", err)
+		return v1alpha1.BundleSpec{}, err
+	}
 	errs := arrayErrors{}
 	for _, specPlan := range spec.Plans {
 		plan, err := convertPlanToCRD(specPlan)
@@ -65,7 +71,8 @@ func ConvertSpecToBundle(spec *bundle.Spec) (v1alpha1.BundleSpec, error) {
 		Bindable:    spec.Bindable,
 		Description: spec.Description,
 		Async:       convertToAsyncType(spec.Async),
-		Metadata:    string(b),
+		Metadata:    string(metadataBytes),
+		Alpha:       string(alphaBytes),
 		Plans:       plans,
 	}, nil
 }
@@ -78,13 +85,20 @@ func ConvertBundleToSpec(spec v1alpha1.BundleSpec, id string) (*bundle.Spec, err
 	// the name as the ID?
 
 	// encode the metadata as string
-	m := map[string]interface{}{}
-	err := json.Unmarshal([]byte(spec.Metadata), &m)
+	metadataMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(spec.Metadata), &metadataMap)
 	if err != nil {
 		log.Errorf("unable to unmarshal the metadata for spec - %v", err)
 		return &bundle.Spec{}, err
 	}
 	plans := []bundle.Plan{}
+	// encode the alpha as string
+	alphaMap := map[string]interface{}{}
+	err = json.Unmarshal([]byte(spec.Alpha), &alphaMap)
+	if err != nil {
+		log.Errorf("unable to unmarshal the alpha for spec - %v", err)
+		return &bundle.Spec{}, err
+	}
 	errs := arrayErrors{}
 	for _, specPlan := range spec.Plans {
 		plan, err := convertPlanToAPB(specPlan)
@@ -109,7 +123,8 @@ func ConvertBundleToSpec(spec v1alpha1.BundleSpec, id string) (*bundle.Spec, err
 		Bindable:    spec.Bindable,
 		Description: spec.Description,
 		Async:       convertAsyncTypeToString(spec.Async),
-		Metadata:    m,
+		Metadata:    metadataMap,
+		Alpha:       alphaMap,
 		Plans:       plans,
 	}, nil
 }
@@ -139,7 +154,8 @@ func ConvertServiceInstanceToCRD(si *bundle.ServiceInstance) (v1alpha1.BundleIns
 				Namespace: si.Context.Namespace,
 				Platform:  si.Context.Platform,
 			},
-			Parameters: string(b),
+			Parameters:   string(b),
+			DashboardURL: si.DashboardURL,
 		},
 		Status: v1alpha1.BundleInstanceStatus{
 			Bindings: bindings,
@@ -175,8 +191,9 @@ func ConvertServiceInstanceToAPB(si v1alpha1.BundleInstance, spec *bundle.Spec, 
 			Namespace: si.Spec.Context.Namespace,
 			Platform:  si.Spec.Context.Platform,
 		},
-		Parameters: parameters,
-		BindingIDs: bindingIDs,
+		Parameters:   parameters,
+		BindingIDs:   bindingIDs,
+		DashboardURL: si.Spec.DashboardURL,
 	}, nil
 }
 
