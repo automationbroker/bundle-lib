@@ -109,7 +109,7 @@ func (r Registry) LoadSpecs() ([]*bundle.Spec, int, error) {
 	}
 	validNames, filteredNames := r.filter.Run(imageNames)
 
-	log.Debug("Filter applied against registry: %s", r.config.Name)
+	log.Debugf("Filter applied against registry: %s", r.config.Name)
 
 	if len(validNames) != 0 {
 		log.Debugf("APBs passing white/blacklist filter:")
@@ -229,9 +229,9 @@ func NewRegistry(configuration Config, asbNamespace string) (Registry, error) {
 }
 
 func createFilter(config Config) Filter {
-	log.Debug("Creating filter for registry: %s", config.Name)
-	log.Debug("whitelist: %v", config.WhiteList)
-	log.Debug("blacklist: %v", config.BlackList)
+	log.Debugf("Creating filter for registry: %s", config.Name)
+	log.Debugf("whitelist: %v", config.WhiteList)
+	log.Debugf("blacklist: %v", config.BlackList)
 
 	filter := Filter{
 		whitelist: config.WhiteList,
@@ -240,7 +240,7 @@ func createFilter(config Config) Filter {
 
 	filter.Init()
 	if len(filter.failedWhiteRegexp) != 0 {
-		log.Warning("Some whitelist regex failed for registry: %s", config.Name)
+		log.Warningf("Some whitelist regex failed for registry: %s", config.Name)
 		for _, failed := range filter.failedWhiteRegexp {
 			log.Warning(failed.regex)
 			log.Warning(failed.err.Error())
@@ -248,7 +248,7 @@ func createFilter(config Config) Filter {
 	}
 
 	if len(filter.failedBlackRegexp) != 0 {
-		log.Warning("Some blacklist regex failed for registry: %s", config.Name)
+		log.Warningf("Some blacklist regex failed for registry: %s", config.Name)
 		for _, failed := range filter.failedBlackRegexp {
 			log.Warning(failed.regex)
 			log.Warning(failed.err.Error())
