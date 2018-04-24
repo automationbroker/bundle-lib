@@ -218,9 +218,10 @@ func ConvertServiceBindingToAPB(bi v1alpha1.BundleBinding, id string) (*apb.Bind
 		}
 	}
 	return &apb.BindInstance{
-		ID:         uuid.Parse(id),
-		ServiceID:  uuid.Parse(bi.Spec.BundleInstance.Name),
-		Parameters: parameters,
+		ID:           uuid.Parse(id),
+		ServiceID:    uuid.Parse(bi.Spec.BundleInstance.Name),
+		Parameters:   parameters,
+		CreateJobKey: id,
 	}, nil
 }
 
