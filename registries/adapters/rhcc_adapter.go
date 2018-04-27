@@ -35,8 +35,8 @@ type RHCCAdapter struct {
 // RHCCImage - RHCC Registry Image that is returned from the RHCC Catalog api.
 type RHCCImage struct {
 	Description  string `json:"description"`
-	IsOfficial   bool   `json:"is_official"`
-	IsTrusted    bool   `json:"is_trusted"`
+	IsOfficial   string `json:"is_official"`
+	IsTrusted    string `json:"is_trusted"`
 	Name         string `json:"name"`
 	ShouldFilter bool   `json:"should_filter"`
 	StarCount    int    `json:"star_count"`
