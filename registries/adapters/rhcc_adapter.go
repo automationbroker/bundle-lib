@@ -36,7 +36,7 @@ type RHCCAdapter struct {
 type RHCCImage struct {
 	Description  string `json:"description"`
 	IsOfficial   string `json:"is_official"`
-	IsTrusted    bool   `json:"is_trusted"`
+	IsTrusted    string `json:"is_trusted"`
 	Name         string `json:"name"`
 	ShouldFilter bool   `json:"should_filter"`
 	StarCount    int    `json:"star_count"`
