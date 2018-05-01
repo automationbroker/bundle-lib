@@ -48,6 +48,11 @@ type Configuration struct {
 	// The UpdateDescriptionFunc in the default case will call this function when the last description
 	// annotation on the running bundle is changed.
 	WatchBundle WatchRunningBundleFunc
+	// RunBundle - This is the method that will run the bundle.
+	RunBundle RunBundleFunc
+	// CopySecretsToNamespace - This is the method that is used to copy
+	// secrets from a namespace to the executionContext namespace.
+	CopySecretsToNamespace CopySecretsToNamespaceFunc
 	ExtractedCredential
 	// StateMountLocation this is where on disk the state will be stored for a bundle
 	StateMountLocation string
@@ -59,11 +64,13 @@ type Configuration struct {
 type Runtime interface {
 	ValidateRuntime() error
 	GetRuntime() string
-	CreateSandbox(string, string, []string, string) (string, error)
+	CreateSandbox(string, string, []string, string, map[string]string) (string, string, error)
 	DestroySandbox(string, string, []string, string, bool, bool)
 	ExtractCredentials(string, string, int) ([]byte, error)
 	ExtractedCredential
 	WatchRunningBundle(string, string, UpdateDescriptionFn) error
+	RunBundle(ExecutionContext) (ExecutionContext, error)
+	CopySecretsToNamespace(ExecutionContext, string, []string) error
 	StateManager
 }
 
@@ -71,11 +78,13 @@ type Runtime interface {
 type provider struct {
 	coe
 	ExtractedCredential
-	postSandboxCreate  []PostSandboxCreate
-	preSandboxCreate   []PreSandboxCreate
-	postSandboxDestroy []PostSandboxDestroy
-	preSandboxDestroy  []PreSandboxDestroy
-	watchBundle        WatchRunningBundleFunc
+	postSandboxCreate      []PostSandboxCreate
+	preSandboxCreate       []PreSandboxCreate
+	postSandboxDestroy     []PostSandboxDestroy
+	preSandboxDestroy      []PreSandboxDestroy
+	watchBundle            WatchRunningBundleFunc
+	runBundle              RunBundleFunc
+	copySecretsToNamespace CopySecretsToNamespaceFunc
 	state
 }
 
@@ -134,7 +143,32 @@ func NewRuntime(config Configuration) {
 	}
 
 	defaultStateManager := state{mountLocation: config.StateMountLocation, nsTarget: config.StateMasterNamespace}
-	p := &provider{coe: cluster, ExtractedCredential: c, state: defaultStateManager}
+	var w WatchRunningBundleFunc
+	if config.WatchBundle != nil {
+		w = config.WatchBundle
+	} else {
+		w = defaultWatchRunningBundle
+	}
+	var r RunBundleFunc
+	if config.RunBundle != nil {
+		r = config.RunBundle
+	} else {
+		r = defaultRunBundle
+	}
+	var s CopySecretsToNamespaceFunc
+	if config.CopySecretsToNamespace != nil {
+		s = config.CopySecretsToNamespace
+	} else {
+		s = defaultCopySecretsToNamespace
+	}
+
+	p := &provider{coe: cluster,
+		ExtractedCredential:    c,
+		watchBundle:            w,
+		runBundle:              r,
+		copySecretsToNamespace: s,
+		state: defaultStateManager,
+	}
 
 	if len(config.PreCreateSandboxHooks) > 0 {
 		p.preSandboxCreate = config.PreCreateSandboxHooks
@@ -204,8 +238,32 @@ func (p provider) ValidateRuntime() error {
 func (p provider) CreateSandbox(podName string,
 	namespace string,
 	targets []string,
-	apbRole string) (string, error) {
+	apbRole string,
+	metadata map[string]string,
+) (string, string, error) {
+	k8scli, err := clients.Kubernetes()
+	if err != nil {
+		return "", "", err
+	}
+	err = validateTargets(targets)
+	if err != nil {
+		return "", "", fmt.Errorf("unable to get target namespaces: %v", err)
+	}
 
+	// Create namespace.
+	ns := &apicorev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:       metadata,
+			GenerateName: namespace,
+		},
+	}
+	ns, err = k8scli.Client.CoreV1().Namespaces().Create(ns)
+	if err != nil {
+		return "", "", err
+	}
+
+	//Sandbox (i.e Namespace) was created.
+	namespace = ns.ObjectMeta.Name
 	for i, f := range p.preSandboxCreate {
 		log.Debugf("Running pre create sandbox function: %v", i+1)
 		err := f(podName, namespace, targets, apbRole)
@@ -215,14 +273,10 @@ func (p provider) CreateSandbox(podName string,
 			log.Warningf("Pre create sandbox function failed with err: %v", err)
 		}
 	}
-	k8scli, err := clients.Kubernetes()
-	if err != nil {
-		return "", err
-	}
 
 	err = k8scli.CreateServiceAccount(podName, namespace)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	log.Debugf("Trying to create apb sandbox: [ %s ], with %s permissions in namespace %s", podName, apbRole, namespace)
@@ -244,13 +298,13 @@ func (p provider) CreateSandbox(podName string,
 	// targetNamespace and namespace are the same
 	err = k8scli.CreateRoleBinding(podName, subjects, namespace, namespace, roleRef)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	for _, target := range targets {
 		err = k8scli.CreateRoleBinding(podName, subjects, namespace, target, roleRef)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
@@ -277,7 +331,7 @@ func (p provider) CreateSandbox(podName string,
 	_, err = k8scli.Client.NetworkingV1().NetworkPolicies(targets[0]).Create(networkPolicy)
 	if err != nil {
 		log.Errorf("unable to create network policy object - %v", err)
-		return "", err
+		return "", "", err
 	}
 	log.Debugf("Successfully created network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
 
@@ -293,7 +347,21 @@ func (p provider) CreateSandbox(podName string,
 		}
 	}
 
-	return podName, nil
+	return podName, namespace, nil
+}
+
+func validateTargets(targets []string) error {
+	k8scli, err := clients.Kubernetes()
+	if err != nil {
+		return err
+	}
+	for _, ns := range targets {
+		_, err = k8scli.Client.CoreV1().Namespaces().Get(ns, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // DestroySandbox - Translate the broker DestorySandbox call into cluster resource calls
@@ -390,6 +458,14 @@ func (p provider) GetRuntime() string {
 
 func (p provider) WatchRunningBundle(podName string, namespace string, updateFunc UpdateDescriptionFn) error {
 	return p.watchBundle(podName, namespace, updateFunc)
+}
+
+func (p provider) CopySecretsToNamespace(ec ExecutionContext, cn string, secrets []string) error {
+	return p.copySecretsToNamespace(ec, cn, secrets)
+}
+
+func (p provider) RunBundle(ec ExecutionContext) (ExecutionContext, error) {
+	return p.runBundle(ec)
 }
 
 func shouldDeleteNamespace(keepNamespace bool,

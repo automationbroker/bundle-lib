@@ -380,21 +380,3 @@ const (
 	httpsProxyEnvVar = "HTTPS_PROXY"
 	noProxyEnvVar    = "NO_PROXY"
 )
-
-// ProxyConfig - Contains a desired proxy configuration for the broker and
-// the assets that it spawns.
-type ProxyConfig struct {
-	HTTPProxy  string
-	HTTPSProxy string
-	NoProxy    string
-}
-
-// ExecutionContext - Contains the information necessary to track and clean up
-// an APB run
-type ExecutionContext struct {
-	PodName        string
-	Namespace      string
-	ServiceAccount string
-	Targets        []string
-	ProxyConfig    *ProxyConfig
-}

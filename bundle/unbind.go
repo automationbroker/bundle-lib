@@ -17,8 +17,15 @@
 package bundle
 
 import (
+	"fmt"
+
 	"github.com/automationbroker/bundle-lib/runtime"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	unbindAction = "unbind"
 )
 
 // Unbind - runs the abp with the unbind action.
@@ -36,22 +43,48 @@ func (e *executor) Unbind(
 
 	go func() {
 		e.actionStarted()
-		executionContext, err := e.executeApb("unbind", instance, parameters)
+		// Create namespace name that will be used to generate a name.
+		ns := fmt.Sprintf(fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, unbindAction))
+		// Create the podname
+		pn := fmt.Sprintf("bundle-%s", uuid.New())
+		targets := []string{instance.Context.Namespace}
+		labels := map[string]string{
+			"bundle-fqname":   instance.Spec.FQName,
+			"bundle-action":   unbindAction,
+			"bundle-pod-name": pn,
+		}
+		ec := runtime.ExecutionContext{
+			BundleName: pn,
+			Targets:    targets,
+			Metadata:   labels,
+			Action:     unbindAction,
+			Image:      instance.Spec.Image,
+		}
+
+		serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
+		if err != nil {
+			log.Errorf("Problem executing bundle create sandbox [%s] unbind", ec.BundleName)
+			e.actionFinishedWithError(err)
+			return
+		}
+		ec.Account = serviceAccount
+		ec.Location = namespace
+		ec, err = e.executeApb(ec, instance.Spec, parameters)
 		defer runtime.Provider.DestroySandbox(
-			executionContext.PodName,
-			executionContext.Namespace,
-			executionContext.Targets,
+			ec.BundleName,
+			ec.Location,
+			ec.Targets,
 			clusterConfig.Namespace,
 			clusterConfig.KeepNamespace,
 			clusterConfig.KeepNamespaceOnError,
 		)
 		if err != nil {
-			log.Errorf("Problem executing apb [%s] unbind", executionContext.PodName)
+			log.Errorf("Problem executing apb [%s] unbind", ec.BundleName)
 			e.actionFinishedWithError(err)
 			return
 		}
 
-		err = runtime.Provider.WatchRunningBundle(executionContext.PodName, executionContext.Namespace, e.updateDescription)
+		err = runtime.Provider.WatchRunningBundle(ec.BundleName, ec.Location, e.updateDescription)
 		if err != nil {
 			log.Errorf("Unbind action failed - %v", err)
 			e.actionFinishedWithError(err)
