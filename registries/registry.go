@@ -220,6 +220,8 @@ func NewCustomRegistry(configuration Config, adapter adapters.Adapter, asbNamesp
 			adapter = &adapters.LocalOpenShiftAdapter{Config: c}
 		case "helm":
 			adapter = &adapters.HelmAdapter{Config: c}
+		case "jfrog":
+			adapter = &adapters.JFrogAdapter{Config: c}
 		default:
 			log.Errorf("Unknown registry type - %s", configuration.Type)
 			return Registry{}, errors.New("Unknown registry type")
