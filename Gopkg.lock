@@ -20,7 +20,6 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
-  branch = "bug-1566924"
   name = "github.com/automationbroker/broker-client-go"
   packages = [
     "client/clientset/versioned",
@@ -29,8 +28,8 @@
     "pkg/apis/automationbroker",
     "pkg/apis/automationbroker/v1alpha1"
   ]
-  revision = "00b71c26a8a6c6a71b5b8bf9e54c7695337bf643"
-  source = "github.com/shawn-hurley/broker-client-go"
+  revision = "6918e8ae55fc54e0b69c5d17afd77d07efd5dc23"
+  version = "0.1.2"
 
 [[projects]]
   name = "github.com/coreos/etcd"
@@ -539,6 +538,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cefa03ab9d4a73ade32ec2b5c21a2fe40381b4171eed5de9a7eeff0785d42e21"
+  inputs-digest = "5d6fb38fcbb8024cf35ea517995086b921765de40a3f016f9ac25df44c957921"
   solver-name = "gps-cdcl"
   solver-version = 1
