@@ -102,7 +102,7 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 		return "", errors.New("failed to find realm in www-authenticate header")
 	}
 	authOptions := ""
-	if strings.Index(authChallenge, ",") == -1 {
+	if strings.Index(authChallenge, ",") != -1 {
 		authOptions := strings.Split(authChallenge, ",")[1]
 	}
 	authRealm := strings.Split(strings.Split(authChallenge, "realm=\"")[1], "\"")[0]
