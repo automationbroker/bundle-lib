@@ -137,7 +137,7 @@ func ConvertServiceInstanceToCRD(si *bundle.ServiceInstance) (v1alpha1.BundleIns
 			Bundle: v1alpha1.LocalObjectReference{Name: si.Spec.ID},
 			Context: v1alpha1.Context{
 				Namespace: si.Context.Namespace,
-				Plateform: si.Context.Platform,
+				Platform:  si.Context.Platform,
 			},
 			Parameters: string(b),
 		},
@@ -173,7 +173,7 @@ func ConvertServiceInstanceToAPB(si v1alpha1.BundleInstance, spec *bundle.Spec, 
 		Spec: spec,
 		Context: &bundle.Context{
 			Namespace: si.Spec.Context.Namespace,
-			Platform:  si.Spec.Context.Plateform,
+			Platform:  si.Spec.Context.Platform,
 		},
 		Parameters: parameters,
 		BindingIDs: bindingIDs,
