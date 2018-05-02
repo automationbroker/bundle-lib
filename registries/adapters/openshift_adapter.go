@@ -103,7 +103,7 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 	}
 	authOptions := ""
 	if strings.Index(authChallenge, ",") != -1 {
-		authOptions := strings.Split(authChallenge, ",")[1]
+		authOptions = strings.Split(authChallenge, ",")[1]
 	}
 	authRealm := strings.Split(strings.Split(authChallenge, "realm=\"")[1], "\"")[0]
 	authURL := fmt.Sprintf("%v?%v", authRealm, authOptions)
