@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -84,7 +85,7 @@ func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 	}
 
 	var imageList []string
-	err = json.Unmarshal(imageList, &imageList)
+	err = json.Unmarshal(imageResp, &imageList)
 	if err != nil {
 		return nil, err
 	}
