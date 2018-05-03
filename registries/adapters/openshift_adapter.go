@@ -30,6 +30,11 @@ import (
 const openShiftName = "openshift"
 const openShiftManifestURL = "%v/v2/%v/manifests/%v"
 
+// THIS IS HOW IT SHOULD WORK IN PROD
+//const openShiftCatalogURL = "%v/v2/_catalog"
+//INSTEAD WELL USE DIRECT ENDPOINT
+const openShiftCatalogURL = "https://rhc-docker-catalog.ext.paas.redhat.com/v2/_catalog"
+
 // OpenShiftAdapter - Docker Hub Adapter
 type OpenShiftAdapter struct {
 	Config Configuration
@@ -51,10 +56,40 @@ func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 	log.Debug("OpenShiftAdapter::GetImageNames")
 	log.Debugf("BundleSpecLabel: %s", BundleSpecLabel)
 
-	images := r.Config.Images
-	log.Debugf("Configured to use images: %v", images)
+	if r.Config.Images != nil {
+		log.Debug("Configured to use images: %v", r.Config.Images)
+		return r.Config.Images, nil
+	}
+	log.Debug("Did not find images in config, attempting to discover from %s/v2/_catalog", r.Config.URL)
+	// Proper way to do this
+	//req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL, r.Config.URL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL), nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return images, nil
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Errorf("Failed to load catalog response at %s - %v", openShiftCatalogURL, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, errors.New(resp.Status)
+	}
+	imageResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var imageList []string
+	err = json.Unmarshal(imageList, &imageList)
+	if err != nil {
+		return nil, err
+	}
+
+	return imageList, nil
 }
 
 // FetchSpecs - retrieve the spec for the image names.
