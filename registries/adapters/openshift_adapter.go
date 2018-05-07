@@ -30,11 +30,7 @@ import (
 
 const openShiftName = "openshift"
 const openShiftManifestURL = "%v/v2/%v/manifests/%v"
-
-// THIS IS HOW IT SHOULD WORK IN PROD
-//const openShiftCatalogURL = "%v/v2/_catalog"
-//INSTEAD WELL USE DIRECT ENDPOINT
-const openShiftCatalogURL = "https://rhc-docker-catalog.ext.paas.redhat.com/v2/_catalog"
+const openShiftCatalogURL = "%v/v2/_catalog"
 
 // OpenShiftAdapter - Docker Hub Adapter
 type OpenShiftAdapter struct {
@@ -62,9 +58,8 @@ func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 		return r.Config.Images, nil
 	}
 	log.Debug("Did not find images in config, attempting to discover from %s/v2/_catalog", r.Config.URL)
-	// Proper way to do this
-	//req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL, r.Config.URL), nil)
-	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL), nil)
+
+	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL, r.Config.URL), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -181,5 +176,5 @@ func (r OpenShiftAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
+	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.Config.URL.Hostname(), imageName, r.Config.Tag))
 }
