@@ -25,7 +25,7 @@ import (
 
 const (
 	// GatherCredentialsCommand - Command used when execing for bind credentials
-	// moving this constant here because eventually Extrating creds will
+	// moving this constant here because eventually Extracting creds will
 	// need to be moved to runtime. Therefore keeping all of this together
 	// makes sense
 	GatherCredentialsCommand = "broker-bind-creds"
