@@ -442,8 +442,10 @@ func TestAdapterWithConfiguration(t *testing.T) {
 
 	f := fakeAdapter{}
 
-	_, err := NewCustomRegistry(c, f, "")
+	reg, err := NewCustomRegistry(c, f, "")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	ft.Equal(t, reg.adapter, f, "registry uses wrong adapter")
+	ft.Equal(t, reg.config, c, "registrying using wrong config")
 }
