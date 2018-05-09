@@ -21,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Provision - will run the abp with the provision action.
+// Provision - will run the apb with the provision action.
 func (e *executor) Provision(instance *ServiceInstance) <-chan StatusMessage {
 	log.Infof("============================================================")
 	log.Infof("                       PROVISIONING                         ")

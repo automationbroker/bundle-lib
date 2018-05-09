@@ -32,7 +32,7 @@ type SecretsConfig struct {
 	Secret  string `yaml:"secret"`
 }
 
-// Validate - Ensures that the secrets config is valid (ie, all strings are
+// Validate - Ensures that the secrets config is valid (i.e., all strings are
 // non-empty
 func (c SecretsConfig) Validate() bool {
 	for _, str := range []string{c.Name, c.ApbName, c.Secret} {

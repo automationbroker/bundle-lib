@@ -152,7 +152,7 @@ func ConvertServiceInstanceToCRD(si *bundle.ServiceInstance) (v1alpha1.BundleIns
 // convert those to a bundle ServiceInstance.
 func ConvertServiceInstanceToAPB(si v1alpha1.BundleInstance, spec *bundle.Spec, id string) (*bundle.ServiceInstance, error) {
 	// TODO: Should this conversion just accept a ServiceInstance and automatically
-	// deref the bundle from the Service Instance?
+	// dereference the bundle from the Service Instance?
 
 	parameters := &bundle.Parameters{}
 	if si.Spec.Parameters != "" {
@@ -204,7 +204,7 @@ func ConvertServiceBindingToCRD(bi *bundle.BindInstance) (v1alpha1.BundleBinding
 // along with its id (which is often the ServiceBinding's name), and will convert
 // these into a bundle BindInstance.
 func ConvertServiceBindingToAPB(bi v1alpha1.BundleBindingSpec, id string) (*bundle.BindInstance, error) {
-	// TOOD: Same as above, accept the full ServiceBinding?
+	// TODO: Same as above, accept the full ServiceBinding?
 	parameters := &bundle.Parameters{}
 	if bi.Parameters != "" {
 		err := json.Unmarshal([]byte(bi.Parameters), parameters)
@@ -233,7 +233,7 @@ func ConvertStateToCRD(s bundle.State) v1alpha1.State {
 	case bundle.StateFailed:
 		return v1alpha1.StateFailed
 	}
-	// all cases should be coverd. we should never hit this code path.
+	// all cases should be covered. we should never hit this code path.
 	log.Errorf("Job state not found: %v", s)
 	return v1alpha1.StateFailed
 }

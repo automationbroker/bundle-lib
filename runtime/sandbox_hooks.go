@@ -55,7 +55,7 @@ func (p *provider) addPostCreateSandbox(f PostSandboxCreate) {
 }
 
 // PreSandboxDestroy - The pre sand box destroy function will be called
-// before the sandbox is destoryed. This could mean the namespace is kept around
+// before the sandbox is destroyed. This could mean the namespace is kept around
 // if the apb failed and configuration conditions are met. This function should not
 // expect to panic and should fail gracefully by bubbling up the error. This
 // function should also not delete the namespace or the pod directly. This
@@ -71,7 +71,7 @@ func (p *provider) addPreDestroySandbox(f PreSandboxDestroy) {
 }
 
 // PostSandboxDestroy - The post sand box destroy function will be called
-// after the sandbox is destoryed. This could mean the namespace is kept around
+// after the sandbox is destroyed. This could mean the namespace is kept around
 // if the apb failed and configuration conditions are met. This function should not
 // expect to panic and should fail gracefully by bubbling up the error. This
 // function should also not delete the namespace or the pod directly. This

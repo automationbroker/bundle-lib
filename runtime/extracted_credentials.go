@@ -37,7 +37,7 @@ type ExtractedCredential interface {
 	UpdateExtractedCredential(string, string, map[string]interface{}, map[string]string) error
 	// GetExtractedCredential - takes id, namespace will get credentials.
 	GetExtractedCredential(string, string) (map[string]interface{}, error)
-	// DeleteExtractedCredentials - takes id, namesapce and deletes the credentials.
+	// DeleteExtractedCredentials - takes id, namespace and deletes the credentials.
 	DeleteExtractedCredential(string, string) error
 }
 
