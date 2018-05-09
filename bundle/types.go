@@ -203,7 +203,7 @@ type ClusterConfig struct {
 	KeepNamespaceOnError bool   `yaml:"keep_namespace_on_error"`
 }
 
-// ClusterConfiguration that should be used by the abp package.
+// ClusterConfiguration that should be used by the apb package.
 var clusterConfig ClusterConfig
 
 // InitializeClusterConfig - initialize the cluster config.

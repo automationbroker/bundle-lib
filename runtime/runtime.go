@@ -46,7 +46,7 @@ type Configuration struct {
 	PreDestroySandboxHooks []PreSandboxDestroy
 	// WatchBundle - this is the method that watches the bundle for completion.
 	// The UpdateDescriptionFunc in the default case will call this function when the last description
-	// annonation on the running bundle is changed.
+	// annotation on the running bundle is changed.
 	WatchBundle WatchRunningBundleFunc
 	ExtractedCredential
 }
@@ -158,7 +158,7 @@ func newKubernetes() coe {
 	return kubernetes{}
 }
 
-// ValidateRuntime - Translate the broker cluster validation check into specfici runtime checks
+// ValidateRuntime - Translate the broker cluster validation check into specific runtime checks
 func (p provider) ValidateRuntime() error {
 	k8scli, err := clients.Kubernetes()
 	if err != nil {
@@ -239,7 +239,7 @@ func (p provider) CreateSandbox(podName string,
 		}
 	}
 
-	// Must create a Network policy to allow for comunication from the APB pod to the target namespace.
+	// Must create a Network policy to allow for communication from the APB pod to the target namespace.
 	networkPolicy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
@@ -347,7 +347,7 @@ func (p provider) DestroySandbox(podName string,
 	}
 
 	log.Debugf("Deleting network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
-	// Must clean up the network policy that allowed comunication from the APB pod to the target namespace.
+	// Must clean up the network policy that allowed communication from the APB pod to the target namespace.
 	err = k8scli.Client.NetworkingV1().NetworkPolicies(targets[0]).Delete(podName, &metav1.DeleteOptions{})
 	if err != nil {
 		log.Errorf("unable to delete the network policy object - %v", err)

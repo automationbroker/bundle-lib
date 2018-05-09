@@ -22,7 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Deprovision - runs the abp with the deprovision action.
+// Deprovision - runs the apb with the deprovision action.
 func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 	log.Infof("============================================================")
 	log.Infof("                      DEPROVISIONING                        ")

@@ -24,7 +24,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// MockFile - Mock file contains fake regitry data
+// MockFile - Mock file contains fake registry data
 var MockFile = "/etc/automationbroker/bundle-lib/mock-registry-data.yaml"
 
 // mockRegistryName - mock registry name
