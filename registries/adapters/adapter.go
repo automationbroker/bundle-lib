@@ -52,6 +52,7 @@ type Configuration struct {
 	URL           *url.URL
 	User          string
 	Pass          string
+	Token         string
 	Org           string
 	Runner        string
 	Images        []string
