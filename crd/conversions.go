@@ -203,11 +203,11 @@ func ConvertServiceBindingToCRD(bi *bundle.BindInstance) (v1alpha1.BundleBinding
 // ConvertServiceBindingToAPB accepts a bundle-client-go ServiceBindingSpec
 // along with its id (which is often the ServiceBinding's name), and will convert
 // these into a bundle BindInstance.
-func ConvertServiceBindingToAPB(bi v1alpha1.BundleBindingSpec, id string) (*bundle.BindInstance, error) {
+func ConvertServiceBindingToAPB(bi v1alpha1.BundleBinding, id string) (*bundle.BindInstance, error) {
 	// TODO: Same as above, accept the full ServiceBinding?
 	parameters := &bundle.Parameters{}
-	if bi.Parameters != "" {
-		err := json.Unmarshal([]byte(bi.Parameters), parameters)
+	if bi.Spec.Parameters != "" {
+		err := json.Unmarshal([]byte(bi.Spec.Parameters), parameters)
 		if err != nil {
 			log.Errorf("Unable to unmarshal parameters to bundle parameters- %v", err)
 			return &bundle.BindInstance{}, err
@@ -215,7 +215,7 @@ func ConvertServiceBindingToAPB(bi v1alpha1.BundleBindingSpec, id string) (*bund
 	}
 	return &bundle.BindInstance{
 		ID:         uuid.Parse(id),
-		ServiceID:  uuid.Parse(bi.BundleInstance.Name),
+		ServiceID:  uuid.Parse(bi.Spec.BundleInstance.Name),
 		Parameters: parameters,
 	}, nil
 }
