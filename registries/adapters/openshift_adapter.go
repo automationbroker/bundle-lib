@@ -54,10 +54,10 @@ func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 	log.Debugf("BundleSpecLabel: %s", BundleSpecLabel)
 
 	if r.Config.Images != nil {
-		log.Debug("Configured to use images: %v", r.Config.Images)
+		log.Debugf("Configured to use images: %v", r.Config.Images)
 		return r.Config.Images, nil
 	}
-	log.Debug("Did not find images in config, attempting to discover from %s/v2/_catalog", r.Config.URL)
+	log.Debugf("Did not find images in config, attempting to discover from %s/v2/_catalog", r.Config.URL)
 
 	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL, r.Config.URL), nil)
 	if err != nil {
@@ -72,6 +72,7 @@ func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
+		log.Errorf("Failed to fetch catalog response. Expected a 200 status and got: %v", resp.Status)
 		return nil, errors.New(resp.Status)
 	}
 	imageResp, err := ioutil.ReadAll(resp.Body)
