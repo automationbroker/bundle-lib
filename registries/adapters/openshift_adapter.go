@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -29,6 +30,7 @@ import (
 
 const openShiftName = "openshift"
 const openShiftManifestURL = "%v/v2/%v/manifests/%v"
+const openShiftCatalogURL = "%v/v2/_catalog"
 
 // OpenShiftAdapter - Docker Hub Adapter
 type OpenShiftAdapter struct {
@@ -49,12 +51,42 @@ func (r OpenShiftAdapter) RegistryName() string {
 // GetImageNames - retrieve the images
 func (r OpenShiftAdapter) GetImageNames() ([]string, error) {
 	log.Debug("OpenShiftAdapter::GetImageNames")
-	log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
+	log.Debugf("BundleSpecLabel: %s", BundleSpecLabel)
 
-	images := r.Config.Images
-	log.Debug("Configured to use images: %v", images)
+	if r.Config.Images != nil {
+		log.Debugf("Configured to use images: %v", r.Config.Images)
+		return r.Config.Images, nil
+	}
+	log.Debugf("Did not find images in config, attempting to discover from %s/v2/_catalog", r.Config.URL)
 
-	return images, nil
+	req, err := http.NewRequest("GET", fmt.Sprintf(openShiftCatalogURL, r.Config.URL), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Errorf("Failed to load catalog response at %s - %v", openShiftCatalogURL, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Errorf("Failed to fetch catalog response. Expected a 200 status and got: %v", resp.Status)
+		return nil, errors.New(resp.Status)
+	}
+	imageResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var imageList []string
+	err = json.Unmarshal(imageResp, &imageList)
+	if err != nil {
+		return nil, err
+	}
+
+	return imageList, nil
 }
 
 // FetchSpecs - retrieve the spec for the image names.
@@ -62,7 +94,7 @@ func (r OpenShiftAdapter) FetchSpecs(imageNames []string) ([]*apb.Spec, error) {
 	log.Debug("OpenShiftAdapter::FetchSpecs")
 	specs := []*apb.Spec{}
 	for _, imageName := range imageNames {
-		log.Debug("%v", imageName)
+		log.Debugf("%v", imageName)
 		spec, err := r.loadSpec(imageName)
 		if err != nil {
 			log.Errorf("Failed to retrieve spec data for image %s - %v", imageName, err)
@@ -145,5 +177,5 @@ func (r OpenShiftAdapter) loadSpec(imageName string) (*apb.Spec, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
+	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.Config.URL.Hostname(), imageName, r.Config.Tag))
 }
