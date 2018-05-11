@@ -179,15 +179,23 @@ func TestWatchPod(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			var watchErr error
-			clientset, podWatch := tc.PodClient()
+			var dashURL string
+			podClient, podWatch := tc.PodClient()
 			descriptions := []string{}
 			done := make(chan bool)
-			k8scli.Client = clientset
+			k8scli.Client = podClient
 
 			go func() {
-				watchErr = defaultWatchRunningBundle("test", "test", func(d string) {
-					fmt.Printf("NSK: got d -> %v\n", d)
-					descriptions = append(descriptions, d)
+				watchErr = defaultWatchRunningBundle("test", "test", func(d, newDashURL string) {
+					fmt.Printf("got newDescription -> %v\n", d)
+					fmt.Printf("got newDashURL-> %v\n", newDashURL)
+					if d != "" {
+						descriptions = append(descriptions, d)
+					}
+
+					if dashURL != "" {
+						dashURL = newDashURL
+					}
 				})
 				done <- true
 			}()

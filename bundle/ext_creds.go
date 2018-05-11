@@ -36,6 +36,28 @@ var (
 	ErrExtractedCredentialsNotFound = fmt.Errorf("credentials not found")
 )
 
+// RecoverExtractCredentials - Recover extracted credentials.
+func RecoverExtractCredentials(podname, ns, fqname, id string, method JobMethod, targets []string, rt int) error {
+	defer runtime.Provider.DestroySandbox(podname, ns, targets, clusterConfig.Namespace, clusterConfig.KeepNamespace, clusterConfig.KeepNamespaceOnError)
+	credBytes, err := runtime.Provider.ExtractCredentials(podname, ns, rt)
+	if err != nil {
+		log.Errorf("bundle unable to extract credentials - %v", err)
+		return err
+	}
+	creds, err := buildExtractedCredentials(credBytes)
+	if err != nil {
+		log.Errorf("bundle unable to build extracted credentials - %v", err)
+		return err
+	}
+	labels := map[string]string{"apbAction": string(method), "apbName": fqname}
+	err = runtime.Provider.CreateExtractedCredential(id, clusterConfig.Namespace, creds.Credentials, labels)
+	if err != nil {
+		log.Errorf("Bundle unable to save extracted credentials - %v", err)
+		return err
+	}
+	return nil
+}
+
 // GetExtractedCredentials - Will get the extracted credentials for a caller of the APB package.
 func GetExtractedCredentials(id string) (*ExtractedCredentials, error) {
 	creds, err := runtime.Provider.GetExtractedCredential(id, clusterConfig.Namespace)

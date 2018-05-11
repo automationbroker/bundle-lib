@@ -38,12 +38,18 @@ func (a arrayErrors) Error() string {
 // ConvertSpecToBundle will convert a bundle Spec to a Bundle CRD resource type.
 func ConvertSpecToBundle(spec *bundle.Spec) (v1alpha1.BundleSpec, error) {
 	// encode the metadata as string
-	b, err := json.Marshal(spec.Metadata)
+	metadataBytes, err := json.Marshal(spec.Metadata)
 	if err != nil {
 		log.Errorf("unable to marshal the metadata for spec to a json byte array - %v", err)
 		return v1alpha1.BundleSpec{}, err
 	}
 	plans := []v1alpha1.Plan{}
+	// encode the alpha as string
+	alphaBytes, err := json.Marshal(spec.Alpha)
+	if err != nil {
+		log.Errorf("unable to marshal the alpha for spec to a json byte array - %v", err)
+		return v1alpha1.BundleSpec{}, err
+	}
 	errs := arrayErrors{}
 	for _, specPlan := range spec.Plans {
 		plan, err := convertPlanToCRD(specPlan)
@@ -65,7 +71,8 @@ func ConvertSpecToBundle(spec *bundle.Spec) (v1alpha1.BundleSpec, error) {
 		Bindable:    spec.Bindable,
 		Description: spec.Description,
 		Async:       convertToAsyncType(spec.Async),
-		Metadata:    string(b),
+		Metadata:    string(metadataBytes),
+		Alpha:       string(alphaBytes),
 		Plans:       plans,
 	}, nil
 }
@@ -78,13 +85,20 @@ func ConvertBundleToSpec(spec v1alpha1.BundleSpec, id string) (*bundle.Spec, err
 	// the name as the ID?
 
 	// encode the metadata as string
-	m := map[string]interface{}{}
-	err := json.Unmarshal([]byte(spec.Metadata), &m)
+	metadataMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(spec.Metadata), &metadataMap)
 	if err != nil {
 		log.Errorf("unable to unmarshal the metadata for spec - %v", err)
 		return &bundle.Spec{}, err
 	}
 	plans := []bundle.Plan{}
+	// encode the alpha as string
+	alphaMap := map[string]interface{}{}
+	err = json.Unmarshal([]byte(spec.Alpha), &alphaMap)
+	if err != nil {
+		log.Errorf("unable to unmarshal the alpha for spec - %v", err)
+		return &bundle.Spec{}, err
+	}
 	errs := arrayErrors{}
 	for _, specPlan := range spec.Plans {
 		plan, err := convertPlanToAPB(specPlan)
@@ -109,7 +123,8 @@ func ConvertBundleToSpec(spec v1alpha1.BundleSpec, id string) (*bundle.Spec, err
 		Bindable:    spec.Bindable,
 		Description: spec.Description,
 		Async:       convertAsyncTypeToString(spec.Async),
-		Metadata:    m,
+		Metadata:    metadataMap,
+		Alpha:       alphaMap,
 		Plans:       plans,
 	}, nil
 }
@@ -139,7 +154,8 @@ func ConvertServiceInstanceToCRD(si *bundle.ServiceInstance) (v1alpha1.BundleIns
 				Namespace: si.Context.Namespace,
 				Platform:  si.Context.Platform,
 			},
-			Parameters: string(b),
+			Parameters:   string(b),
+			DashboardURL: si.DashboardURL,
 		},
 		Status: v1alpha1.BundleInstanceStatus{
 			Bindings: bindings,
@@ -175,8 +191,9 @@ func ConvertServiceInstanceToAPB(si v1alpha1.BundleInstance, spec *bundle.Spec, 
 			Namespace: si.Spec.Context.Namespace,
 			Platform:  si.Spec.Context.Platform,
 		},
-		Parameters: parameters,
-		BindingIDs: bindingIDs,
+		Parameters:   parameters,
+		BindingIDs:   bindingIDs,
+		DashboardURL: si.Spec.DashboardURL,
 	}, nil
 }
 
@@ -203,11 +220,11 @@ func ConvertServiceBindingToCRD(bi *bundle.BindInstance) (v1alpha1.BundleBinding
 // ConvertServiceBindingToAPB accepts a bundle-client-go ServiceBindingSpec
 // along with its id (which is often the ServiceBinding's name), and will convert
 // these into a bundle BindInstance.
-func ConvertServiceBindingToAPB(bi v1alpha1.BundleBindingSpec, id string) (*bundle.BindInstance, error) {
+func ConvertServiceBindingToAPB(bi v1alpha1.BundleBinding, id string) (*bundle.BindInstance, error) {
 	// TODO: Same as above, accept the full ServiceBinding?
 	parameters := &bundle.Parameters{}
-	if bi.Parameters != "" {
-		err := json.Unmarshal([]byte(bi.Parameters), parameters)
+	if bi.Spec.Parameters != "" {
+		err := json.Unmarshal([]byte(bi.Spec.Parameters), parameters)
 		if err != nil {
 			log.Errorf("Unable to unmarshal parameters to bundle parameters- %v", err)
 			return &bundle.BindInstance{}, err
@@ -215,7 +232,7 @@ func ConvertServiceBindingToAPB(bi v1alpha1.BundleBindingSpec, id string) (*bund
 	}
 	return &bundle.BindInstance{
 		ID:         uuid.Parse(id),
-		ServiceID:  uuid.Parse(bi.BundleInstance.Name),
+		ServiceID:  uuid.Parse(bi.Spec.BundleInstance.Name),
 		Parameters: parameters,
 	}, nil
 }
@@ -254,6 +271,44 @@ func ConvertStateToAPB(s v1alpha1.State) bundle.State {
 	// We should have already covered all the cases above
 	log.Errorf("Unable to find job state from - %v", s)
 	return bundle.StateFailed
+}
+
+// ConvertJobMethodToCRD will convert the bundle job method to the crd job method.
+func ConvertJobMethodToCRD(j bundle.JobMethod) v1alpha1.JobMethod {
+	switch j {
+	case bundle.JobMethodProvision:
+		return v1alpha1.JobMethodProvision
+	case bundle.JobMethodDeprovision:
+		return v1alpha1.JobMethodDeprovision
+	case bundle.JobMethodBind:
+		return v1alpha1.JobMethodBind
+	case bundle.JobMethodUnbind:
+		return v1alpha1.JobMethodUnbind
+	case bundle.JobMethodUpdate:
+		return v1alpha1.JobMethodUpdate
+	}
+	log.Errorf("unable to find the job method - %v", j)
+	// This should never be called as all cases should already be covered.
+	return v1alpha1.JobMethodProvision
+}
+
+// ConvertJobMethodToAPB will convert crd job method to bundle job method.
+func ConvertJobMethodToAPB(j v1alpha1.JobMethod) bundle.JobMethod {
+	switch j {
+	case v1alpha1.JobMethodProvision:
+		return bundle.JobMethodProvision
+	case v1alpha1.JobMethodDeprovision:
+		return bundle.JobMethodDeprovision
+	case v1alpha1.JobMethodBind:
+		return bundle.JobMethodBind
+	case v1alpha1.JobMethodUnbind:
+		return bundle.JobMethodUnbind
+	case v1alpha1.JobMethodUpdate:
+		return bundle.JobMethodUpdate
+	}
+	// We should have already covered all the cases above
+	log.Errorf("Unable to find job method from - %v", j)
+	return bundle.JobMethodProvision
 }
 
 ////////////////////////////////////////////////////////////
@@ -371,24 +426,6 @@ func convertParametersToCRD(param bundle.ParameterDescriptor) (v1alpha1.Paramete
 	}, nil
 }
 
-func convertJobMethodToCRD(j bundle.JobMethod) v1alpha1.JobMethod {
-	switch j {
-	case bundle.JobMethodProvision:
-		return v1alpha1.JobMethodProvision
-	case bundle.JobMethodDeprovision:
-		return v1alpha1.JobMethodDeprovision
-	case bundle.JobMethodBind:
-		return v1alpha1.JobMethodBind
-	case bundle.JobMethodUnbind:
-		return v1alpha1.JobMethodUnbind
-	case bundle.JobMethodUpdate:
-		return v1alpha1.JobMethodUpdate
-	}
-	log.Errorf("unable to find the job method - %v", j)
-	// This should never be called as all cases should already be covered.
-	return v1alpha1.JobMethodProvision
-}
-
 func convertAsyncTypeToString(a v1alpha1.AsyncType) string {
 	switch a {
 	case v1alpha1.OptionalAsync:
@@ -495,22 +532,4 @@ func convertParametersToAPB(param v1alpha1.Parameter) (bundle.ParameterDescripto
 		DisplayType:         param.DisplayType,
 		DisplayGroup:        param.DisplayGroup,
 	}, nil
-}
-
-func convertJobMethodToAPB(j v1alpha1.JobMethod) bundle.JobMethod {
-	switch j {
-	case v1alpha1.JobMethodProvision:
-		return bundle.JobMethodProvision
-	case v1alpha1.JobMethodDeprovision:
-		return bundle.JobMethodDeprovision
-	case v1alpha1.JobMethodBind:
-		return bundle.JobMethodBind
-	case v1alpha1.JobMethodUnbind:
-		return bundle.JobMethodUnbind
-	case v1alpha1.JobMethodUpdate:
-		return bundle.JobMethodUpdate
-	}
-	// We should have already covered all the cases above
-	log.Errorf("Unable to find job method from - %v", j)
-	return bundle.JobMethodProvision
 }
