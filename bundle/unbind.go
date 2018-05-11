@@ -69,7 +69,7 @@ func (e *executor) Unbind(
 		}
 		ec.Account = serviceAccount
 		ec.Location = namespace
-		ec, err = e.executeApb(ec, instance.Spec, parameters)
+		ec, err = e.executeApb(ec, instance, parameters)
 		defer runtime.Provider.DestroySandbox(
 			ec.BundleName,
 			ec.Location,
@@ -92,9 +92,9 @@ func (e *executor) Unbind(
 		}
 		// pod execution is complete so transfer state back
 		err = e.stateManager.CopyState(
-			executionContext.PodName,
+			ec.BundleName,
 			e.stateManager.Name(instance.ID.String()),
-			executionContext.Namespace,
+			ec.Location,
 			e.stateManager.MasterNamespace(),
 		)
 		if err != nil {

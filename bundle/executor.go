@@ -149,10 +149,10 @@ func (e *executor) updateDescription(newDescription string, dashboardURL string)
 
 // executeApb - Runs an APB Action with a provided set of inputs
 func (e *executor) executeApb(
-	exContext runtime.ExecutionContext, spec *Spec, p *Parameters,
+	exContext runtime.ExecutionContext, instance *ServiceInstance, parameters *Parameters,
 ) (runtime.ExecutionContext, error) {
 	log.Debug("ExecutingApb:")
-	log.Debugf("name:[ %s ]", spec.FQName)
+	log.Debugf("name:[ %s ]", instance.Spec.FQName)
 	log.Debugf("image:[ %s ]", exContext.Image)
 	log.Debugf("action:[ %s ]", exContext.Action)
 	log.Debugf("pullPolicy:[ %s ]", clusterConfig.PullPolicy)
@@ -168,12 +168,12 @@ func (e *executor) executeApb(
 		return exContext, errors.New(errStr)
 	}
 
-	extraVars, err := createExtraVars(exContext.Targets[0], p)
+	extraVars, err := createExtraVars(exContext.Targets[0], parameters)
 	if err != nil {
 		return exContext, err
 	}
 
-	secrets := getSecrets(spec)
+	secrets := getSecrets(instance.Spec)
 	exContext.ProxyConfig = getProxyConfig()
 	exContext.Secrets = secrets
 	exContext.ExtraVars = extraVars
@@ -184,31 +184,24 @@ func (e *executor) executeApb(
 		log.Errorf("unable to copy secrets: %v to  new namespace", secrets)
 		return exContext, err
 	}
+	stateName := e.stateManager.Name(instance.ID.String())
+	present, err := e.stateManager.StateIsPresent(stateName)
+	if err != nil {
+		return exContext, err
+	}
+	if present {
+		log.Info("state: present for service instance copying to bundle namespace")
+		// copy from master ns to execution namespace
+		if err := e.stateManager.CopyState(stateName, exContext.BundleName, e.stateManager.MasterNamespace(), exContext.Location); err != nil {
+			return exContext, err
+		}
+		exContext.StateName = stateName
+	}
 
 	exContext, err = runtime.Provider.RunBundle(exContext)
 	if err != nil {
 		log.Errorf("error running bundle - %v", err)
 		return exContext, err
-	}
-	stateName := e.stateManager.Name(instance.ID.String())
-	present, err := e.stateManager.StateIsPresent(stateName)
-	if err != nil {
-		return executionContext, err
-	}
-	if present {
-		log.Info("state: present for service instance copying to bundle namespace")
-		// copy from master ns to execution namespace
-		if err := e.stateManager.CopyState(stateName, executionContext.PodName, e.stateManager.MasterNamespace(), executionContext.Namespace); err != nil {
-			return executionContext, err
-		}
-		stateVolumeMount, stateVolume, err := e.stateManager.PrepareMount(executionContext.PodName)
-		if err != nil {
-			return executionContext, err
-		}
-		if stateVolume != nil && stateVolumeMount != nil {
-			volumes = append(volumes, *stateVolume)
-			volumeMounts = append(volumeMounts, *stateVolumeMount)
-		}
 	}
 	return exContext, nil
 }

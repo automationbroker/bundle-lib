@@ -70,7 +70,7 @@ func (e *executor) Bind(
 			e.actionFinishedWithError(err)
 			return
 		}
-		ec, err = e.executeApb(ec, instance.Spec, parameters)
+		ec, err = e.executeApb(ec, instance, parameters)
 		defer runtime.Provider.DestroySandbox(
 			ec.BundleName,
 			ec.Location,
@@ -96,9 +96,9 @@ func (e *executor) Bind(
 
 		// pod execution is complete so transfer state back
 		err = e.stateManager.CopyState(
-			executionContext.PodName,
+			ec.BundleName,
 			e.stateManager.Name(instance.ID.String()),
-			executionContext.Namespace, e.stateManager.MasterNamespace())
+			ec.Location, e.stateManager.MasterNamespace())
 		if err != nil {
 			e.actionFinishedWithError(err)
 			return

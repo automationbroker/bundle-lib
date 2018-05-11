@@ -72,7 +72,7 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 	}
 	ec.Account = serviceAccount
 	ec.Location = namespace
-	ec, err = e.executeApb(ec, instance.Spec, instance.Parameters)
+	ec, err = e.executeApb(ec, instance, instance.Parameters)
 	defer runtime.Provider.DestroySandbox(
 		ec.BundleName,
 		ec.Location,
@@ -98,9 +98,9 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 
 	// pod execution is complete so transfer state back
 	err = e.stateManager.CopyState(
-		executionContext.PodName,
+		ec.BundleName,
 		e.stateManager.Name(instance.ID.String()),
-		executionContext.Namespace,
+		ec.Location,
 		e.stateManager.MasterNamespace(),
 	)
 	if err != nil {

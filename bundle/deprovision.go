@@ -71,9 +71,9 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 				log.Errorf("failed to delete state for instance %s : %v ", instance.ID.String(), err)
 			}
 			runtime.Provider.DestroySandbox(
-				executionContext.PodName,
-				executionContext.Namespace,
-				executionContext.Targets,
+				ec.BundleName,
+				ec.Location,
+				ec.Targets,
 				clusterConfig.Namespace,
 				clusterConfig.KeepNamespace,
 				clusterConfig.KeepNamespaceOnError,
@@ -87,7 +87,7 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 		}
 		ec.Account = serviceAccount
 		ec.Location = namespace
-		ec, err = e.executeApb(ec, instance.Spec, instance.Parameters)
+		ec, err = e.executeApb(ec, instance, instance.Parameters)
 		if err != nil {
 			log.Errorf("Problem executing apb [%s] bind", ec.BundleName)
 			e.actionFinishedWithError(err)

@@ -43,6 +43,7 @@ type ExecutionContext struct {
 	Policy      string
 	ProxyConfig *ProxyConfig
 	Metadata    map[string]string
+	StateName   string
 }
 
 // RunBundleFunc - method that defines how to run a bundle
@@ -60,7 +61,7 @@ func defaultRunBundle(extContext ExecutionContext) (ExecutionContext, error) {
 	if err != nil {
 		return extContext, err
 	}
-	volumes, volumeMounts := buildVolumeSpecs(extContext.Secrets)
+	volumes, volumeMounts := buildVolumeSpecs(extContext.Secrets, extContext.StateName)
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -110,7 +111,7 @@ func checkPullPolicy(policy string) (v1.PullPolicy, error) {
 	return value, nil
 }
 
-func buildVolumeSpecs(secrets []string) ([]v1.Volume, []v1.VolumeMount) {
+func buildVolumeSpecs(secrets []string, stateName string) ([]v1.Volume, []v1.VolumeMount) {
 	var optional bool
 	var mountName string
 	volumes := []v1.Volume{}
@@ -132,6 +133,23 @@ func buildVolumeSpecs(secrets []string) ([]v1.Volume, []v1.VolumeMount) {
 			Name:      mountName,
 			MountPath: "/etc/apb-secrets/" + mountName,
 			ReadOnly:  true,
+		})
+	}
+	if stateName != "" {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      stateName,
+			MountPath: Provider.MountLocation(),
+			ReadOnly:  true,
+		})
+		volumes = append(volumes, v1.Volume{
+			Name: stateName,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: stateName,
+					},
+				},
+			},
 		})
 	}
 	return volumes, volumeMounts
