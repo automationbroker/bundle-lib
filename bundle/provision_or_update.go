@@ -47,7 +47,7 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 	}
 
 	// Create namespace name that will be used to generate a name.
-	ns := fmt.Sprintf(fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, method))
+	ns := fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, method)
 	// Create the podname
 	pn := fmt.Sprintf("bundle-%s", uuid.New())
 	targets := []string{instance.Context.Namespace}
@@ -56,22 +56,21 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 		"bundle-action":   string(method),
 		"bundle-pod-name": pn,
 	}
+	serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
+	if err != nil {
+		log.Errorf("Problem executing bundle create sandbox [%s] %v", pn, method)
+		e.actionFinishedWithError(err)
+		return err
+	}
 	ec := runtime.ExecutionContext{
 		BundleName: pn,
 		Targets:    targets,
 		Metadata:   labels,
 		Action:     string(method),
 		Image:      instance.Spec.Image,
+		Account:    serviceAccount,
+		Location:   namespace,
 	}
-
-	serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
-	if err != nil {
-		log.Errorf("Problem executing bundle create sandbox [%s] %v", ec.BundleName, method)
-		e.actionFinishedWithError(err)
-		return err
-	}
-	ec.Account = serviceAccount
-	ec.Location = namespace
 	ec, err = e.executeApb(ec, instance, instance.Parameters)
 	defer runtime.Provider.DestroySandbox(
 		ec.BundleName,
@@ -82,7 +81,7 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 		clusterConfig.KeepNamespaceOnError,
 	)
 	if err != nil {
-		log.Errorf("Problem executing apb [%s] %v", ec.BundleName, method)
+		log.Errorf("Problem executing bundle [%s] %v", ec.BundleName, method)
 		e.actionFinishedWithError(err)
 		return err
 	}
@@ -117,13 +116,13 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 		instance.Spec.Runtime,
 	)
 	if err != nil {
-		log.Errorf("apb::%v error occurred - %v", method, err)
+		log.Errorf("bundle::%v error occurred - %v", method, err)
 		return err
 	}
 
 	creds, err := buildExtractedCredentials(credBytes)
 	if err != nil {
-		log.Errorf("apb::%v error occurred - %v", method, err)
+		log.Errorf("bundle::%v error occurred - %v", method, err)
 		return err
 	}
 

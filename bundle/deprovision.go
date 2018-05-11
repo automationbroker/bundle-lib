@@ -50,7 +50,7 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			return
 		}
 		// Create namespace name that will be used to generate a name.
-		ns := fmt.Sprintf(fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, deprovisionAction))
+		ns := fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, deprovisionAction)
 		// Create the podname
 		pn := fmt.Sprintf("bundle-%s", uuid.New())
 		targets := []string{instance.Context.Namespace}
@@ -59,13 +59,22 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			"bundle-action":   deprovisionAction,
 			"bundle-pod-name": pn,
 		}
+		serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
+		if err != nil {
+			log.Errorf("Problem executing bundle create sandbox [%s] deprovision", pn)
+			e.actionFinishedWithError(err)
+			return
+		}
 		ec := runtime.ExecutionContext{
 			BundleName: pn,
 			Targets:    targets,
 			Metadata:   labels,
 			Action:     deprovisionAction,
 			Image:      instance.Spec.Image,
+			Account:    serviceAccount,
+			Location:   namespace,
 		}
+		ec, err = e.executeApb(ec, instance, instance.Parameters)
 		defer func() {
 			if err := e.stateManager.DeleteState(e.stateManager.Name(instance.ID.String())); err != nil {
 				log.Errorf("failed to delete state for instance %s : %v ", instance.ID.String(), err)
@@ -79,17 +88,8 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 				clusterConfig.KeepNamespaceOnError,
 			)
 		}()
-		serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
 		if err != nil {
-			log.Errorf("Problem executing bundle create sandbox [%s] deprovision", ec.BundleName)
-			e.actionFinishedWithError(err)
-			return
-		}
-		ec.Account = serviceAccount
-		ec.Location = namespace
-		ec, err = e.executeApb(ec, instance, instance.Parameters)
-		if err != nil {
-			log.Errorf("Problem executing apb [%s] bind", ec.BundleName)
+			log.Errorf("Problem executing bundle [%s] deprovision", ec.BundleName)
 			e.actionFinishedWithError(err)
 			return
 		}

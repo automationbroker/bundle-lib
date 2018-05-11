@@ -44,7 +44,7 @@ func (e *executor) Unbind(
 	go func() {
 		e.actionStarted()
 		// Create namespace name that will be used to generate a name.
-		ns := fmt.Sprintf(fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, unbindAction))
+		ns := fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, unbindAction)
 		// Create the podname
 		pn := fmt.Sprintf("bundle-%s", uuid.New())
 		targets := []string{instance.Context.Namespace}
@@ -53,22 +53,22 @@ func (e *executor) Unbind(
 			"bundle-action":   unbindAction,
 			"bundle-pod-name": pn,
 		}
+
+		serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
+		if err != nil {
+			log.Errorf("Problem executing bundle create sandbox [%s] unbind", pn)
+			e.actionFinishedWithError(err)
+			return
+		}
 		ec := runtime.ExecutionContext{
 			BundleName: pn,
 			Targets:    targets,
 			Metadata:   labels,
 			Action:     unbindAction,
 			Image:      instance.Spec.Image,
+			Account:    serviceAccount,
+			Location:   namespace,
 		}
-
-		serviceAccount, namespace, err := runtime.Provider.CreateSandbox(pn, ns, targets, clusterConfig.SandboxRole, labels)
-		if err != nil {
-			log.Errorf("Problem executing bundle create sandbox [%s] unbind", ec.BundleName)
-			e.actionFinishedWithError(err)
-			return
-		}
-		ec.Account = serviceAccount
-		ec.Location = namespace
 		ec, err = e.executeApb(ec, instance, parameters)
 		defer runtime.Provider.DestroySandbox(
 			ec.BundleName,
@@ -79,7 +79,7 @@ func (e *executor) Unbind(
 			clusterConfig.KeepNamespaceOnError,
 		)
 		if err != nil {
-			log.Errorf("Problem executing apb [%s] unbind", ec.BundleName)
+			log.Errorf("Problem executing bundle [%s] unbind", ec.BundleName)
 			e.actionFinishedWithError(err)
 			return
 		}
