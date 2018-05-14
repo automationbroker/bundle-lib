@@ -97,7 +97,7 @@ func TestPartnerName(t *testing.T) {
 func TestPartnerGetImageNames(t *testing.T) {
 	partnera := PartnerRhccAdapter{}
 	partnera.Config.Images = Images
-	imagesFound, err := ocpa.GetImageNames()
+	imagesFound, err := partnera.GetImageNames()
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
