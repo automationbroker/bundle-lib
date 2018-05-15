@@ -211,8 +211,8 @@ func NewRegistry(configuration Config, asbNamespace string) (Registry, error) {
 		adapter = &adapters.DockerHubAdapter{Config: c}
 	case "mock":
 		adapter = &adapters.MockAdapter{Config: c}
-	case "openshift":
-		adapter = &adapters.OpenShiftAdapter{Config: c}
+	case "partner_rhcc":
+		adapter = &adapters.PartnerRhccAdapter{Config: c}
 	case "local_openshift":
 		adapter = &adapters.LocalOpenShiftAdapter{Config: c}
 	case "helm":
