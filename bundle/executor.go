@@ -37,6 +37,7 @@ import (
 type ExecutorAccessors interface {
 	PodName() string
 	LastStatus() StatusMessage
+	DashboardURL() string
 	ExtractedCredentials() *ExtractedCredentials
 }
 
@@ -59,10 +60,12 @@ type Executor interface {
 
 type executor struct {
 	extractedCredentials *ExtractedCredentials
+	dashboardURL         string
 	podName              string
 	lastStatus           StatusMessage
 	statusChan           chan StatusMessage
 	mutex                sync.Mutex
+	stateManager         runtime.StateManager
 }
 
 // NewExecutor - Creates a new Executor for running an APB.
@@ -71,6 +74,8 @@ func NewExecutor() Executor {
 		statusChan: make(chan StatusMessage),
 		lastStatus: StatusMessage{State: StateNotYetStarted},
 	}
+
+	exec.stateManager = runtime.Provider
 	return exec
 }
 
@@ -82,6 +87,11 @@ func (e *executor) PodName() string {
 // LastStatus - Returns the last known status of the APB
 func (e *executor) LastStatus() StatusMessage {
 	return e.lastStatus
+}
+
+// DashboardURL - Returns the dashboard URL of the APB
+func (e *executor) DashboardURL() string {
+	return e.dashboardURL
 }
 
 // ExtractedCredentials - Credentials extracted from the APB while running,
@@ -132,17 +142,24 @@ func (e *executor) actionFinishedWithError(err error) {
 	}
 }
 
-func (e *executor) updateDescription(newDescription string) {
-	status := e.lastStatus
-	status.Description = newDescription
-	e.lastStatus = status
-	e.statusChan <- status
+func (e *executor) updateDescription(newDescription string, dashboardURL string) {
+	if newDescription != "" {
+		status := e.lastStatus
+		status.Description = newDescription
+		e.lastStatus = status
+		e.statusChan <- status
+	}
+	if dashboardURL != "" {
+		e.dashboardURL = dashboardURL
+	}
 }
 
 // executeApb - Runs an APB Action with a provided set of inputs
 func (e *executor) executeApb(
-	action string, spec *Spec, context *Context, p *Parameters,
+	action string, instance *ServiceInstance, p *Parameters,
 ) (ExecutionContext, error) {
+	spec := instance.Spec
+	context := instance.Context
 	log.Debug("ExecutingApb:")
 	log.Debugf("name:[ %s ]", spec.FQName)
 	log.Debugf("image:[ %s ]", spec.Image)
@@ -214,6 +231,27 @@ func (e *executor) executeApb(
 		return executionContext, err
 	}
 	volumes, volumeMounts := buildVolumeSpecs(secrets)
+	// copy any state present for this APB over to the execution ns
+	stateName := e.stateManager.Name(instance.ID.String())
+	present, err := e.stateManager.StateIsPresent(stateName)
+	if err != nil {
+		return executionContext, err
+	}
+	if present {
+		log.Info("state: present for service instance copying to bundle namespace")
+		// copy from master ns to execution namespace
+		if err := e.stateManager.CopyState(stateName, executionContext.PodName, e.stateManager.MasterNamespace(), executionContext.Namespace); err != nil {
+			return executionContext, err
+		}
+		stateVolumeMount, stateVolume, err := e.stateManager.PrepareMount(executionContext.PodName)
+		if err != nil {
+			return executionContext, err
+		}
+		if stateVolume != nil && stateVolumeMount != nil {
+			volumes = append(volumes, *stateVolume)
+			volumeMounts = append(volumeMounts, *stateVolumeMount)
+		}
+	}
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -230,7 +268,7 @@ func (e *executor) executeApb(
 						"--extra-vars",
 						extraVars,
 					},
-					Env:             createPodEnv(executionContext),
+					Env:             e.createPodEnv(executionContext),
 					ImagePullPolicy: pullPolicy,
 					VolumeMounts:    volumeMounts,
 				},
@@ -322,7 +360,7 @@ func createExtraVars(context *Context, parameters *Parameters) (string, error) {
 	return string(extraVars), err
 }
 
-func createPodEnv(executionContext ExecutionContext) []v1.EnvVar {
+func (e *executor) createPodEnv(executionContext ExecutionContext) []v1.EnvVar {
 	podEnv := []v1.EnvVar{
 		v1.EnvVar{
 			Name: "POD_NAME",
@@ -339,6 +377,10 @@ func createPodEnv(executionContext ExecutionContext) []v1.EnvVar {
 					FieldPath: "metadata.namespace",
 				},
 			},
+		},
+		v1.EnvVar{
+			Name:  "BUNDLE_STATE_LOCATION",
+			Value: e.stateManager.MountLocation(),
 		},
 	}
 

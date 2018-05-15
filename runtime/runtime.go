@@ -46,9 +46,13 @@ type Configuration struct {
 	PreDestroySandboxHooks []PreSandboxDestroy
 	// WatchBundle - this is the method that watches the bundle for completion.
 	// The UpdateDescriptionFunc in the default case will call this function when the last description
-	// annonation on the running bundle is changed.
+	// annotation on the running bundle is changed.
 	WatchBundle WatchRunningBundleFunc
 	ExtractedCredential
+	// StateMountLocation this is where on disk the state will be stored for a bundle
+	StateMountLocation string
+	// StateMasterNamespace the namespace where state created by bundles will be copied to between actions
+	StateMasterNamespace string
 }
 
 // Runtime - Abstraction for broker actions
@@ -60,6 +64,7 @@ type Runtime interface {
 	ExtractCredentials(string, string, int) ([]byte, error)
 	ExtractedCredential
 	WatchRunningBundle(string, string, UpdateDescriptionFn) error
+	StateManager
 }
 
 // Variables for interacting with runtimes
@@ -71,6 +76,7 @@ type provider struct {
 	postSandboxDestroy []PostSandboxDestroy
 	preSandboxDestroy  []PreSandboxDestroy
 	watchBundle        WatchRunningBundleFunc
+	state
 }
 
 // Abstraction for actions that are different between runtimes
@@ -119,7 +125,16 @@ func NewRuntime(config Configuration) {
 	} else {
 		c = config.ExtractedCredential
 	}
-	p := &provider{coe: cluster, ExtractedCredential: c}
+	// defaults for state
+	if config.StateMasterNamespace == "" {
+		config.StateMasterNamespace = defaultNamespace
+	}
+	if config.StateMountLocation == "" {
+		config.StateMountLocation = defaultMountLocation
+	}
+
+	defaultStateManager := state{mountLocation: config.StateMountLocation, nsTarget: config.StateMasterNamespace}
+	p := &provider{coe: cluster, ExtractedCredential: c, state: defaultStateManager}
 
 	if len(config.PreCreateSandboxHooks) > 0 {
 		p.preSandboxCreate = config.PreCreateSandboxHooks
@@ -158,7 +173,7 @@ func newKubernetes() coe {
 	return kubernetes{}
 }
 
-// ValidateRuntime - Translate the broker cluster validation check into specfici runtime checks
+// ValidateRuntime - Translate the broker cluster validation check into specific runtime checks
 func (p provider) ValidateRuntime() error {
 	k8scli, err := clients.Kubernetes()
 	if err != nil {
@@ -239,7 +254,7 @@ func (p provider) CreateSandbox(podName string,
 		}
 	}
 
-	// Must create a Network policy to allow for comunication from the APB pod to the target namespace.
+	// Must create a Network policy to allow for communication from the APB pod to the target namespace.
 	networkPolicy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
@@ -347,7 +362,7 @@ func (p provider) DestroySandbox(podName string,
 	}
 
 	log.Debugf("Deleting network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
-	// Must clean up the network policy that allowed comunication from the APB pod to the target namespace.
+	// Must clean up the network policy that allowed communication from the APB pod to the target namespace.
 	err = k8scli.Client.NetworkingV1().NetworkPolicies(targets[0]).Delete(podName, &metav1.DeleteOptions{})
 	if err != nil {
 		log.Errorf("unable to delete the network policy object - %v", err)

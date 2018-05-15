@@ -72,7 +72,7 @@ func (r DockerHubAdapter) GetImageNames() ([]string, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	// Intial call to getNextImages this will fan out to retrieve all the values.
+	// Initial call to getNextImages this will fan out to retrieve all the values.
 	imageResp, err := r.getNextImages(ctx, r.Config.Org, token,
 		fmt.Sprintf(dockerHubRepoImages, r.Config.Org),
 		channel, cancelFunc)

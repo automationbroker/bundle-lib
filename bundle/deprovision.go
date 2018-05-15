@@ -22,7 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Deprovision - runs the abp with the deprovision action.
+// Deprovision - runs the apb with the deprovision action.
 func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 	log.Infof("============================================================")
 	log.Infof("                      DEPROVISIONING                        ")
@@ -44,16 +44,20 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 		}
 
 		// Might need to change up this interface to feed in instance ids
-		executionContext, err := e.executeApb("deprovision", instance.Spec,
-			instance.Context, instance.Parameters)
-		defer runtime.Provider.DestroySandbox(
-			executionContext.PodName,
-			executionContext.Namespace,
-			executionContext.Targets,
-			clusterConfig.Namespace,
-			clusterConfig.KeepNamespace,
-			clusterConfig.KeepNamespaceOnError,
-		)
+		executionContext, err := e.executeApb("deprovision", instance, instance.Parameters)
+		defer func() {
+			if err := e.stateManager.DeleteState(e.stateManager.Name(instance.ID.String())); err != nil {
+				log.Errorf("failed to delete state for instance %s : %v ", instance.ID.String(), err)
+			}
+			runtime.Provider.DestroySandbox(
+				executionContext.PodName,
+				executionContext.Namespace,
+				executionContext.Targets,
+				clusterConfig.Namespace,
+				clusterConfig.KeepNamespace,
+				clusterConfig.KeepNamespaceOnError,
+			)
+		}()
 		if err != nil {
 			log.Errorf("Problem executing apb [%s] deprovision", executionContext.PodName)
 			e.actionFinishedWithError(err)

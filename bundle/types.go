@@ -110,6 +110,7 @@ type Spec struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 	Async       string                 `json:"async"`
 	Plans       []Plan                 `json:"plans"`
+	Alpha       map[string]interface{} `json:"alpha,omitempty"`
 }
 
 // GetPlan - retrieves a plan from a spec by name. Will return
@@ -203,7 +204,7 @@ type ClusterConfig struct {
 	KeepNamespaceOnError bool   `yaml:"keep_namespace_on_error"`
 }
 
-// ClusterConfiguration that should be used by the abp package.
+// ClusterConfiguration that should be used by the apb package.
 var clusterConfig ClusterConfig
 
 // InitializeClusterConfig - initialize the cluster config.
@@ -289,11 +290,12 @@ func NewSpecManifest(specs []*Spec) SpecManifest {
 
 // ServiceInstance - Service Instance describes a running service.
 type ServiceInstance struct {
-	ID         uuid.UUID       `json:"id"`
-	Spec       *Spec           `json:"spec"`
-	Context    *Context        `json:"context"`
-	Parameters *Parameters     `json:"parameters"`
-	BindingIDs map[string]bool `json:"binding_ids"`
+	ID           uuid.UUID       `json:"id"`
+	Spec         *Spec           `json:"spec"`
+	Context      *Context        `json:"context"`
+	Parameters   *Parameters     `json:"parameters"`
+	BindingIDs   map[string]bool `json:"binding_ids"`
+	DashboardURL string          `json:"dashboard_url"`
 }
 
 // AddBinding - Add binding ID to service instance

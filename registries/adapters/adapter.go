@@ -32,7 +32,7 @@ import (
 
 // Adapter - Adapter will wrap the methods that a registry needs to fully manage images.
 type Adapter interface {
-	// RegistryName will return the registiry prefix for the adapter.
+	// RegistryName will return the registry prefix for the adapter.
 	// Example is docker.io for the dockerhub adapter.
 	RegistryName() string
 	// GetImageNames will return all the image names for the adapter configuration.
@@ -42,7 +42,6 @@ type Adapter interface {
 }
 
 // BundleSpecLabel - label on the image that we should use to pull out the abp spec.
-// TODO: needs to remain ansibleapp UNTIL we redo the apps in dockerhub
 const BundleSpecLabel = "com.redhat.apb.spec"
 
 // Configuration - Adapter configuration. Contains the info that the adapter

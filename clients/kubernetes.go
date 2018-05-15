@@ -279,7 +279,7 @@ func (k KubernetesClient) DeleteRoleBinding(roleBindingName string, namespace st
 	return nil
 }
 
-// GetSecretData - Returns the data insdie of a given secret.
+// GetSecretData - Returns the data inside of a given secret.
 func GetSecretData(secretName, namespace string) (map[string][]byte, error) {
 	k8scli, err := Kubernetes()
 	if err != nil {

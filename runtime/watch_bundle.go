@@ -36,7 +36,7 @@ var (
 )
 
 // UpdateDescriptionFn function that will should handle the LastDescription from the bundle.
-type UpdateDescriptionFn func(string)
+type UpdateDescriptionFn func(string, string)
 
 // ErrorCustomMsg - An error to propagate the custom error message to the callers
 type ErrorCustomMsg struct {
@@ -88,7 +88,7 @@ func defaultWatchRunningBundle(podName string, namespace string, updateFunc Upda
 
 		lastOp := pod.Annotations["apb_last_operation"]
 		if lastOp != "" {
-			updateFunc(lastOp)
+			updateFunc(lastOp, "")
 		}
 		podStatus := pod.Status
 		log.Debugf("pod [%s] in phase %s", podName, podStatus.Phase)
@@ -101,6 +101,9 @@ func defaultWatchRunningBundle(podName string, namespace string, updateFunc Upda
 			return translateExitStatus(podName, podStatus)
 		case apiv1.PodSucceeded:
 			w.Stop()
+			// Check for dashboard_url
+			dashURL := pod.Annotations["apb_dashboard_url"]
+			updateFunc("", dashURL)
 			log.Debugf("Pod [ %s ] completed", podName)
 			return nil
 		default:
