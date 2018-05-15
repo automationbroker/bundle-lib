@@ -20,14 +20,15 @@ import (
 	"bytes"
 	b64 "encoding/base64"
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strconv"
 
+	"io/ioutil"
+	"net/http"
+
 	"github.com/automationbroker/bundle-lib/bundle"
 	log "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v1"
 )
 
 // Adapter - Adapter will wrap the methods that a registry needs to fully manage images.
@@ -57,21 +58,32 @@ type Configuration struct {
 	Tag        string
 }
 
-// Retrieve the spec from a registry manifest request
-func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
-	log.Debug("Registry::imageToSpec")
-	spec := &bundle.Spec{}
-	req.Header.Add("Accept", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
+func commonResponseHandler(resp *http.Response) ([]byte, error) {
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		log.Errorf("Unable to authenticate to the registry, registry credentials could be invalid.")
+		return nil, nil
+	}
 
+	if resp.StatusCode != http.StatusOK {
+		log.Errorf("unexpected response code %v body %v", resp.StatusCode, string(body))
+		return nil, nil
+	}
+	return body, nil
+}
+
+// Retrieve the spec from a registry manifest request
+func imageToSpec(imageDetails []byte, image string) (*bundle.Spec, error) {
+	log.Debug("Registry::imageToSpec")
+	spec := &bundle.Spec{}
 	type label struct {
-		Spec    string `json:"com.redhat.apb.spec"`
-		Runtime string `json:"com.redhat.bundle.runtime"`
+		Spec             string `json:"com.redhat.apb.spec"`
+		LegacyAPBRuntime string `json:"com.redhat.apb.runtime"`
+		BundleRuntime    string `json:"com.redhat.bundle.runtime"`
 	}
 
 	type config struct {
@@ -86,24 +98,8 @@ func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 		Config *config `json:"config"`
 	}{}
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		log.Errorf("Unable to authenticate to the registry, registry credentials could be invalid.")
-		return nil, nil
-	}
-
-	// resp.Body is an io.Reader, which are a one time use.  Save the
-	// contents to a byte[] for debugging, then remake the io.Reader for the
-	// JSON decoder.
-	debug, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		log.Errorf("Image '%s' may not exist in registry.", image)
-		log.Error(string(debug))
-		return nil, nil
-	}
-
-	r := bytes.NewReader(debug)
-	err = json.NewDecoder(r).Decode(&hist)
-	if err != nil {
+	r := bytes.NewReader(imageDetails)
+	if err := json.NewDecoder(r).Decode(&hist); err != nil {
 		log.Errorf("Error grabbing JSON body from response: %s", err)
 		return nil, err
 	}
@@ -113,8 +109,7 @@ func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 		return nil, nil
 	}
 
-	err = json.Unmarshal([]byte(hist.History[0]["v1Compatibility"]), &conf)
-	if err != nil {
+	if err := json.Unmarshal([]byte(hist.History[0]["v1Compatibility"]), &conf); err != nil {
 		log.Errorf("Error unmarshalling intermediary JSON response: %s", err)
 		return nil, err
 	}
@@ -139,7 +134,14 @@ func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 		return nil, err
 	}
 
-	spec.Runtime, err = getAPBRuntimeVersion(conf.Config.Label.Runtime)
+	version := conf.Config.Label.LegacyAPBRuntime
+
+	// prefer bundle runtime
+	if conf.Config.Label.BundleRuntime != "" {
+		log.Debugf("bundle runtime present using this over apb runtime")
+		version = conf.Config.Label.BundleRuntime
+	}
+	spec.Runtime, err = getAPBRuntimeVersion(version)
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +150,7 @@ func imageToSpec(req *http.Request, image string) (*bundle.Spec, error) {
 
 	log.Debugf("adapter::imageToSpec -> Got plans %+v", spec.Plans)
 	log.Debugf("Successfully converted Image %s into Spec", spec.Image)
+	log.Infof("adapter::imageToSpec -> Image %s runtime is %d", spec.Image, spec.Runtime)
 
 	return spec, nil
 }

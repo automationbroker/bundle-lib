@@ -144,5 +144,14 @@ func (r OpenShiftAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
+	req.Header.Add("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	body, err := commonResponseHandler(resp)
+	if err != nil {
+		return nil, fmt.Errorf("OpenShiftAdapter::error handling openshift registery response %s", err)
+	}
+	return imageToSpec(body, fmt.Sprintf("%s/%s:%s", r.RegistryName(), imageName, r.Config.Tag))
 }

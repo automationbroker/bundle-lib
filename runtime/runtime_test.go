@@ -300,6 +300,9 @@ func TestNewRuntime(t *testing.T) {
 			}
 			NewRuntime(tc.config)
 			p := Provider.(*provider)
+			if p.watchBundle == nil {
+				t.Fatalf("expected a watchBundle function to be defined but it was nil ")
+			}
 			if len(p.preSandboxCreate) != len(tc.expectedProvider.preSandboxCreate) {
 				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
 			}
@@ -318,6 +321,7 @@ func TestNewRuntime(t *testing.T) {
 			if !reflect.DeepEqual(tc.expectedProvider.ExtractedCredential, p.ExtractedCredential) {
 				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
 			}
+
 		})
 	}
 }
