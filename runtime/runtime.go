@@ -135,7 +135,9 @@ func NewRuntime(config Configuration) {
 
 	defaultStateManager := state{mountLocation: config.StateMountLocation, nsTarget: config.StateMasterNamespace}
 	p := &provider{coe: cluster, ExtractedCredential: c, state: defaultStateManager}
-
+	if config.WatchBundle == nil {
+		p.watchBundle = defaultWatchRunningBundle
+	}
 	if len(config.PreCreateSandboxHooks) > 0 {
 		p.preSandboxCreate = config.PreCreateSandboxHooks
 	}
