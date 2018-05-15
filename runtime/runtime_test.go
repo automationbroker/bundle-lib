@@ -71,7 +71,6 @@ func TestNewRuntime(t *testing.T) {
 		response         *http.Response
 		expectedProvider *provider
 		shouldPanic      bool
-		dontUseDeepEqual bool
 	}{
 		{
 			name:   "New Default Openshift Runtime",
@@ -85,6 +84,7 @@ func TestNewRuntime(t *testing.T) {
 				state:               stateManager,
 				coe:                 newOpenshift(),
 				ExtractedCredential: defaultExtractedCredential{},
+				watchBundle:         defaultWatchRunningBundle,
 			},
 		},
 		{
@@ -99,6 +99,7 @@ func TestNewRuntime(t *testing.T) {
 				state:               stateManager,
 				coe:                 newKubernetes(),
 				ExtractedCredential: defaultExtractedCredential{},
+				watchBundle:         defaultWatchRunningBundle,
 			},
 		},
 		{
@@ -113,6 +114,7 @@ func TestNewRuntime(t *testing.T) {
 				state:               stateManager,
 				coe:                 newKubernetes(),
 				ExtractedCredential: defaultExtractedCredential{},
+				watchBundle:         defaultWatchRunningBundle,
 			},
 		},
 		{
@@ -127,6 +129,7 @@ func TestNewRuntime(t *testing.T) {
 				state:               stateManager,
 				coe:                 newKubernetes(),
 				ExtractedCredential: defaultExtractedCredential{},
+				watchBundle:         defaultWatchRunningBundle,
 			},
 		},
 		{
@@ -158,6 +161,7 @@ func TestNewRuntime(t *testing.T) {
 				state:               stateManager,
 				coe:                 newOpenshift(),
 				ExtractedCredential: &mocks.ExtractedCredential{},
+				watchBundle:         defaultWatchRunningBundle,
 			},
 		},
 		{
@@ -177,8 +181,8 @@ func TestNewRuntime(t *testing.T) {
 				ExtractedCredential: defaultExtractedCredential{},
 				preSandboxCreate:    []PreSandboxCreate{sandboxCreateHook},
 				preSandboxDestroy:   []PreSandboxDestroy{sandboxDestroyHook},
+				watchBundle:         defaultWatchRunningBundle,
 			},
-			dontUseDeepEqual: true,
 		},
 		{
 			name: "New Default Openshift Runtime with pre sandbox hooks",
@@ -197,8 +201,8 @@ func TestNewRuntime(t *testing.T) {
 				ExtractedCredential: defaultExtractedCredential{},
 				postSandboxCreate:   []PostSandboxCreate{sandboxCreateHook},
 				postSandboxDestroy:  []PostSandboxDestroy{sandboxDestroyHook},
+				watchBundle:         defaultWatchRunningBundle,
 			},
-			dontUseDeepEqual: true,
 		},
 	}
 	k, err := clients.Kubernetes()
@@ -221,31 +225,30 @@ func TestNewRuntime(t *testing.T) {
 				},
 			}
 			NewRuntime(tc.config)
-			if !tc.dontUseDeepEqual {
-				if !reflect.DeepEqual(tc.expectedProvider, Provider) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
-			} else {
-				p := Provider.(*provider)
-				if len(p.preSandboxCreate) != len(tc.expectedProvider.preSandboxCreate) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
-				if len(p.preSandboxDestroy) != len(tc.expectedProvider.preSandboxDestroy) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
-				if len(p.postSandboxDestroy) != len(tc.expectedProvider.postSandboxDestroy) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
-				if len(p.postSandboxCreate) != len(tc.expectedProvider.postSandboxCreate) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
-				if !reflect.DeepEqual(tc.expectedProvider.coe, p.coe) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
-				if !reflect.DeepEqual(tc.expectedProvider.ExtractedCredential, p.ExtractedCredential) {
-					t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
-				}
+
+			p := Provider.(*provider)
+			if p.watchBundle == nil {
+				t.Fatalf("expected a watchBundle function to be defined but it was nil ")
 			}
+			if len(p.preSandboxCreate) != len(tc.expectedProvider.preSandboxCreate) {
+				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
+			}
+			if len(p.preSandboxDestroy) != len(tc.expectedProvider.preSandboxDestroy) {
+				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
+			}
+			if len(p.postSandboxDestroy) != len(tc.expectedProvider.postSandboxDestroy) {
+				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
+			}
+			if len(p.postSandboxCreate) != len(tc.expectedProvider.postSandboxCreate) {
+				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
+			}
+			if !reflect.DeepEqual(tc.expectedProvider.coe, p.coe) {
+				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
+			}
+			if !reflect.DeepEqual(tc.expectedProvider.ExtractedCredential, p.ExtractedCredential) {
+				t.Fatalf("invalid provider for configuration: %#+v \n\n got: %#+v \n\n exp: %#+v", tc.config, Provider, tc.expectedProvider)
+			}
+
 		})
 	}
 }
