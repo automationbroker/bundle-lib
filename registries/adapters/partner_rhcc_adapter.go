@@ -85,7 +85,7 @@ func (r PartnerRhccAdapter) GetImageNames() ([]string, error) {
 		return nil, err
 	}
 
-	return imageList, nil
+	return imageList.Repositories, nil
 }
 
 // FetchSpecs - retrieve the spec for the image names.
