@@ -37,6 +37,11 @@ type PartnerRhccAdapter struct {
 	Config Configuration
 }
 
+// PartnerCatalogResponse - Partner RHCC Catalog Response
+type PartnerCatalogResponse struct {
+	Repositories []string `json:"repositories"`
+}
+
 // RegistryName - Retrieve the registry name
 func (r PartnerRhccAdapter) RegistryName() string {
 	return partnerName
@@ -74,7 +79,7 @@ func (r PartnerRhccAdapter) GetImageNames() ([]string, error) {
 		return nil, err
 	}
 
-	var imageList []string
+	imageList := PartnerCatalogResponse{}
 	err = json.Unmarshal(imageResp, &imageList)
 	if err != nil {
 		return nil, err
