@@ -89,9 +89,30 @@ const AuthResponse = `
   "issued_at": "2018-03-27T19:54:19Z"
 }`
 
-func TestOpenShiftName(t *testing.T) {
-	ocpa := OpenShiftAdapter{}
-	ft.Equal(t, ocpa.RegistryName(), "openshift", "openshift name does not match `openshift`")
+func TestRegistryName(t *testing.T) {
+	testcases := []struct {
+		urlstr string
+		result string
+	}{
+		{"http://foo.redhat.com", "foo.redhat.com"},
+		{"https://registry.reg-aws.openshift.com:443", "registry.reg-aws.openshift.com:443"},
+		{"ftp://registry.reg-aws.openshift.com", "registry.reg-aws.openshift.com"},
+		{"file:///home/user/awesome", "/home/user/awesome"},
+	}
+
+	for _, testcase := range testcases {
+		url, err := url.Parse(testcase.urlstr)
+		if err != nil {
+			t.Fatal("Error: ", err)
+		}
+
+		ocpa := OpenShiftAdapter{
+			Config: Configuration{
+				URL: url,
+			},
+		}
+		ft.Equal(t, ocpa.RegistryName(), testcase.result, "the registry name returned did not match expected value")
+	}
 }
 
 func TestOpenShiftGetImageNames(t *testing.T) {
