@@ -89,11 +89,6 @@ const AuthResponse = `
   "issued_at": "2018-03-27T19:54:19Z"
 }`
 
-func TestOpenShiftName(t *testing.T) {
-	ocpa := OpenShiftAdapter{}
-	ft.Equal(t, ocpa.RegistryName(), "openshift", "openshift name does not match `openshift`")
-}
-
 func TestOpenShiftGetImageNames(t *testing.T) {
 	ocpa := OpenShiftAdapter{}
 	ocpa.Config.Images = Images
