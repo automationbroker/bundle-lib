@@ -29,6 +29,7 @@ import (
 
 var Images = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides"}
 var TestURL = "https://registry.reg-aws.openshift.com:443"
+var Test2URL = "http://registry.reg-aws.openshift.com:443"
 var RegistryName = "registry.reg-aws.openshift.com:443"
 
 const OpenShiftManifestResponse = `
@@ -96,12 +97,23 @@ func TestRegistryName(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
+	url2, err := url.Parse(Test2URL)
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+
 	ocpa := OpenShiftAdapter{
 		Config: Configuration{
 			URL: url,
 		},
 	}
+	ocpa2 := OpenShiftAdapter{
+		Config: Configuration{
+			URL: url2,
+		},
+	}
 	ft.Equal(t, ocpa.RegistryName(), RegistryName, "the registry name returned did not match expected value")
+	ft.Equal(t, ocpa2.RegistryName(), RegistryName, "the registry name returned did not match expected value")
 }
 
 func TestOpenShiftGetImageNames(t *testing.T) {
