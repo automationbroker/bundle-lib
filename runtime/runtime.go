@@ -234,6 +234,15 @@ func (p provider) ValidateRuntime() error {
 	return nil
 }
 
+func isNamespaceInTargets(ns string, targets []string) bool {
+	for _, tns := range targets {
+		if tns == ns {
+			return true
+		}
+	}
+	return false
+}
+
 // CreateSandbox - Translate the broker CreateSandbox call into cluster resource calls
 func (p provider) CreateSandbox(podName string,
 	namespace string,
@@ -250,20 +259,23 @@ func (p provider) CreateSandbox(podName string,
 		return "", "", fmt.Errorf("unable to get target namespaces: %v", err)
 	}
 
-	// Create namespace.
-	ns := &apicorev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels:       metadata,
-			GenerateName: namespace,
-		},
-	}
-	ns, err = k8scli.Client.CoreV1().Namespaces().Create(ns)
-	if err != nil {
-		return "", "", err
+	// If Location is in the targets then we should not create the namespace.
+	if !isNamespaceInTargets(namespace, targets) {
+		// Create namespace.
+		ns := &apicorev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels:       metadata,
+				GenerateName: namespace,
+			},
+		}
+		ns, err = k8scli.Client.CoreV1().Namespaces().Create(ns)
+		if err != nil {
+			return "", "", err
+		}
+		//Sandbox (i.e Namespace) was created.
+		namespace = ns.ObjectMeta.Name
 	}
 
-	//Sandbox (i.e Namespace) was created.
-	namespace = ns.ObjectMeta.Name
 	for i, f := range p.preSandboxCreate {
 		log.Debugf("Running pre create sandbox function: %v", i+1)
 		err := f(podName, namespace, targets, apbRole)
@@ -302,9 +314,12 @@ func (p provider) CreateSandbox(podName string,
 	}
 
 	for _, target := range targets {
-		err = k8scli.CreateRoleBinding(podName, subjects, namespace, target, roleRef)
-		if err != nil {
-			return "", "", err
+		// It could be the case that we already added the rolebinding as target and namespace are equal.
+		if target != namespace {
+			err = k8scli.CreateRoleBinding(podName, subjects, namespace, target, roleRef)
+			if err != nil {
+				return "", "", err
+			}
 		}
 	}
 
