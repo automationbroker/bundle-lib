@@ -27,7 +27,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const openShiftName = "openshift"
 const openShiftManifestURL = "%v/v2/%v/manifests/%v"
 
 // OpenShiftAdapter - Docker Hub Adapter
@@ -43,7 +42,7 @@ type OpenShiftImage struct {
 
 // RegistryName - Retrieve the registry name
 func (r OpenShiftAdapter) RegistryName() string {
-	return openShiftName
+	return strings.TrimPrefix(r.Config.URL.String(), "https://")
 }
 
 // GetImageNames - retrieve the images
