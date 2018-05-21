@@ -42,7 +42,12 @@ type OpenShiftImage struct {
 
 // RegistryName - Retrieve the registry name
 func (r OpenShiftAdapter) RegistryName() string {
-	return strings.TrimPrefix(r.Config.URL.String(), "https://")
+	name := strings.Split(r.Config.URL.String(), "://")
+
+	if len(name) > 1 {
+		return name[1]
+	}
+	return name[0]
 }
 
 // GetImageNames - retrieve the images
