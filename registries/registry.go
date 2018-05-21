@@ -219,7 +219,8 @@ func NewCustomRegistry(configuration Config, adapter adapters.Adapter, asbNamesp
 		case "helm":
 			adapter = &adapters.HelmAdapter{Config: c}
 		default:
-			panic("Unknown registry")
+			log.Errorf("Unknown registry type - %s", configuration.Type)
+			return Registry{}, errors.New("Unknown registry type")
 		}
 	} else {
 		log.Infof("Using custom adapter, %v", adapter.RegistryName())
