@@ -176,5 +176,13 @@ func (r PartnerRhccAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	return imageToSpec(req, fmt.Sprintf("%s/%s:%s", r.Config.URL.Hostname(), imageName, r.Config.Tag))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	body, err := registryResponseHandler(resp)
+	if err != nil {
+		return nil, fmt.Errorf("PartnerRhccAdapter::error handling registry response %s", err)
+	}
+	return imageToSpec(body, fmt.Sprintf("%s/%s:%s", r.Config.URL.Hostname(), imageName, r.Config.Tag))
 }
