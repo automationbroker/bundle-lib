@@ -20,15 +20,16 @@ import (
 	"bytes"
 	b64 "encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"strconv"
 
-	"io/ioutil"
-	"net/http"
+	"fmt"
 
 	"github.com/automationbroker/bundle-lib/bundle"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v1"
+	yaml "gopkg.in/yaml.v1"
 )
 
 // Adapter - Adapter will wrap the methods that a registry needs to fully manage images.
@@ -58,20 +59,27 @@ type Configuration struct {
 	Tag        string
 }
 
-func commonResponseHandler(resp *http.Response) ([]byte, error) {
+type registryResponseError struct {
+	code    int
+	message string
+}
+
+func (rre *registryResponseError) Error() string {
+	return fmt.Sprintf("unexpected registry response code: %v message: %v", rre.code, rre.message)
+}
+
+func registryResponseHandler(resp *http.Response) ([]byte, error) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusUnauthorized {
-		log.Errorf("Unable to authenticate to the registry, registry credentials could be invalid.")
-		return nil, nil
+		return nil, &registryResponseError{code: resp.StatusCode, message: "Unable to authenticate to the registry, registry credentials could be invalid"}
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Errorf("unexpected response code %v body %v", resp.StatusCode, string(body))
-		return nil, nil
+		return nil, &registryResponseError{code: resp.StatusCode, message: fmt.Sprintf("unexpected response code %v body %v", resp.StatusCode, string(body))}
 	}
 	return body, nil
 }

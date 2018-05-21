@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"fmt"
+
 	"github.com/automationbroker/bundle-lib/bundle"
 	ft "github.com/stretchr/testify/assert"
 )
@@ -42,7 +44,7 @@ func TestImageToSpec(t *testing.T) {
 			Name: "test spec parsed correctly and runtime version 1 and spec version 1.0 when no Label present",
 			Response: history{History: []map[string]string{
 				{
-					"v1Compatibility": "{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"" + testApbSpec + "\",\"com.redhat.apb.version\":\"0.1.0\"}}}",
+					"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\"}}}", testApbSpec),
 				},
 			}},
 			Validate: func(t *testing.T, spec *bundle.Spec) {
@@ -58,7 +60,7 @@ func TestImageToSpec(t *testing.T) {
 			Name: "test spec parsed correctly and runtime version 2 and spec version 1.0 when apb Label present",
 			Response: history{History: []map[string]string{
 				{
-					"v1Compatibility": "{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"" + testApbSpec + "\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.apb.runtime\":\"2\"}}}",
+					"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.apb.runtime\":\"2\"}}}", testApbSpec),
 				},
 			}},
 			Validate: func(t *testing.T, spec *bundle.Spec) {
@@ -74,7 +76,7 @@ func TestImageToSpec(t *testing.T) {
 			Name: "test spec parsed correctly and runtime version 2 and spec version 1.0 when bundle Label present",
 			Response: history{History: []map[string]string{
 				{
-					"v1Compatibility": "{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"" + testApbSpec + "\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.bundle.runtime\":\"2\"}}}",
+					"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.bundle.runtime\":\"2\"}}}", testApbSpec),
 				},
 			}},
 			Validate: func(t *testing.T, spec *bundle.Spec) {

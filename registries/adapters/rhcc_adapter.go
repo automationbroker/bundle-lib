@@ -133,7 +133,7 @@ func (r RHCCAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := commonResponseHandler(resp)
+	body, err := registryResponseHandler(resp)
 	if err != nil {
 		return nil, fmt.Errorf("RHCCAdapter::error handling openshift registery response %s", err)
 	}
