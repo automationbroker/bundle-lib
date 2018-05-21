@@ -214,6 +214,8 @@ func NewCustomRegistry(configuration Config, adapter adapters.Adapter, asbNamesp
 			adapter = &adapters.MockAdapter{Config: c}
 		case "openshift":
 			adapter = &adapters.OpenShiftAdapter{Config: c}
+		case "partner_rhcc":
+			adapter = &adapters.PartnerRhccAdapter{Config: c}
 		case "local_openshift":
 			adapter = &adapters.LocalOpenShiftAdapter{Config: c}
 		case "helm":
