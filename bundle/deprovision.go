@@ -76,7 +76,7 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 		}
 		ec, err = e.executeApb(ec, instance, instance.Parameters)
 		defer func() {
-			if err := e.stateManager.DeleteState(e.stateManager.Name(instance.ID.String())); err != nil {
+			if err := e.stateManager.DeleteState(e.stateManager.MasterName(instance.ID.String())); err != nil {
 				log.Errorf("failed to delete state for instance %s : %v ", instance.ID.String(), err)
 			}
 			runtime.Provider.DestroySandbox(

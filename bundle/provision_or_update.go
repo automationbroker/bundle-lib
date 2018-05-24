@@ -98,7 +98,7 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 	// pod execution is complete so transfer state back
 	err = e.stateManager.CopyState(
 		ec.BundleName,
-		e.stateManager.Name(instance.ID.String()),
+		e.stateManager.MasterName(instance.ID.String()),
 		ec.Location,
 		e.stateManager.MasterNamespace(),
 	)

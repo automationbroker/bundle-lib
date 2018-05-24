@@ -27,7 +27,7 @@ type StateManager interface {
 	CopyState(fromName, toName, fromNS, toNS string) error
 	DeleteState(name string) error
 	StateIsPresent(name string) (bool, error)
-	Name(instanceID string) string
+	MasterName(instanceID string) string
 	MasterNamespace() string
 	MountLocation() string
 }
@@ -72,8 +72,8 @@ func (s state) CopyState(fromName, toName, fromNS, toNS string) error {
 	return nil
 }
 
-// Name provides a consistent name for the state object
-func (s state) Name(id string) string {
+// MasterName provides a consistent name for the state object in the master namespace
+func (s state) MasterName(id string) string {
 	return fmt.Sprintf("%s-state", id)
 }
 
