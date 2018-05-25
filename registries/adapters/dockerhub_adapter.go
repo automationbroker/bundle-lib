@@ -149,7 +149,11 @@ func (r DockerHubAdapter) getDockerHubToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	jsonToken, err := ioutil.ReadAll(resp.Body)
 
@@ -183,7 +187,11 @@ func (r DockerHubAdapter) getNextImages(ctx context.Context,
 		close(ch)
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	imageList, err := ioutil.ReadAll(resp.Body)
 
@@ -199,7 +207,11 @@ func (r DockerHubAdapter) getNextImages(ctx context.Context,
 	if iResp.Next != "" {
 		log.Debugf("getting next page of results - %v", iResp.Next)
 		// Fan out calls to get the next images.
-		go r.getNextImages(ctx, org, token, iResp.Next, ch, cancelFunc)
+		go func() {
+			if _, err := r.getNextImages(ctx, org, token, iResp.Next, ch, cancelFunc); err != nil {
+				log.Warn("error occurred calling getNextImages : %s", err)
+			}
+		}()
 	}
 	for _, imageName := range iResp.Results {
 		log.Debugf("Trying to load %v/%v", imageName.Namespace, imageName.Name)
@@ -265,12 +277,15 @@ func (r DockerHubAdapter) getBearerToken(imageName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 	t := struct {
 		Token string `json:"token"`
 	}{}
-	err = json.NewDecoder(response.Body).Decode(&t)
-	if err != nil {
+	if err := json.NewDecoder(response.Body).Decode(&t); err != nil {
 		return "", err
 	}
 	return t.Token, nil

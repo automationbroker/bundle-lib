@@ -69,7 +69,11 @@ func (rre *registryResponseError) Error() string {
 }
 
 func registryResponseHandler(resp *http.Response) ([]byte, error) {
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

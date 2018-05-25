@@ -94,7 +94,11 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	// Ensure that response holds data we expect
 	if resp.Header.Get("Www-Authenticate") == "" {
@@ -125,7 +129,11 @@ func (r OpenShiftAdapter) getOpenShiftAuthToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	tokenResp := TokenResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&tokenResp)

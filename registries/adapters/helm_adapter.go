@@ -31,6 +31,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/automationbroker/bundle-lib/bundle"
 	"github.com/ghodss/yaml"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -193,7 +194,11 @@ func (r *HelmAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, error) {
 			if err != nil {
 				continue
 			}
-			defer resp.Body.Close()
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					log.Warn("failed to close response body : %s", err)
+				}
+			}()
 
 			values = r.loadArchive(resp.Body)
 		}
@@ -277,7 +282,11 @@ func (r *HelmAdapter) getHelmIndex() (*IndexFile, error) {
 	if err != nil {
 		return index, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -305,7 +314,11 @@ func (r *HelmAdapter) loadArchive(in io.Reader) string {
 	if err != nil {
 		return ""
 	}
-	defer unzipped.Close()
+	defer func() {
+		if err := unzipped.Close(); err != nil {
+			log.Warn("failed to close the zip reader : %s", err)
+		}
+	}()
 
 	tr := tar.NewReader(unzipped)
 	for {

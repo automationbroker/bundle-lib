@@ -101,7 +101,11 @@ func (r RHCCAdapter) loadImages(Query string) (RHCCImageResponse, error) {
 	if err != nil {
 		return RHCCImageResponse{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		return RHCCImageResponse{}, errors.New(resp.Status)
