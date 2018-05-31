@@ -12,7 +12,7 @@ script:
   - "make fmtcheck"
   - "make vet"
   - "make lint"
-  - "make errcheck"
   - "make ensure"
+  - "make errcheck"
   - "make build"
   - "KUBERNETES_SERVICE_HOST=localhost KUBERNETES_SERVICE_PORT=8000 make test"
