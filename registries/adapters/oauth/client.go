@@ -207,14 +207,12 @@ func parseAuthHeader(value string) (*url.URL, error) {
 	}
 
 	rmatch := rrealm.FindStringSubmatch(value)
-	smatch := rservice.FindStringSubmatch(value)
-	if len(rmatch) != 2 || len(smatch) != 2 {
+	if len(rmatch) != 2 {
 		msg := fmt.Sprintf("Could not parse www-authenticate header: %s", value)
 		log.Warn(msg)
 		return nil, errors.New(msg)
 	}
 	realm := rmatch[1]
-	service := smatch[1]
 
 	u, err := url.Parse(realm)
 	if err != nil {
@@ -222,8 +220,14 @@ func parseAuthHeader(value string) (*url.URL, error) {
 		log.Warn(msg)
 		return nil, errors.New(msg)
 	}
-	q := u.Query()
-	q.Set("service", service)
-	u.RawQuery = q.Encode()
+
+	smatch := rservice.FindStringSubmatch(value)
+	if len(smatch) == 2 {
+		service := smatch[1]
+		q := u.Query()
+		q.Set("service", service)
+		u.RawQuery = q.Encode()
+	}
+
 	return u, nil
 }

@@ -27,12 +27,12 @@ var headerCases = map[string]string{
 	"Bearer service=\"bar\",realm=\"http://foo/a/b/c\"":  "http://foo/a/b/c?service=bar",
 	"Bearer realm=\"http://foo/a/b/c/\",service=\"bar\"": "http://foo/a/b/c/?service=bar",
 	"Bearer realm=\"https://foo\",service=\"bar\"":       "https://foo?service=bar",
+	"Bearer realm=\"http://foo/a/b/c\"":                  "http://foo/a/b/c",
 }
 
 var headerErrorCases = map[string]string{
-	"Bearer realm=\"http://foo/a/b/c\"": "Could not parse www-authenticate header:",
-	"Bearer service=\"bar\"":            "Could not parse www-authenticate header:",
-	"Bearer realm=\"\"":                 "",
+	"Bearer service=\"bar\"": "Could not parse www-authenticate header:",
+	"Bearer realm=\"\"":      "",
 }
 
 func TestParseAuthHeader(t *testing.T) {
