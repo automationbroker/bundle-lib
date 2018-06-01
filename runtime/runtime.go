@@ -413,7 +413,9 @@ func (p provider) DestroySandbox(podName string,
 	if shouldDeleteNamespace(keepNamespace, keepNamespaceOnError, pod, err) {
 		if configNamespace != namespace {
 			log.Debugf("Deleting namespace %s", namespace)
-			k8scli.Client.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
+			if err := k8scli.Client.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
+				log.Errorf("Unable to delete namespace: %s : %v", namespace, err)
+			}
 			// This is keeping track of namespaces.
 		} else {
 			// We should not be attempting to run pods in the ASB namespace, if we are, something is seriously wrong.

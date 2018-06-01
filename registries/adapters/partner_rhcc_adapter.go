@@ -68,7 +68,11 @@ func (r PartnerRhccAdapter) GetImageNames() ([]string, error) {
 		log.Errorf("Failed to load catalog response at %s - %v", partnerCatalogURL, err)
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		log.Errorf("Failed to fetch catalog response. Expected a 200 status and got: %v", resp.Status)
@@ -121,7 +125,11 @@ func (r PartnerRhccAdapter) getAuthToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	// Ensure that response holds data we expect
 	if resp.Header.Get("Www-Authenticate") == "" {
@@ -152,7 +160,11 @@ func (r PartnerRhccAdapter) getAuthToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 
 	tokenResp := TokenResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&tokenResp)

@@ -5,6 +5,7 @@ COVERAGE_SVC     := travis-ci
 .DEFAULT_GOAL    := build
 
 ensure: ## Install or update project dependencies
+	@go get github.com/kisielk/errcheck
 	@dep ensure
 
 build: $(SOURCES) ## Build Test
@@ -39,7 +40,7 @@ test-coverage-html: coverage-all.out ## Check out the test coverage locally
 ci-test-coverage: coverage-all.out ## CI test coverage, upload to coveralls
 	@goveralls -coverprofile=coverage-all.out -service $(COVERAGE_SVC)
 
-check: fmtcheck vet lint build test ## Pre-flight checks before creating PR
+check: fmtcheck errcheck vet lint build test ## Pre-flight checks before creating PR
 
 clean: ## Clean up your working environment
 	@rm -f coverage-all.out coverage.out
@@ -47,6 +48,9 @@ clean: ## Clean up your working environment
 generate: ## regenerate mocks
 	go get github.com/vektra/mockery/.../
 	@go generate ./...
+
+errcheck:
+	@errcheck -ignoretests $$(go list ./... | grep -v mocks)
 
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
@@ -56,4 +60,4 @@ help: ## Show this help screen
 	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: ensure build lint fmt fmtcheck test vet check help test-coverage-html clean
+.PHONY: ensure build lint fmt fmtcheck test vet check help test-coverage-html clean errcheck

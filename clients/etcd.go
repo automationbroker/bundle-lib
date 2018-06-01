@@ -58,7 +58,11 @@ func GetEtcdVersion(ec EtcdConfig) (string, string, error) {
 		return "", "", err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn("failed to close response body : %s", err)
+		}
+	}()
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	switch resp.StatusCode {
