@@ -104,7 +104,9 @@ func (r RHCCAdapter) loadImages(query string) (RHCCImageResponse, error) {
 	if err != nil {
 		return RHCCImageResponse{}, err
 	}
-	req.URL.RawQuery = fmt.Sprintf("q=%s", query)
+	q := req.URL.Query()
+	q.Set("q", query)
+	req.URL.RawQuery = q.Encode()
 	log.Debug("Using " + req.URL.String() + " to source APB images ")
 
 	resp, err := r.client.Do(req)
