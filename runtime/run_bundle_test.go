@@ -6,13 +6,26 @@ import (
 	"strings"
 	"testing"
 
+	"bytes"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/automationbroker/bundle-lib/clients"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
+	fakerest "k8s.io/client-go/rest/fake"
 )
 
 func TestDefaultRunBundle(t *testing.T) {
+	restClient := &fakerest.RESTClient{
+		Resp: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       ioutil.NopCloser(bytes.NewReader([]byte(`{"major":"3", "minor": "2"}`))),
+		},
+		NegotiatedSerializer: scheme.Codecs,
+	}
 	var optionalFalse bool
 	cases := []struct {
 		name        string
@@ -21,6 +34,7 @@ func TestDefaultRunBundle(t *testing.T) {
 		expectedPod *v1.Pod
 		client      *fake.Clientset
 		shouldErr   bool
+		validatePod func(t *testing.T, pod *v1.Pod)
 	}{
 		{
 			name: "run bundle successfully",
@@ -88,6 +102,85 @@ func TestDefaultRunBundle(t *testing.T) {
 					ServiceAccountName: "svc-acct-bundle-test",
 					Volumes:            []v1.Volume{},
 				},
+			},
+			client: fake.NewSimpleClientset(),
+		},
+		{
+			name: "run bundle successfully with a state mounted",
+			exContext: ExecutionContext{
+				BundleName:    "bundle-test-state",
+				Account:       "svc-acct-bundle-test",
+				Action:        "provision",
+				Location:      "test-bundle-test",
+				Targets:       []string{"target-bundle-test"},
+				Secrets:       []string{},
+				ExtraVars:     `{"apb": "test"}`,
+				Image:         "new-image",
+				Policy:        "Never",
+				StateName:     "bundle-test-state",
+				StateLocation: defaultMountLocation,
+			},
+			expectedEX: ExecutionContext{
+				BundleName:    "bundle-test-state",
+				Account:       "svc-acct-bundle-test",
+				Action:        "provision",
+				Location:      "test-bundle-test",
+				Targets:       []string{"target-bundle-test"},
+				Secrets:       []string{},
+				ExtraVars:     `{"apb": "test"}`,
+				Image:         "new-image",
+				Policy:        "Never",
+				StateName:     "bundle-test-state",
+				StateLocation: defaultMountLocation,
+			},
+			validatePod: func(t *testing.T, pod *v1.Pod) {
+				if pod.Name != "bundle-test-state" {
+					t.Fatalf("expected pod name to be %s but was %s", "bundle-test-state", pod.Name)
+				}
+				if len(pod.Spec.Containers) != 1 {
+					t.Fatalf("expected to have 1 container but got %v ", len(pod.Spec.Containers))
+				}
+				container := pod.Spec.Containers[0]
+
+				var (
+					podName, podNameSpace, bundleState bool
+					bundleStateLocation                string
+				)
+				if len(container.Env) != 3 {
+					t.Fatalf("expected 3 envVars but there was %d", len(container.Env))
+				}
+				for _, e := range container.Env {
+					if e.Name == "POD_NAME" {
+						podName = true
+					}
+					if e.Name == "POD_NAMESPACE" {
+						podNameSpace = true
+					}
+					if e.Name == "BUNDLE_STATE_LOCATION" {
+						bundleStateLocation = e.Value
+						bundleState = true
+					}
+				}
+
+				if !podName || !podNameSpace || !bundleState {
+					t.Fatalf("expected to find POD_NAME, POD_NAMESPACE, BUNDLE_STATE_LOCATION env vars")
+				}
+				if len(container.VolumeMounts) != 1 {
+					t.Fatalf("expected 1 volume mount but got %v ", len(container.VolumeMounts))
+				}
+				if container.VolumeMounts[0].MountPath != bundleStateLocation {
+					t.Fatalf("expected the mount path to be %s but was %s ", bundleStateLocation, container.VolumeMounts[0].MountPath)
+				}
+				if len(pod.Spec.Volumes) != 1 {
+					t.Fatalf("expected 1 volume but got %v ", len(pod.Spec.Volumes))
+				}
+				if pod.Spec.Volumes[0].ConfigMap == nil {
+					t.Fatalf("expected the volume to be a configmap but was nil")
+				}
+				if pod.Spec.Volumes[0].ConfigMap.Name != pod.Name {
+					t.Fatalf("expected the configmap name to match the pod name but it was %s ", pod.Spec.Volumes[0].ConfigMap.Name)
+				}
+
 			},
 			client: fake.NewSimpleClientset(),
 		},
@@ -366,7 +459,13 @@ func TestDefaultRunBundle(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			k.Client = tc.client
+			if nil != tc.client {
+				k.Client = &fakeClientSet{
+					tc.client,
+					restClient,
+				}
+				NewRuntime(Configuration{})
+			}
 			actualEXContext, err := defaultRunBundle(tc.exContext)
 			if err != nil {
 				if !tc.shouldErr {
@@ -382,11 +481,15 @@ func TestDefaultRunBundle(t *testing.T) {
 			if err != nil {
 				t.Fatalf("retrieval of the pod failed - %v", err)
 			}
-			if !reflect.DeepEqual(actualPod, tc.expectedPod) {
-				if len(actualPod.Spec.Volumes) > 0 {
-					fmt.Printf("\ngot: %#v\nexp: %#v", actualPod.Spec.Volumes[0].Secret, tc.expectedPod.Spec.Volumes[0].Secret)
+			if tc.validatePod != nil {
+				tc.validatePod(t, actualPod)
+			} else {
+				if !reflect.DeepEqual(actualPod, tc.expectedPod) {
+					if len(actualPod.Spec.Volumes) > 0 {
+						fmt.Printf("\ngot: %#v\nexp: %#v", actualPod.Spec.Volumes[0].Secret, tc.expectedPod.Spec.Volumes[0].Secret)
+					}
+					t.Fatalf("Unexpected pod\n\nGot: %#+v\nExpected: %#+v\n", actualPod, tc.expectedPod)
 				}
-				t.Fatalf("Unexpected pod\n\nGot: %#+v\nExpected: %#+v\n", actualPod, tc.expectedPod)
 			}
 			if !reflect.DeepEqual(actualEXContext, tc.expectedEX) {
 				t.Fatalf("Unexpected ex context\n\nGot: %#+v\nExpected: %#+v\n", actualEXContext, tc.expectedEX)

@@ -43,7 +43,10 @@ type ExecutionContext struct {
 	Policy      string
 	ProxyConfig *ProxyConfig
 	Metadata    map[string]string
-	StateName   string
+	// StateName the name of the configmap that holds the state for the bundle
+	StateName string
+	// StateLocation the location in the pod that the state will be mounted
+	StateLocation string
 }
 
 // RunBundleFunc - method that defines how to run a bundle
@@ -173,6 +176,13 @@ func createPodEnv(executionContext ExecutionContext) []v1.EnvVar {
 				},
 			},
 		},
+	}
+
+	if executionContext.StateName != "" {
+		podEnv = append(podEnv, v1.EnvVar{
+			Name:  "BUNDLE_STATE_LOCATION",
+			Value: executionContext.StateLocation,
+		})
 	}
 
 	if executionContext.ProxyConfig != nil {
