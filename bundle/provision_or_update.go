@@ -46,8 +46,13 @@ func (e *executor) provisionOrUpdate(method executionMethod, instance *ServiceIn
 		return errors.New("No image field found on instance.Spec")
 	}
 
-	// Create namespace name that will be used to generate a name.
-	ns := fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, method)
+	ns := instance.Context.Namespace
+
+	// Determine if we should be using the context namespace from the executor config.
+	if !e.doNotCreateNS {
+		// Create namespace name that will be used to generate a name.
+		ns = fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, method)
+	}
 	// Create the podname
 	pn := fmt.Sprintf("bundle-%s", uuid.New())
 	targets := []string{instance.Context.Namespace}

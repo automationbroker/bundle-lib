@@ -49,8 +49,12 @@ func (e *executor) Deprovision(instance *ServiceInstance) <-chan StatusMessage {
 			e.actionFinishedWithError(errors.New("No image field found on instance.Spec"))
 			return
 		}
-		// Create namespace name that will be used to generate a name.
-		ns := fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, deprovisionAction)
+		ns := instance.Context.Namespace
+		// Determine if we should be using the context namespace from the executor config.
+		if !e.doNotCreateNS {
+			// Create namespace name that will be used to generate a name.
+			ns = fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, deprovisionAction)
+		}
 		// Create the podname
 		pn := fmt.Sprintf("bundle-%s", uuid.New())
 		targets := []string{instance.Context.Namespace}
