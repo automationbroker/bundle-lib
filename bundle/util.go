@@ -34,15 +34,15 @@ type formItem struct {
 }
 
 // ConvertPlanToSchema
-func ConvertPlansToSchema(plans []Plan) ([]Plan, error) {
-	brokerPlans := make([]Plan, len(plans))
+func ConvertPlansToSchema(plans []Plan) ([]SchemaPlan, error) {
+	brokerPlans := make([]SchemaPlan, len(plans))
 	i := 0
 	for _, plan := range plans {
 		schemas, err := parametersToSchema(plan)
 		if err != nil {
 			return nil, err
 		}
-		brokerPlans[i] = Plan{
+		brokerPlans[i] = SchemaPlan{
 			ID:          plan.ID,
 			Name:        plan.Name,
 			Description: plan.Description,

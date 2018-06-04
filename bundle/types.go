@@ -106,7 +106,18 @@ type Plan struct {
 	Parameters     []ParameterDescriptor  `json:"parameters"`
 	BindParameters []ParameterDescriptor  `json:"bind_parameters,omitempty" yaml:"bind_parameters,omitempty"`
 	UpdatesTo      []string               `json:"updates_to,omitempty" yaml:"updates_to,omitempty"`
-	Schemas        Schema                 `json:"schemas,omitempty"`
+}
+
+// SchemaPlan - Plan object describing an APB deployment plan and associated parameters
+type SchemaPlan struct {
+	ID          string                 `json:"id" yaml:"-"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Free        bool                   `json:"free,omitempty"`
+	Bindable    bool                   `json:"bindable,omitempty"`
+	UpdatesTo   []string               `json:"updates_to,omitempty" yaml:"updates_to,omitempty"`
+	Schemas     Schema                 `json:"schema,omitempty"`
 }
 
 // GetParameter - retrieves a reference to a ParameterDescriptor from a plan by name. Will return
