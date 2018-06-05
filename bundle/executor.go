@@ -59,23 +59,23 @@ type executor struct {
 	statusChan           chan StatusMessage
 	mutex                sync.Mutex
 	stateManager         runtime.StateManager
-	doNotCreateNS        bool
+	skipCreateNS         bool
 }
 
 // ExecutorConfig - configuration for the executor.
 type ExecutorConfig struct {
 	// This will tell the executor to use the context namespace as the
 	// namespace for the bundle to be created in.
-	DoNotCreateNS bool
+	SkipCreateNS bool
 }
 
 // NewExecutor - Creates a new Executor for running an APB.
 func NewExecutor(config ExecutorConfig) Executor {
 	return &executor{
-		statusChan:    make(chan StatusMessage),
-		lastStatus:    StatusMessage{State: StateNotYetStarted},
-		doNotCreateNS: config.DoNotCreateNS,
-		stateManager:  runtime.Provider,
+		statusChan:   make(chan StatusMessage),
+		lastStatus:   StatusMessage{State: StateNotYetStarted},
+		skipCreateNS: config.SkipCreateNS,
+		stateManager: runtime.Provider,
 	}
 }
 
