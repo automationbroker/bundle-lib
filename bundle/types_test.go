@@ -387,8 +387,8 @@ func TestBindInstanceEqual(t *testing.T) {
 func TestBindInstanceNotEqual(t *testing.T) {
 
 	a := BindInstance{
-		ID:         uuid.Parse(uuid.New()),
-		ServiceID:  uuid.Parse(uuid.New()),
+		ID:         uuid.NewUUID(),
+		ServiceID:  uuid.NewUUID(),
 		Parameters: &Parameters{"foo": "bar"},
 	}
 
@@ -399,13 +399,13 @@ func TestBindInstanceNotEqual(t *testing.T) {
 			Parameters: &Parameters{"foo": "notbar"},
 		},
 		"different ID": BindInstance{
-			ID:         uuid.Parse(uuid.New()),
+			ID:         uuid.NewUUID(),
 			ServiceID:  a.ServiceID,
 			Parameters: &Parameters{"foo": "bar"},
 		},
 		"different ServiceID": BindInstance{
 			ID:         a.ID,
-			ServiceID:  uuid.Parse(uuid.New()),
+			ServiceID:  uuid.NewUUID(),
 			Parameters: &Parameters{"foo": "bar"},
 		},
 		"no parameters": BindInstance{
@@ -456,4 +456,19 @@ func TestAlphaParser(t *testing.T) {
 	}
 
 	ft.True(t, dr)
+}
+
+func TestAddRemoveBinding(t *testing.T) {
+	si := &ServiceInstance{
+		ID: uuid.NewUUID(),
+	}
+
+	bID := uuid.NewUUID()
+	si.AddBinding(bID)
+	ft.True(t, si.BindingIDs[bID.String()], "binding not added")
+
+	si.RemoveBinding(bID)
+	toDelete, ok := si.BindingIDs[bID.String()]
+	ft.True(t, ok, "binding has been removed, should be marked only")
+	ft.False(t, toDelete, "binding not marked as deleted")
 }
