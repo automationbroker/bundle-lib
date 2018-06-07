@@ -45,6 +45,10 @@ func (e *executor) Unbind(
 		e.actionStarted()
 		// Create namespace name that will be used to generate a name.
 		ns := fmt.Sprintf("%s-%.4s-", instance.Spec.FQName, unbindAction)
+		// Determine if we should be using the context namespace from the executor config.
+		if e.skipCreateNS {
+			ns = instance.Context.Namespace
+		}
 		// Create the podname
 		pn := fmt.Sprintf("bundle-%s", uuid.New())
 		targets := []string{instance.Context.Namespace}

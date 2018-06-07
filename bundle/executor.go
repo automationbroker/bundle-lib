@@ -59,17 +59,24 @@ type executor struct {
 	statusChan           chan StatusMessage
 	mutex                sync.Mutex
 	stateManager         runtime.StateManager
+	skipCreateNS         bool
+}
+
+// ExecutorConfig - configuration for the executor.
+type ExecutorConfig struct {
+	// This will tell the executor to use the context namespace as the
+	// namespace for the bundle to be created in.
+	SkipCreateNS bool
 }
 
 // NewExecutor - Creates a new Executor for running an APB.
-func NewExecutor() Executor {
-	exec := &executor{
-		statusChan: make(chan StatusMessage),
-		lastStatus: StatusMessage{State: StateNotYetStarted},
+func NewExecutor(config ExecutorConfig) Executor {
+	return &executor{
+		statusChan:   make(chan StatusMessage),
+		lastStatus:   StatusMessage{State: StateNotYetStarted},
+		skipCreateNS: config.SkipCreateNS,
+		stateManager: runtime.Provider,
 	}
-
-	exec.stateManager = runtime.Provider
-	return exec
 }
 
 // PodName - Returns the name of the pod running the APB
