@@ -36,8 +36,7 @@ type formItem struct {
 // ConvertPlanToSchema
 func ConvertPlansToSchema(plans []Plan) ([]SchemaPlan, error) {
 	brokerPlans := make([]SchemaPlan, len(plans))
-	i := 0
-	for _, plan := range plans {
+	for i, plan := range plans {
 		schemas, err := parametersToSchema(plan)
 		if err != nil {
 			return nil, err
@@ -52,7 +51,6 @@ func ConvertPlansToSchema(plans []Plan) ([]SchemaPlan, error) {
 			UpdatesTo:   plan.UpdatesTo,
 			Schemas:     schemas,
 		}
-		i++
 	}
 	return brokerPlans, nil
 }
