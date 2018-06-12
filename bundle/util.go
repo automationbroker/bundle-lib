@@ -301,11 +301,11 @@ func setStringValidators(pd ParameterDescriptor, prop *schema.Schema) {
 	// do not set the regexp if it does not compile
 	if pd.Pattern != "" {
 		patternRegex, err := regexp.Compile(pd.Pattern)
-		prop.Pattern = patternRegex
-
 		if err != nil {
 			fmt.Printf("Invalid pattern: %s", err.Error())
+			return
 		}
+		prop.Pattern = patternRegex
 	}
 }
 

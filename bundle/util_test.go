@@ -34,7 +34,7 @@ var emailPlanParams = []ParameterDescriptor{
 		Type:        "enum",
 		Description: "example enum parameter",
 		Enum:        []string{"google@gmail.com", "redhat@redhat.com"},
-		Default:     float64(9001),
+		Default:     "google@gmail.com",
 		Updatable:   true,
 	},
 	{
