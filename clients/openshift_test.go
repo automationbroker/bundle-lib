@@ -1,12 +1,14 @@
 package clients
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	authapi "github.com/openshift/api/authorization/v1"
 	authfake "github.com/openshift/client-go/authorization/clientset/versioned/fake"
-	authv1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 )
 
 func TestOpenshiftSubjectRulesReview(t *testing.T) {
@@ -16,31 +18,86 @@ func TestOpenshiftSubjectRulesReview(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name      string
-		auth      authv1.AuthorizationV1Interface
-		rules     []authapi.PolicyRule
-		user      string
-		groups    []string
-		scopes    []string
-		namespace string
-		shouldErr bool
+		name               string
+		subjectRulesReview *authapi.SubjectRulesReview
+		rules              []authapi.PolicyRule
+		user               string
+		groups             []string
+		scopes             authapi.OptionalScopes
+		namespace          string
+		shouldErr          bool
 	}{
 		{
 			name: "get rules",
-			auth: authfake.NewSimpleClientset(&authapi.SubjectRulesReview{
+			subjectRulesReview: &authapi.SubjectRulesReview{
 				Spec: authapi.SubjectRulesReviewSpec{
 					User: "test-users",
 				},
-			}).AuthorizationV1(),
-			rules:     []authapi.PolicyRule{},
+				Status: authapi.SubjectRulesReviewStatus{
+					Rules: []authapi.PolicyRule{
+						authapi.PolicyRule{
+							Verbs:         []string{"create"},
+							Resources:     []string{"deployments"},
+							ResourceNames: []string{"deployment"},
+							APIGroups:     []string{"v1"},
+						},
+					},
+				},
+			},
+			rules: []authapi.PolicyRule{
+				authapi.PolicyRule{
+					Verbs:         []string{"create"},
+					Resources:     []string{"deployments"},
+					ResourceNames: []string{"deployment"},
+					APIGroups:     []string{"v1"},
+				},
+			},
 			user:      "test-user",
 			namespace: "ns1",
+		},
+		{
+			name:      "get rules error",
+			user:      "test-user",
+			namespace: "ns1",
+			shouldErr: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			o.authClient = tc.auth
+			c := authfake.Clientset{}
+			c.PrependReactor("create", "subjectrulesreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+				if tc.shouldErr {
+					return true, nil, fmt.Errorf("should error")
+				}
+				ca, ok := action.(clientgotesting.CreateActionImpl)
+				if !ok {
+					return true, nil, fmt.Errorf("can not get create action")
+				}
+				s, ok := ca.Object.(*authapi.SubjectRulesReview)
+				if !ok {
+					return true, nil, fmt.Errorf("can not get subject rules review")
+				}
+				if s.Spec.User != tc.user {
+					t.Fatalf("invalid user in spec of request: %v", s.Spec.User)
+					return true, nil, fmt.Errorf("invalid spec")
+				}
+				if ca.Namespace != tc.namespace {
+					t.Fatalf("invalid namespace in spec of request: %v", ca.Namespace)
+					return true, nil, fmt.Errorf("invalid spec")
+				}
+				if !reflect.DeepEqual(s.Spec.Groups, tc.groups) {
+					t.Fatalf("invalid groups in spec of request: %#v expected: %#v", s.Spec.Groups, tc.groups)
+					return true, nil, fmt.Errorf("invalid spec")
+				}
+				if !reflect.DeepEqual(s.Spec.Scopes, tc.scopes) {
+					t.Fatalf("invalid groups in spec of request: %#v expected: %#v", s.Spec.Scopes, tc.scopes)
+					return true, nil, fmt.Errorf("invalid spec")
+				}
+				return true, tc.subjectRulesReview, nil
+
+			})
+			o.authClient = c.AuthorizationV1()
 			rules, err := o.SubjectRulesReview(tc.user, tc.groups, tc.scopes, tc.namespace)
 			if err != nil && !tc.shouldErr {
 				t.Fatalf("unknown error - %v", err)
@@ -50,7 +107,7 @@ func TestOpenshiftSubjectRulesReview(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(rules, tc.rules) {
-				t.Fatalf("\nActual Rules: %v\n\nExpected Rules: %v\n", rules, tc.rules)
+				t.Fatalf("\nActual Rules: %#v\n\nExpected Rules: %#v\n", rules, tc.rules)
 				return
 			}
 		})
