@@ -81,7 +81,7 @@ type Schema struct {
 	ServiceBinding  ServiceBindingSchema  `json:"service_binding"`
 }
 
-// ServiceInstance - Schema definitions for creating and updating a service instance.
+// ServiceInstanceSchema - Schema definitions for creating and updating a service instance.
 // Toyed with the idea of making an InputParameters
 // that was a *schema.Schema
 // based on 2.13 of the open service broker api. https://github.com/avade/servicebroker/blob/cda8c57b6a4bb7eaee84be20bb52dc155269758a/spec.md
@@ -90,7 +90,7 @@ type ServiceInstanceSchema struct {
 	Update map[string]*schema.Schema `json:"update"`
 }
 
-// ServiceBinding - Schema definitions for creating a service binding.
+// ServiceBindingSchema - Schema definitions for creating a service binding.
 type ServiceBindingSchema struct {
 	Create map[string]*schema.Schema `json:"create"`
 }

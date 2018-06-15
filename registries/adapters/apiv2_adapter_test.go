@@ -27,9 +27,18 @@ import (
 	ft "github.com/stretchr/testify/assert"
 )
 
-var PartnerImages = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides"}
+var apiV2Images = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides"}
 
-const PartnerManifestResponse = `
+var testConfig = Configuration{
+	Images: apiV2Images,
+}
+
+const apiV2TestCatalogResponse = `
+{
+   "repositories": []
+}`
+
+const apiV2ManifestResponse = `
 {
    "schemaVersion": 1,
    "name": "%v",
@@ -81,7 +90,7 @@ const PartnerManifestResponse = `
    ]
  }`
 
-const PartnerAuthResponse = `
+const apiV2AuthResponse = `
 {
   "token": "ertssGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwiandrIjogeyJrdHkiOiJSU0EiLCJhbGciOiJSUzI1NiIsInVzZSI6InNpZyIsIm4iOiI1TWhlWnh2VU9id0NJRXVYZWJubjlNQ0JFcDlTdWUyME44SHhQTExSWjdYNUl1QTU0a3dpVUQtMXBqZ2tpamgwRXpTZGlxbTdWUExlNGl1eXZEZmJxX1d2QWNNUjVhb3RKbl9EMGllbnA5eVRpR3d5SEVQWG83MERwZ2FsN1ZOc0RCdWdTSF91SThpM3BVaHZLczAxMEwzRVFmRVkwc2hrQVZRY1hEb3JNVmhkZkd2WE84aURMODBqR1BDWmNidXpZc1BQQ0RycWd5UTl6SFctWGVMSURXUlh3YW16TE1pNGZqOXRNcXB6b3FUdkhZUUFGQWdHbTU2Umh0ZDE0SWxaU19yYnZ2aFFLMDVEUDB2MHJtZFU0SXZoTzBTcUJLRjdkN1FIbFppd09nd2ppQzktU3JORkFzSngtSy1PMzBROThpMUhKRjd2MXNCMFE1OTFzYUVZMmM3VWhXTnpqdm5DM2gtYXdtSi1TM2FJSFFGNWNObmtTbTRUN3VZWHEwRW9oMEM2cEdlMUlZSzM1RHlGZjRsZEZXVTNVQmpvUlc0dG1jd2lmNE96ZXg3eWw3NmV5WWRxeXRscXk0bmwxeWZlTXpMSTJlNm5ucWlBdFdEUTY2Y3NSTVZVb1JpdUtvZWdOZldIelRUdUZabU1OdHpNdXpsR1JFbmtJazZnZl84VUNPME9Kd1FZM2luQldGZFc2V2l4RWRwSzFxT1VEVzBjWGRQVWt0NkZhNHJzU0NUTTZvbWNvVkRiU3hWV3Fqa2JtS0ZnU1pnVjdaUUZiM2doa3E5VmhtZVlzbmpfSmc0Skxnc3JpRzlZUWlKOWljYl9TWHNuNUhJQXcyOWhFR3BEMW01Q05IZmt6SVBxbllYWmlfaXAwSGlwWjBiVU9RN3JBYXVkTHktZHlhcyIsImUiOiJBUUFCIn19.eyJqdGkiOiJlZjgxMTgxOS04ZTE3LTRjZTQtYWY2OC0yY2E3M2ZlYzc2N2IiLCJleHAiOjE1MjIxODA3NTksIm5iZiI6MTUyMjE4MDQ1OSwiaWF0IjoxNTIyMTgwNDU5LCJpc3MiOiJodHRwczovL3Nzby5yZWRoYXQuY29tL2F1dGgvcmVhbG1zL3JoYzR0cCIsImF1ZCI6ImRvY2tlci1yZWdpc3RyeSIsInN1YiI6IlF1YWxpdHlBc3N1cmFuY2UiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkb2NrZXItcmVnaXN0cnkiLCJhY2Nlc3MiOltdfQ.kI0kkiUP-M6epKa9G7pm9-8fUb9oM2aP93bObL5SackVO1pv0dlk6Kqml1X5W3pgV_tabRDRA_Oc5rdCImOXdCz1J8SnSO3wNeX02JgWLC4LWRUnJuNQtqIHdYSD3YdmOcsou5psD2I_gv-QhsaJtb5frCklJ5gU68i0SsUhPr0sf1BDD1oVzHu_US-zNuwXbzxiug4C5oObTLn9vzfz8oE4Hwy-WIRC0LeJxdNIZvyaUyiBEA7fq3p3XlInvsmgv94l-HZiEtOi7Gml_EfDHj4G7pZGNOgfoTHhR8ugiE9rVTEGo9esUNaRW7XhGCQV2CH3IowmtrIAMndToI4yNLPpOi8alCsaomuIunyGDhGqmdT2iKBrFErliN9b7oof73ElqJdjZhWD5_8iWt7ICQFAfomVe_TU8UdXlp5mYRf2VlF-IMk1YbUZh8aMFIJ1lZsmCzM9sZEpv7Y34AI837nDwL1vwWHVaFVLrW3oLtIXVmnvbLYwnNw7Gus6Gxh5mQI_ZGcSXSmOcK-mGFfVJgsJPTVhJI4FAQMsxdJwL8yAM96FCN2h9jcgfk0eQ1T4BRQFNLsy51dH1aUPYW51xR2GnbU6aahwjjYX3CQs6akPsNCnvQc6WaRb0IUwFrkmGBuIennb8W1A2opNRetVk3r1kiTm4zNaYrsF67PwTqg",
   "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwiandrIjogeyJrdHkiOiJSU0EiLCJhbGciOiJSUzI1NiIsInVzZSI6InNpZyIsIm4iOiI1TWhlWnh2VU9id0NJRXVYZWJubjlNQ0JFcDlTdWUyME44SHhQTExSWjdYNUl1QTU0a3dpVUQtMXBqZ2tpamgwRXpTZGlxbTdWUExlNGl1eXZEZmJxX1d2QWNNUjVhb3RKbl9EMGllbnA5eVRpR3d5SEVQWG83MERwZ2FsN1ZOc0RCdWdTSF91SThpM3BVaHZLczAxMEwzRVFmRVkwc2hrQVZRY1hEb3JNVmhkZkd2WE84aURMODBqR1BDWmNidXpZc1BQQ0RycWd5UTl6SFctWGVMSURXUlh3YW16TE1pNGZqOXRNcXB6b3FUdkhZUUFGQWdHbTU2Umh0ZDE0SWxaU19yYnZ2aFFLMDVEUDB2MHJtZFU0SXZoTzBTcUJLRjdkN1FIbFppd09nd2ppQzktU3JORkFzSngtSy1PMzBROThpMUhKRjd2MXNCMFE1OTFzYUVZMmM3VWhXTnpqdm5DM2gtYXdtSi1TM2FJSFFGNWNObmtTbTRUN3VZWHEwRW9oMEM2cEdlMUlZSzM1RHlGZjRsZEZXVTNVQmpvUlc0dG1jd2lmNE96ZXg3eWw3NmV5WWRxeXRscXk0bmwxeWZlTXpMSTJlNm5ucWlBdFdEUTY2Y3NSTVZVb1JpdUtvZWdOZldIelRUdUZabU1OdHpNdXpsR1JFbmtJazZnZl84VUNPME9Kd1FZM2luQldGZFc2V2l4RWRwSzFxT1VEVzBjWGRQVWt0NkZhNHJzU0NUTTZvbWNvVkRiU3hWV3Fqa2JtS0ZnU1pnVjdaUUZiM2doa3E5VmhtZVlzbmpfSmc0Skxnc3JpRzlZUWlKOWljYl9TWHNuNUhJQXcyOWhFR3BEMW01Q05IZmt6SVBxbllYWmlfaXAwSGlwWjBiVU9RN3JBYXVkTHktZHlhcyIsImUiOiJBUUFCIn19.eyJqdGkiOiJlZjgxMTgxOS04ZTE3LTRjZTQtYWY2OC0yY2E3M2ZlYzc2N2IiLCJleHAiOjE1MjIxODA3NTksIm5iZiI6MTUyMjE4MDQ1OSwiaWF0IjoxNTIyMTgwNDU5LCJpc3MiOiJodHRwczovL3Nzby5yZWRoYXQuY29tL2F1dGgvcmVhbG1zL3JoYzR0cCIsImF1ZCI6ImRvY2tlci1yZWdpc3RyeSIsInN1YiI6IlF1YWxpdHlBc3N1cmFuY2UiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkb2NrZXItcmVnaXN0cnkiLCJhY2Nlc3MiOltdfQ.kI0kkiUP-M6epKa9G7pm9-8fUb9oM2aP93bObL5SackVO1pv0dlk6Kqml1X5W3pgV_tabRDRA_Oc5rdCImOXdCz1J8SnSO3wNeX02JgWLC4LWRUnJuNQtqIHdYSD3YdmOcsou5psD2I_gv-QhsaJtb5frCklJ5gU68i0SsUhPr0sf1BDD1oVzHu_US-zNuwXbzxiug4C5oObTLn9vzfz8oE4Hwy-WIRC0LeJxdNIZvyaUyiBEA7fq3p3XlInvsmgv94l-HZiEtOi7Gml_EfDHj4G7pZGNOgfoTHhR8ugiE9rVTEGo9esUNaRW7XhGCQV2CH3IowmtrIAMndToI4yNLPpOi8alCsaomuIunyGDhGqmdT2iKBrFErliN9b7oof73ElqJdjZhWD5_8iWt7ICQFAfomVe_TU8UdXlp5mYRf2VlF-IMk1YbUZh8aMFIJ1lZsmCzM9sZEpv7Y34AI837nDwL1vwWHVaFVLrW3oLtIXVmnvbLYwnNw7Gus6Gxh5mQI_ZGcSXSmOcK-mGFfVJgsJPTVhJI4FAQMsxdJwL8yAM96FCN2h9jcgfk0eQ1T4BRQFNLsy51dH1aUPYW51xR2GnbU6aahwjjYX3CQs6akPsNCnvQc6WaRb0IUwFrkmGBuIennb8W1A2opNRetVk3r1kiTm4zNaYrsF67PwTqg",
@@ -89,58 +98,63 @@ const PartnerAuthResponse = `
   "issued_at": "2018-03-27T19:54:19Z"
 }`
 
-func TestPartnerName(t *testing.T) {
-	partnera := PartnerRhccAdapter{}
-	ft.Equal(t, partnera.RegistryName(), "partner_rhcc", "partner_rhcc name does not match `partner_rhcc`")
-}
+func TestAPIV2NewAPIV2Adapter(t *testing.T) {
+	serv := getServer(t)
+	defer serv.Close()
+	testConfig.URL = getURL(t, serv)
 
-func TestPartnerGetImageNames(t *testing.T) {
-	partnera := PartnerRhccAdapter{}
-	partnera.Config.Images = PartnerImages
-	imagesFound, err := partnera.GetImageNames()
+	apiv2a, err := NewAPIV2Adapter(testConfig)
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
-	ft.Equal(t, imagesFound, PartnerImages, "image names returned did not match expected config")
+
+	ft.NotEqual(t, apiv2a, APIV2Adapter{}, "adaptor returned is not valid")
 }
 
-func TestPartnerFetchSpecs(t *testing.T) {
-	authServ := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			t.Errorf("Expected `GET` request, got `%s`", r.Method)
-		}
-		fmt.Fprintf(w, PartnerAuthResponse)
-	}))
+func TestNewOpenShiftAdapter(t *testing.T) {
+	serv := getServer(t)
+	defer serv.Close()
+	testConfig.URL = getURL(t, serv)
 
-	serv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			t.Errorf("Expected `GET` request, got `%s`", r.Method)
-		}
-
-		if strings.HasSuffix(r.URL.EscapedPath(), "/v2/") {
-			w.Header().Add("Www-Authenticate", fmt.Sprintf("Bearer realm=\"%v/v2/auth/realms/foo-docker-v2/auth\",service=\"docker-registry\"", authServ.URL))
-		}
-		if strings.Contains(r.URL.EscapedPath(), "manifests/") {
-			name := strings.Split(r.URL.EscapedPath(), "manifests/")[1]
-			fmt.Fprintf(w, fmt.Sprintf(PartnerManifestResponse, name))
-		}
-
-	}))
-
-	url, err := url.Parse(serv.URL)
+	osAdapter, err := NewOpenShiftAdapter(testConfig)
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
-	partnera := PartnerRhccAdapter{
-		Config: Configuration{
-			URL:    url,
-			User:   "satoshi",
-			Pass:   "nakamoto",
-			Images: Images,
-		},
+	ft.NotEqual(t, osAdapter, OpenShiftAdapter{}, "OpenShift adaptor returned is not valid")
+}
+
+func TestNewPartnerRhccAdapter(t *testing.T) {
+	serv := getServer(t)
+	defer serv.Close()
+	testConfig.URL = getURL(t, serv)
+
+	prAdapter, err := NewPartnerRhccAdapter(testConfig)
+	if err != nil {
+		t.Fatal("Error: ", err)
 	}
-	imageNames, err := partnera.GetImageNames()
-	specs, err := partnera.FetchSpecs(imageNames)
+	ft.NotEqual(t, prAdapter, PartnerRhccAdapter{}, "Partner RHCC adaptor returned is not valid")
+}
+
+func TestAPIV2GetImageNames(t *testing.T) {
+	serv := getServer(t)
+	defer serv.Close()
+	testConfig.URL = getURL(t, serv)
+	apiv2a, _ := NewAPIV2Adapter(testConfig)
+
+	imagesFound, err := apiv2a.GetImageNames()
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+	ft.Equal(t, imagesFound, apiV2Images, "image names returned did not match expected config")
+}
+
+func TestAPIV2FetchSpecs(t *testing.T) {
+	serv := getServer(t)
+	defer serv.Close()
+	testConfig.URL = getURL(t, serv)
+	apiv2a, _ := NewAPIV2Adapter(testConfig)
+
+	specs, err := apiv2a.FetchSpecs(apiV2Images)
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
@@ -150,4 +164,38 @@ func TestPartnerFetchSpecs(t *testing.T) {
 	if len(specs) != 3 {
 		t.Fatal("Error: did not find 3 expected specs, only found: ", len(specs))
 	}
+}
+
+func getServer(t *testing.T) *httptest.Server {
+	authServ := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("Expected `GET` request, got `%s`", r.Method)
+		}
+		fmt.Fprintf(w, apiV2AuthResponse)
+	}))
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("Expected `GET` request, got `%s`", r.Method)
+		}
+
+		if strings.HasSuffix(r.URL.EscapedPath(), "/v2/") {
+			w.Header().Add("Www-Authenticate", fmt.Sprintf("Bearer realm=\"%v/v2/auth/realms/foo-docker-v2/auth\",service=\"docker-registry\"", authServ.URL))
+		}
+		if strings.Contains(r.URL.EscapedPath(), "_catalog") {
+			fmt.Fprintf(w, apiV2TestCatalogResponse)
+		}
+		if strings.Contains(r.URL.EscapedPath(), "manifests/") {
+			name := strings.Split(r.URL.EscapedPath(), "manifests/")[1]
+			fmt.Fprintf(w, fmt.Sprintf(apiV2ManifestResponse, name))
+		}
+	}))
+}
+
+func getURL(t *testing.T, s *httptest.Server) *url.URL {
+	url, err := url.Parse(s.URL)
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+	return url
 }
