@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestProvision(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	u := uuid.NewUUID()
 	testCases := []*struct {
 		name            string
@@ -23,7 +23,7 @@ func TestProvision(t *testing.T) {
 		validateMessage func([]StatusMessage) bool
 	}{
 		{
-			name:   "provison successfully",
+			name:   "update successfully",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -68,7 +68,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison successfully with extracted credentials",
+			name:   "update successfully with extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -98,7 +98,7 @@ func TestProvision(t *testing.T) {
 				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
-				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "provision", "apbName": "new-fq-name"}).Return(nil)
+				rt.On("UpdateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "update", "apbName": "new-fq-name"}).Return(nil)
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 2 {
@@ -119,7 +119,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison successfully with extracted credentials and dashboard url",
+			name:   "update successfully with extracted credentials and dashboard url",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -155,7 +155,7 @@ func TestProvision(t *testing.T) {
 				}).Return(nil)
 				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
-				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "provision", "apbName": "new-fq-name"}).Return(nil)
+				rt.On("UpdateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "update", "apbName": "new-fq-name"}).Return(nil)
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 3 {
@@ -180,7 +180,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name: "provison successfully skip ns",
+			name: "update successfully skip ns",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -227,81 +227,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison unsuccessfully no image",
-			config: ExecutorConfig{},
-			rt:     *new(runtime.MockRuntime),
-			si: ServiceInstance{
-				ID: u,
-				Spec: &Spec{
-					ID:      "new-spec-id",
-					Image:   "",
-					FQName:  "new-fq-name",
-					Runtime: 2,
-				},
-				Context: &Context{
-					Namespace: "target",
-					Platform:  "kubernetes",
-				},
-				Parameters: &Parameters{"test-param": true},
-			},
-			validateMessage: func(m []StatusMessage) bool {
-				if len(m) != 2 {
-					return false
-				}
-				first := m[0]
-				second := m[1]
-				if first.State != StateInProgress {
-					return false
-				}
-				if second.State != StateFailed {
-					return false
-				}
-				if second.Error.Error() != "No image field found on instance.Spec" {
-					return false
-				}
-				return true
-			},
-		},
-		{
-			name: "provison unsuccessfully sandbox fail",
-			config: ExecutorConfig{
-				SkipCreateNS: true,
-			},
-			rt: *new(runtime.MockRuntime),
-			si: ServiceInstance{
-				ID: u,
-				Spec: &Spec{
-					ID:      "new-spec-id",
-					Image:   "new-image",
-					FQName:  "new-fq-name",
-					Runtime: 2,
-				},
-				Context: &Context{
-					Namespace: "target",
-					Platform:  "kubernetes",
-				},
-				Parameters: &Parameters{"test-param": true},
-			},
-			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
-				rt.On("CreateSandbox", mock.Anything, "target", []string{"target"}, mock.Anything, mock.Anything).Return("", "", fmt.Errorf("unknown error"))
-			},
-			validateMessage: func(m []StatusMessage) bool {
-				if len(m) != 2 {
-					return false
-				}
-				first := m[0]
-				second := m[1]
-				if first.State != StateInProgress {
-					return false
-				}
-				if second.State != StateFailed {
-					return false
-				}
-				return true
-			},
-		},
-		{
-			name: "provison unsuccessfully no location or targets",
+			name: "update unsuccessfully no location or targets",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -341,7 +267,110 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison unsuccessfully to create extracted credentials",
+			name:   "update unsuccessfully with extracted credentials failing",
+			config: ExecutorConfig{},
+			rt:     *new(runtime.MockRuntime),
+			si: ServiceInstance{
+				ID: u,
+				Spec: &Spec{
+					ID:       "new-spec-id",
+					Image:    "new-image",
+					FQName:   "new-fq-name",
+					Runtime:  2,
+					Bindable: true,
+				},
+				Context: &Context{
+					Namespace: "target",
+					Platform:  "kubernetes",
+				},
+				Parameters: &Parameters{"test-param": true},
+			},
+			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
+				ex, ok := e.(*executor)
+				if !ok {
+					t.Fail()
+				}
+				rt.On("CreateSandbox", mock.Anything, mock.Anything, []string{"target"}, mock.Anything, mock.Anything).Return("service-account-1", "location", nil)
+				rt.On("GetRuntime").Return("kubernetes")
+				rt.On("CopySecretsToNamespace", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("MasterName", u.String()).Return("new-master-name")
+				rt.On("MasterNamespace").Return("new-masternamespace")
+				rt.On("StateIsPresent", "new-master-name").Return(false, nil)
+				rt.On("RunBundle", mock.Anything).Return(runtime.ExecutionContext{}, nil)
+				rt.On("CopyState", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+					ex.updateDescription("dashboard url", "https://url.com")
+				}).Return(nil)
+				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
+				rt.On("UpdateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "update", "apbName": "new-fq-name"}).Return(fmt.Errorf("unable to update credentials"))
+			},
+			validateMessage: func(m []StatusMessage) bool {
+				if len(m) != 3 {
+					return false
+				}
+				first := m[0]
+				second := m[1]
+				third := m[2]
+				if first.State != StateInProgress {
+					return false
+				}
+				if second.State != StateInProgress {
+					return false
+				}
+				if third.State != StateFailed {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name:   "update unsuccessfully failed to watch bundle",
+			config: ExecutorConfig{},
+			rt:     *new(runtime.MockRuntime),
+			si: ServiceInstance{
+				ID: u,
+				Spec: &Spec{
+					ID:      "new-spec-id",
+					Image:   "new-image",
+					FQName:  "new-fq-name",
+					Runtime: 2,
+				},
+				Context: &Context{
+					Namespace: "target",
+					Platform:  "kubernetes",
+				},
+				Parameters: &Parameters{"test-param": true},
+			},
+			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
+				rt.On("CreateSandbox", mock.Anything, mock.Anything, []string{"target"}, mock.Anything, mock.Anything).Return("service-account-1", "location", nil)
+				rt.On("GetRuntime").Return("kubernetes")
+				rt.On("CopySecretsToNamespace", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("MasterName", u.String()).Return("new-master-name")
+				rt.On("MasterNamespace").Return("new-masternamespace")
+				rt.On("StateIsPresent", "new-master-name").Return(false, nil)
+				rt.On("RunBundle", mock.Anything).Return(runtime.ExecutionContext{}, nil)
+				rt.On("CopyState", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("unable to watch bundle"))
+				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+			},
+			validateMessage: func(m []StatusMessage) bool {
+				if len(m) != 2 {
+					return false
+				}
+				first := m[0]
+				second := m[1]
+				if first.State != StateInProgress {
+					return false
+				}
+				if second.State != StateFailed {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name:   "update unsuccessfully with extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -370,8 +399,102 @@ func TestProvision(t *testing.T) {
 				rt.On("CopyState", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
-				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "provision", "apbName": "new-fq-name"}).Return(fmt.Errorf("unable to create extracted creds"))
+				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("unable to extract credentials"))
+				rt.On("UpdateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "update", "apbName": "new-fq-name"}).Return(nil)
+			},
+			validateMessage: func(m []StatusMessage) bool {
+				if len(m) != 2 {
+					return false
+				}
+				first := m[0]
+				second := m[1]
+				if first.State != StateInProgress {
+					return false
+				}
+				if second.State != StateFailed {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name:   "update unsuccessfully to copy state",
+			config: ExecutorConfig{},
+			rt:     *new(runtime.MockRuntime),
+			si: ServiceInstance{
+				ID: u,
+				Spec: &Spec{
+					ID:       "new-spec-id",
+					Image:    "new-image",
+					FQName:   "new-fq-name",
+					Runtime:  2,
+					Bindable: true,
+				},
+				Context: &Context{
+					Namespace: "target",
+					Platform:  "kubernetes",
+				},
+				Parameters: &Parameters{"test-param": true},
+			},
+			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
+				rt.On("CreateSandbox", mock.Anything, mock.Anything, []string{"target"}, mock.Anything, mock.Anything).Return("service-account-1", "location", nil)
+				rt.On("GetRuntime").Return("kubernetes")
+				rt.On("CopySecretsToNamespace", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("MasterName", u.String()).Return("new-master-name")
+				rt.On("MasterNamespace").Return("new-masternamespace")
+				rt.On("StateIsPresent", "new-master-name").Return(false, nil)
+				rt.On("RunBundle", mock.Anything).Return(runtime.ExecutionContext{}, nil)
+				rt.On("CopyState", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("unable to copy state"))
+				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+			},
+			validateMessage: func(m []StatusMessage) bool {
+				if len(m) != 2 {
+					return false
+				}
+				first := m[0]
+				second := m[1]
+				if first.State != StateInProgress {
+					return false
+				}
+				if second.State != StateFailed {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name:   "update unsuccessfully with extracted credentials",
+			config: ExecutorConfig{},
+			rt:     *new(runtime.MockRuntime),
+			si: ServiceInstance{
+				ID: u,
+				Spec: &Spec{
+					ID:       "new-spec-id",
+					Image:    "new-image",
+					FQName:   "new-fq-name",
+					Runtime:  2,
+					Bindable: true,
+				},
+				Context: &Context{
+					Namespace: "target",
+					Platform:  "kubernetes",
+				},
+				Parameters: &Parameters{"test-param": true},
+			},
+			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
+				rt.On("CreateSandbox", mock.Anything, mock.Anything, []string{"target"}, mock.Anything, mock.Anything).Return("service-account-1", "location", nil)
+				rt.On("GetRuntime").Return("kubernetes")
+				rt.On("CopySecretsToNamespace", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("MasterName", u.String()).Return("new-master-name")
+				rt.On("MasterNamespace").Return("new-masternamespace")
+				rt.On("StateIsPresent", "new-master-name").Return(false, nil)
+				rt.On("RunBundle", mock.Anything).Return(runtime.ExecutionContext{}, nil)
+				rt.On("CopyState", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`"test": "testingcreds"}`), nil)
+				rt.On("UpdateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "update", "apbName": "new-fq-name"}).Return(nil)
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 2 {
@@ -397,7 +520,7 @@ func TestProvision(t *testing.T) {
 			if tc.addExpectations != nil {
 				tc.addExpectations(&tc.rt, e)
 			}
-			s := e.Provision(&tc.si)
+			s := e.Update(&tc.si)
 			m := []StatusMessage{}
 			for mess := range s {
 				m = append(m, mess)
