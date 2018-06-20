@@ -195,6 +195,39 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/lestrrat/go-jspointer"
+  packages = ["."]
+  revision = "d5f7c71bfd03c8e9489a636874cd106c22d3a47c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lestrrat/go-jsref"
+  packages = [
+    ".",
+    "provider"
+  ]
+  revision = "50df7b2d07d799426a9ac43fa24bdb4785f72a54"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lestrrat/go-jsschema"
+  packages = ["."]
+  revision = "a6a42341b50d8d7e2a733db922eefaa756321021"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lestrrat/go-pdebug"
+  packages = ["."]
+  revision = "569c97477ae8837e053e5a50bc739e15172b8ebe"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lestrrat/go-structinfo"
+  packages = ["."]
+  revision = "8204d40bbcd79eb7603cd4c2c998e60eb2479ded"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mailru/easyjson"
   packages = [
     "buffer",
@@ -538,6 +571,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5d6fb38fcbb8024cf35ea517995086b921765de40a3f016f9ac25df44c957921"
+  inputs-digest = "af75703c6aa1c5f0569c59b44a3e6238b0b6267caa84c8f3c38fd802a1900f49"
   solver-name = "gps-cdcl"
   solver-version = 1
