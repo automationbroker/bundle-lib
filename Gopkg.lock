@@ -256,7 +256,8 @@
     "image/dockerpre012",
     "image/v1",
     "network/v1",
-    "pkg/serialization"
+    "pkg/serialization",
+    "route/v1"
   ]
   revision = "0d921e363e951d89f583292c60d013c318df64dc"
   version = "v3.9.0"
@@ -272,7 +273,12 @@
     "image/clientset/versioned/scheme",
     "image/clientset/versioned/typed/image/v1",
     "network/clientset/versioned/scheme",
-    "network/clientset/versioned/typed/network/v1"
+    "network/clientset/versioned/typed/network/v1",
+    "route/clientset/versioned",
+    "route/clientset/versioned/fake",
+    "route/clientset/versioned/scheme",
+    "route/clientset/versioned/typed/route/v1",
+    "route/clientset/versioned/typed/route/v1/fake"
   ]
   revision = "1fa528d3be060e4c7178eb69e76d37cf7e699e3c"
   version = "v3.9.0"
@@ -590,6 +596,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cde9ddc1b5b8d7baabd3c567b00aeebca38cfaa3b0ee1094ce3d547d62946b17"
+  inputs-digest = "571f41c5232c04747e6a25fb851aa887d33d400ed1c0b39c1b2a10ba346196cb"
   solver-name = "gps-cdcl"
   solver-version = 1

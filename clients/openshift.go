@@ -26,6 +26,7 @@ import (
 	authv1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	networkv1 "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
+	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -43,6 +44,7 @@ type OpenshiftClient struct {
 	authClient    authv1.AuthorizationV1Interface
 	imageClient   imagev1.ImageV1Interface
 	networkClient networkv1.NetworkV1Interface
+	routeClient   routev1.RouteV1Interface
 }
 
 // Openshift - Create a new openshift client if needed, returns reference
@@ -104,7 +106,11 @@ func newForConfig(c *rest.Config) (*OpenshiftClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &OpenshiftClient{authClient: authClient, imageClient: imageClient, networkClient: networkClient}, nil
+	routeClient, err := routev1.NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+	return &OpenshiftClient{authClient: authClient, imageClient: imageClient, networkClient: networkClient, routeClient: routeClient}, nil
 }
 
 // SubjectRulesReview - create and run a OpenShift Subject Rules Review
@@ -174,4 +180,9 @@ func (o OpenshiftClient) IsolateNamespacesNetworks(netns *networkoapi.NetNamespa
 		return nil, err
 	}
 	return result, nil
+}
+
+// Route - Returns a V1Route Interface
+func (o OpenshiftClient) Route() routev1.RouteV1Interface {
+	return o.routeClient
 }
