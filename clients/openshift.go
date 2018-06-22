@@ -183,6 +183,6 @@ func (o OpenshiftClient) IsolateNamespacesNetworks(netns *networkoapi.NetNamespa
 }
 
 // Route - Returns a V1Route Interface
-func (o OpenshiftClient) Route() *routev1.RouteV1Interface {
-	return &o.routeClient
+func (o OpenshiftClient) Route() routev1.RouteV1Interface {
+	return o.routeClient
 }
