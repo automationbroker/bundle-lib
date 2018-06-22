@@ -23,7 +23,6 @@ import (
 	authoapi "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/api/image/v1"
 	networkoapi "github.com/openshift/api/network/v1"
-	routeoapi "github.com/openshift/api/route/v1"
 	authv1 "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	networkv1 "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
@@ -183,7 +182,7 @@ func (o OpenshiftClient) IsolateNamespacesNetworks(netns *networkoapi.NetNamespa
 	return result, nil
 }
 
-// ListNamespacedRoutes - Get List of Routes in Namespace.
-func (o OpenshiftClient) ListNamespacedRoutes(ns string) (*routeoapi.RouteList, error) {
-	return o.routeClient.Routes(ns).List(metav1.ListOptions{})
+// Route - Returns a V1Route Interface
+func (o OpenshiftClient) Route() *routev1.RouteV1Interface {
+	return &o.routeClient
 }

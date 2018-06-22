@@ -6,10 +6,42 @@ import (
 	"testing"
 
 	authapi "github.com/openshift/api/authorization/v1"
+	routeapi "github.com/openshift/api/route/v1"
 	authfake "github.com/openshift/client-go/authorization/clientset/versioned/fake"
+	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 )
+
+func TestRoute(t *testing.T) {
+	testCases := []struct {
+		name      string
+		host      string
+		route     *routeapi.Route
+		namespace string
+	}{
+		{
+			name: "get route",
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					Host: "foo-route.example.com",
+				},
+				Status: routeapi.RouteStatus{},
+			},
+			namespace: "ns1",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := routefake.NewSimpleClientset(tc.route)
+			if c.Route().Routes(tc.namespace) == nil {
+				t.Fail()
+			}
+			return
+		})
+	}
+}
 
 func TestOpenshiftSubjectRulesReview(t *testing.T) {
 	o, err := Openshift()
