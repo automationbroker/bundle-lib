@@ -35,10 +35,10 @@ func TestValidateVersion(t *testing.T) {
 	testSpec.Runtime = 2
 	ft.True(t, testSpec.ValidateVersion())
 
-	// Test Invalid Spec Versions
-	testSpec.Version = "1.0" // not valid semver
-	ft.False(t, testSpec.ValidateVersion())
+	testSpec.Version = "1.0" // Deprecated Spec Version
+	ft.True(t, testSpec.ValidateVersion())
 
+	// Test Invalid Spec Versions
 	testSpec.Version = "0.9.0" // less than min
 	ft.False(t, testSpec.ValidateVersion())
 
