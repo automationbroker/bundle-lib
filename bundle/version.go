@@ -55,7 +55,7 @@ func (s *Spec) checkVersion() bool {
 	specSemver, err := semver.NewVersion(s.Version)
 	if err != nil {
 		if s.Version == "1.0" {
-			log.Warningf("Spec version is not semver compatable")
+			log.Warningf("Spec version is not semver compatible")
 			return true
 		}
 		log.Errorf("Failed to init semver - %v", err)
