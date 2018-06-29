@@ -73,7 +73,7 @@ func (r LocalOpenShiftAdapter) GetImageNames() ([]string, error) {
 
 	imageClient := openshiftClient.Image()
 	if r.Config.Namespaces == nil {
-		log.Debug("Didn't find any namespace in broker configuration, assuming `openshift`.")
+		log.Debug("Didn't find any namespace in configuration, assuming `openshift`.")
 		r.Config.Namespaces = append(r.Config.Namespaces, "openshift")
 	}
 	imageList := []string{}
@@ -102,14 +102,19 @@ func (r LocalOpenShiftAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, 
 	}
 	imageClient := openshiftClient.Image()
 
+	if r.Config.Tag == "" {
+		log.Debug("No tag specified in config, assuming `latest`")
+		r.Config.Tag = "latest"
+	}
+
 	for _, image := range imageNames {
 		fullName := strings.Split(image, "/")
+		if len(fullName) < 2 {
+			log.Errorf("Image name [%v] not in expected format, skipping.", image)
+			continue
+		}
 		ns := fullName[0]
 		iName := fullName[1]
-		if r.Config.Tag == "" {
-			log.Debug("No tag specified in config, assuming `latest`")
-			r.Config.Tag = "latest"
-		}
 		imTag, err := imageClient.ImageStreamTags(ns).Get(fmt.Sprintf("%v:%v", iName, r.Config.Tag), meta_v1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed to get image for imagestream [%v]: %v", image, err)
@@ -118,6 +123,7 @@ func (r LocalOpenShiftAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, 
 		spec, err := r.loadSpec(imTag.Image)
 		if err != nil {
 			log.Errorf("Failed to load spec for [%v]: %v", image, err)
+			continue
 		}
 		specList = append(specList, spec)
 	}
