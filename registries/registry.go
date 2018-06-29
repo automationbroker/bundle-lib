@@ -119,14 +119,12 @@ func (r Registry) LoadSpecs() ([]*bundle.Spec, int, error) {
 	}
 
 	if len(filteredNames) != 0 {
-		go func() {
-			var buffer bytes.Buffer
-			buffer.WriteString("APBs filtered by white/blacklist filter:")
-			for _, name := range filteredNames {
-				buffer.WriteString(fmt.Sprintf("-> %s", name))
-			}
-			log.Infof(buffer.String())
-		}()
+		var buffer bytes.Buffer
+		buffer.WriteString("APBs filtered by white/blacklist filter:")
+		for _, name := range filteredNames {
+			buffer.WriteString(fmt.Sprintf("-> %s", name))
+		}
+		log.Infof(buffer.String())
 	}
 
 	// Debug output filtered out names.
