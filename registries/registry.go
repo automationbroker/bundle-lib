@@ -112,7 +112,7 @@ func (r Registry) LoadSpecs() ([]*bundle.Spec, int, error) {
 	log.Debugf("Filter applied against registry: %s", r.config.Name)
 
 	if len(validNames) != 0 {
-		log.Debugf("APBs passing white/blacklist filter:")
+		log.Debugf("Bundles passing white/blacklist filter:")
 		for _, name := range validNames {
 			log.Debugf("-> %s", name)
 		}
@@ -120,7 +120,7 @@ func (r Registry) LoadSpecs() ([]*bundle.Spec, int, error) {
 
 	if len(filteredNames) != 0 {
 		var buffer bytes.Buffer
-		buffer.WriteString("APBs filtered by white/blacklist filter:")
+		buffer.WriteString("Bundles filtered by white/blacklist filter:")
 		for _, name := range filteredNames {
 			buffer.WriteString(fmt.Sprintf("-> %s", name))
 		}
