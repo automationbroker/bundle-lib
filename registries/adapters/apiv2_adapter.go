@@ -126,8 +126,20 @@ func (r APIV2Adapter) GetImageNames() ([]string, error) {
 
 	if len(imageList) == 0 {
 		log.Warn("image list is empty. No images were discovered")
+		return imageList, nil
 	}
-	return imageList, nil
+
+	var uniqueList []string
+	imageMap := make(map[string]struct{})
+	for _, image := range imageList {
+		imageMap[image] = struct{}{}
+	}
+
+	// create a unique image list
+	for key := range imageMap {
+		uniqueList = append(uniqueList, key)
+	}
+	return uniqueList, nil
 }
 
 // FetchSpecs - retrieve the spec for the image names.

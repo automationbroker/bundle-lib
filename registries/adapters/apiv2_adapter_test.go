@@ -21,13 +21,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sort"
 	"strings"
 	"testing"
 
 	ft "github.com/stretchr/testify/assert"
 )
 
-var apiV2Images = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides"}
+var apiV2Images = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides", "foo/bar"}
+
+var apiV2UniqueImages = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides"}
 
 var testConfig = Configuration{
 	Images: apiV2Images,
@@ -145,7 +148,9 @@ func TestAPIV2GetImageNames(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
-	ft.Equal(t, imagesFound, apiV2Images, "image names returned did not match expected config")
+	sort.Strings(imagesFound)
+	sort.Strings(apiV2UniqueImages)
+	ft.Equal(t, imagesFound, apiV2UniqueImages, "image names returned did not match expected config")
 }
 
 func TestAPIV2FetchSpecs(t *testing.T) {
@@ -154,7 +159,7 @@ func TestAPIV2FetchSpecs(t *testing.T) {
 	testConfig.URL = getURL(t, serv)
 	apiv2a, _ := NewAPIV2Adapter(testConfig)
 
-	specs, err := apiv2a.FetchSpecs(apiV2Images)
+	specs, err := apiv2a.FetchSpecs(apiV2UniqueImages)
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
