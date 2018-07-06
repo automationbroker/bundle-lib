@@ -58,6 +58,7 @@ type Configuration struct {
 	Namespaces    []string
 	Tag           string
 	SkipVerifyTLS bool
+	AdapterName   string
 }
 
 type registryResponseError struct {
