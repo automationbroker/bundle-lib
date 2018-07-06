@@ -90,6 +90,38 @@ var expectedPlanParameters = []ParameterDescriptor{
 		Type:      "string",
 		Updatable: false,
 		Required:  true},
+	ParameterDescriptor{
+		Name:      "mediawiki_mock_enum",
+		Title:     "Mediawiki Fake Enum Param",
+		Type:      "enum",
+		Enum:      []string{"Yes", "No"},
+		Default:   "Yes",
+		Updatable: false,
+		Required:  true},
+	ParameterDescriptor{
+		Name:  "mediawiki_conditional_show",
+		Title: "Mediawiki Example Conditional Default Shown",
+		Type:  "string",
+		Dependencies: []Dependency{
+			Dependency{
+				Key:   "mediawiki_mock_enum",
+				Value: "Yes",
+			},
+		},
+		Updatable: false,
+		Required:  false},
+	ParameterDescriptor{
+		Name:  "mediawiki_conditional_hide",
+		Title: "Mediawiki Example Conditional Default Hidden",
+		Type:  "string",
+		Dependencies: []Dependency{
+			Dependency{
+				Key:   "mediawiki_mock_enum",
+				Value: "No",
+			},
+		},
+		Updatable: false,
+		Required:  false},
 }
 
 var p = Plan{
@@ -112,60 +144,100 @@ const SpecAsync = "optional"
 const SpecDescription = "Mediawiki123 apb implementation"
 const SpecPlans = `
 [
-	{
-		"id": "",
-		"name": "dev",
-		"description": "Mediawiki123 apb implementation",
-		"free": true,
-		"bindable": true,
-		"metadata": {
-			"displayName": "Development",
-			"longDescription": "Basic development plan",
-			"cost": "$0.00"
-		},
-        "updates_to": ["foo"],
-		"parameters": [
-		{
-			"name": "mediawiki_db_schema",
-			"title": "Mediawiki DB Schema",
-			"type": "string",
-			"default": "mediawiki",
-            "updatable": false,
-			"required": true
-		},
-		{
-			"name": "mediawiki_site_name",
-			"title": "Mediawiki Site Name",
-			"type": "string",
-			"default": "MediaWiki",
-            "updatable": true,
-			"required": true
-		},
-		{
-			"name": "mediawiki_site_lang",
-			"title": "Mediawiki Site Language",
-			"type": "string",
-			"default": "en",
-            "updatable": false,
-			"required": true
-		},
-		{
-			"name": "mediawiki_admin_user",
-			"title": "Mediawiki Admin User",
-			"type": "string",
-			"default": "admin",
-            "updatable": false,
-			"required": true
-		},
-		{
-			"name": "mediawiki_admin_pass",
-			"title": "Mediawiki Admin User Password",
-			"type": "string",
-            "updatable": false,
-			"required": true
-		}
-		]
-	}
+   {
+      "id":"",
+      "name":"dev",
+      "description":"Mediawiki123 apb implementation",
+      "free":true,
+      "bindable":true,
+      "metadata":{
+         "displayName":"Development",
+         "longDescription":"Basic development plan",
+         "cost":"$0.00"
+      },
+      "updates_to":[
+         "foo"
+      ],
+      "parameters":[
+         {
+            "name":"mediawiki_db_schema",
+            "title":"Mediawiki DB Schema",
+            "type":"string",
+            "default":"mediawiki",
+            "updatable":false,
+            "required":true
+         },
+         {
+            "name":"mediawiki_site_name",
+            "title":"Mediawiki Site Name",
+            "type":"string",
+            "default":"MediaWiki",
+            "updatable":true,
+            "required":true
+         },
+         {
+            "name":"mediawiki_site_lang",
+            "title":"Mediawiki Site Language",
+            "type":"string",
+            "default":"en",
+            "updatable":false,
+            "required":true
+         },
+         {
+            "name":"mediawiki_admin_user",
+            "title":"Mediawiki Admin User",
+            "type":"string",
+            "default":"admin",
+            "updatable":false,
+            "required":true
+         },
+         {
+            "name":"mediawiki_admin_pass",
+            "title":"Mediawiki Admin User Password",
+            "type":"string",
+            "updatable":false,
+            "required":true
+         },
+         {
+            "name":"mediawiki_mock_enum",
+            "title":"Mediawiki Fake Enum Param",
+            "type":"enum",
+            "default": "Yes",
+            "enum":[
+               "Yes",
+               "No"
+            ],
+            "updatable":false,
+            "required":true
+         },
+         {
+            "name":"mediawiki_conditional_show",
+            "title":"Mediawiki Example Conditional Default Shown",
+            "type":"string",
+            "updatable":false,
+            "required":false,
+            "dependencies":[
+               {
+                  "key":"mediawiki_mock_enum",
+                  "value":"Yes"
+               }
+            ]
+         },
+         {
+            "name":"mediawiki_conditional_hide",
+            "title":"Mediawiki Example Conditional Default Hidden",
+            "type":"string",
+            "updatable":false,
+            "required":false,
+            "dependencies":[
+               {
+                  "key":"mediawiki_mock_enum",
+                  "value":"No"
+               }
+            ]
+         }
+      ]
+   }
 ]
 `
 

@@ -67,11 +67,17 @@ type ParameterDescriptor struct {
 	Minimum          *NilableNumber `json:"minimum,omitempty"`
 	ExclusiveMinimum *NilableNumber `json:"exclusiveMinimum,omitempty" yaml:"exclusive_minimum,omitempty"`
 
-	Enum         []string `json:"enum,omitempty"`
-	Required     bool     `json:"required"`
-	Updatable    bool     `json:"updatable"`
-	DisplayType  string   `json:"displayType,omitempty" yaml:"display_type,omitempty"`
-	DisplayGroup string   `json:"displayGroup,omitempty" yaml:"display_group,omitempty"`
+	Enum         []string     `json:"enum,omitempty"`
+	Required     bool         `json:"required"`
+	Updatable    bool         `json:"updatable"`
+	DisplayType  string       `json:"displayType,omitempty" yaml:"display_type,omitempty"`
+	DisplayGroup string       `json:"displayGroup,omitempty" yaml:"display_group,omitempty"`
+	Dependencies []Dependency `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
+}
+
+type Dependency struct {
+	Key   string      `json:"key,omitempty" yaml:"key,omitempty"`
+	Value interface{} `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
 // Schema  - Schema to be returned
