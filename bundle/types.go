@@ -75,6 +75,7 @@ type ParameterDescriptor struct {
 	Dependencies []Dependency `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 }
 
+// Dependency - a parameter dependency
 type Dependency struct {
 	Key   string      `json:"key,omitempty" yaml:"key,omitempty"`
 	Value interface{} `json:"value,omitempty" yaml:"value,omitempty"`
