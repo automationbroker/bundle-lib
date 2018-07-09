@@ -326,6 +326,7 @@ func TestDeprovision(t *testing.T) {
 			},
 			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
 				rt.On("CreateSandbox", mock.Anything, "target", []string{"target"}, mock.Anything, mock.Anything).Return("", "", fmt.Errorf("unknown error"))
+				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 2 {
