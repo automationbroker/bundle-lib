@@ -17,6 +17,7 @@
 package adapters
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,7 +82,7 @@ func NewAPIV2Adapter(config Configuration) (APIV2Adapter, error) {
 	// Authorization
 	err := apiv2a.client.Getv2()
 	if err != nil {
-		log.Errorf("Failed to GET /v2 at %s - %v", apiV2CatalogURL, err)
+		log.Errorf("Failed to GET /v2 at %s - %v", config.URL, err)
 		return APIV2Adapter{}, err
 	}
 
@@ -262,5 +263,43 @@ func (r APIV2Adapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		registryName = fmt.Sprintf("%s:%s", r.config.URL.Hostname(), r.config.URL.Port())
 	}
 
-	return imageToSpec(body, fmt.Sprintf("%s/%s:%s", registryName, imageName, r.config.Tag))
+	schemaVersion, err := getSchemaVersion(body)
+	if err != nil {
+		return nil, err
+	}
+
+	switch schemaVersion {
+	case 1:
+		log.Debugf("manifest schema 1 for image [%s]", imageName)
+		return responseToSpec(body, fmt.Sprintf("%s/%s:%s", registryName, imageName, r.config.Tag))
+	case 2:
+		log.Debugf("manifest schema 2 for image [%s]", imageName)
+		mConf := manifestConfig{}
+		rdr := bytes.NewReader(body)
+
+		// get the digest
+		err = json.NewDecoder(rdr).Decode(&mConf)
+		if err != nil {
+			log.Errorf("unable to get digest for image [%s]: %v", imageName, err)
+			return nil, err
+		}
+		digest := mConf.Config.Digest
+
+		// get response with digest
+		req, err = r.client.NewRequest(fmt.Sprintf("%s/v2/%s/blobs/%s", r.config.URL, imageName, digest))
+		if err != nil {
+			return nil, err
+		}
+		resp, err = r.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		body, err = registryResponseHandler(resp)
+		if err != nil {
+			return nil, fmt.Errorf("%s - error getting configuration object for image [%s] : %s", r.config.AdapterName, imageName, err)
+		}
+		return configToSpec(body, fmt.Sprintf("%s/%s:%s", registryName, imageName, r.config.Tag))
+	default:
+		return nil, errors.New("unsupported schema version")
+	}
 }
