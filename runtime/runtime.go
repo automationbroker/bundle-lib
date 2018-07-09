@@ -117,7 +117,7 @@ func NewRuntime(config Configuration) {
 			log.Error(err.Error())
 			panic(err.Error())
 		}
-		log.Debugf("OpenShift version: %v", kubeServerInfo)
+		log.Infof("OpenShift version: %v", kubeServerInfo)
 		cluster = newOpenshift()
 	case kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err):
 		cluster = newKubernetes()
