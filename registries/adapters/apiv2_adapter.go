@@ -116,7 +116,7 @@ func (r APIV2Adapter) GetImageNames() ([]string, error) {
 
 	// discover images from URL
 	discoveredImages, err := r.discoverImages(fmt.Sprintf(apiV2CatalogURL, r.config.URL))
-	if err != nil {
+	if err != nil && len(imageList) == 0 {
 		return nil, err
 	}
 	if len(discoveredImages) > 0 {
