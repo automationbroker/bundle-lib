@@ -28,12 +28,14 @@ import (
 	"strings"
 )
 
-const defaultRunner = "ansibleplaybookbundle/apb-base:latest"
-const galaxyName = "galaxy"
-const galaxySearchURL = "https://galaxy-qa.ansible.com/api/v1/content/?content_type__name=apb"
-const galaxyNSSearchURL = "https://galaxy-qa.ansible.com/api/v1/content/?content_type__name=apb&namespace__name=%v"
-const galaxyRoleURL = "https://galaxy-qa.ansible.com/api/v1/content/%v/"
-const galaxyAPIURL = "https://galaxy-qa.ansible.com/api/v1"
+const (
+	defaultRunner     = "ansibleplaybookbundle/apb-base:latest"
+	galaxyName        = "galaxy"
+	galaxySearchURL   = "https://galaxy-qa.ansible.com/api/v1/content/?content_type__name=apb"
+	galaxyNSSearchURL = "https://galaxy-qa.ansible.com/api/v1/content/?content_type__name=apb&namespace__name=%v"
+	galaxyRoleURL     = "https://galaxy-qa.ansible.com/api/v1/content/%v/"
+	galaxyAPIURL      = "https://galaxy-qa.ansible.com/api/v1"
+)
 
 // GalaxyAdapter - Galaxy Adapter
 type GalaxyAdapter struct {
@@ -147,6 +149,7 @@ func (r GalaxyAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, error) {
 func (r GalaxyAdapter) getNextImages(ctx context.Context,
 	url string, ch chan<- string,
 	cancelFunc context.CancelFunc) (*GalaxySearchResponse, error) {
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Errorf("unable to get next roles for url: %v - %v", url, err)
@@ -222,9 +225,8 @@ func (r GalaxyAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 	spec = roleResp.Metadata.Spec
 	spec.Runtime = 2
 
-	if len(r.Config.Runner) == 0 {
-		spec.Image = defaultRunner
-	} else {
+	spec.Image = defaultRunner
+	if len(r.Config.Runner) != 0 {
 		spec.Image = r.Config.Runner
 	}
 	roleParam := bundle.ParameterDescriptor{
