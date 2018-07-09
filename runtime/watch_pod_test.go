@@ -204,7 +204,6 @@ func TestWatchPod(t *testing.T) {
 			<-done
 
 			if nil != tc.Validate {
-				fmt.Printf("NSK: Now trying to validate the descriptions: %v", descriptions)
 				if err := tc.Validate(descriptions); err != nil {
 					t.Fatal("unexpected errror validating job state", err)
 				}
