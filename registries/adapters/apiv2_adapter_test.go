@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/automationbroker/bundle-lib/registries/adapters/oauth"
 	ft "github.com/stretchr/testify/assert"
 )
 
@@ -151,6 +152,24 @@ func TestAPIV2GetImageNames(t *testing.T) {
 	sort.Strings(imagesFound)
 	sort.Strings(apiV2UniqueImages)
 	ft.Equal(t, imagesFound, apiV2UniqueImages, "image names returned did not match expected config")
+}
+
+func TestAPIV2GetImageNamesBadURL(t *testing.T) {
+	// This test also covers the test case of a registry that does not implement discovery
+	// AKA <url>/v2/_catalog returns 404
+	testConfig.URL, _ = url.Parse("https://www.google.com")
+	apiv2a := APIV2Adapter{
+		config: testConfig,
+		client: oauth.NewClient("user", "pass", true, testConfig.URL),
+	}
+
+	imagesFound, err := apiv2a.GetImageNames()
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+	sort.Strings(imagesFound)
+	sort.Strings(apiV2UniqueImages)
+	ft.Equal(t, imagesFound, apiV2UniqueImages, "image names returned did not match images in config")
 }
 
 func TestAPIV2FetchSpecs(t *testing.T) {
