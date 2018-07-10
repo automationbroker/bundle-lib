@@ -18,7 +18,6 @@ package bundle
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/automationbroker/bundle-lib/runtime"
@@ -26,8 +25,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// mockExecuteApb mocks out the methods called by executeApb
-func mockExecuteApb(rt *runtime.MockRuntime, e Executor, instanceID string) {
+// mockUnbindExecApb mocks out the methods called by executeApb
+func mockUnbindExecApb(rt *runtime.MockRuntime, e Executor, instanceID string) {
 
 	rt.On("CopySecretsToNamespace",
 		mock.Anything, mock.Anything, mock.Anything,
@@ -40,7 +39,7 @@ func mockExecuteApb(rt *runtime.MockRuntime, e Executor, instanceID string) {
 	rt.On("RunBundle", mock.Anything).Return(runtime.ExecutionContext{}, nil)
 }
 
-func mockCommonBind(rt *runtime.MockRuntime, e Executor) {
+func mockCommonUnbind(rt *runtime.MockRuntime, e Executor) {
 	rt.On("CopyState",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
@@ -50,12 +49,9 @@ func mockCommonBind(rt *runtime.MockRuntime, e Executor) {
 	rt.On("DestroySandbox",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything)
-	rt.On("ExtractCredentials",
-		mock.Anything, mock.Anything, mock.Anything,
-	).Return([]byte(`{"test": "testingcreds"}`), nil)
 }
 
-func TestBind(t *testing.T) {
+func TestUnbind(t *testing.T) {
 	// common variables for majority of the testcases
 	bID := uuid.NewUUID()
 	u := uuid.NewUUID()
@@ -81,12 +77,90 @@ func TestBind(t *testing.T) {
 		si              ServiceInstance
 		bindingID       string
 		params          *Parameters
-		extractedCreds  *ExtractedCredentials
 		addExpectations func(rt *runtime.MockRuntime, e Executor)
 		validateMessage func([]StatusMessage) bool
 	}{
 		{
-			name:   "bind successfully",
+			name:   "unbind successfully",
+			config: ExecutorConfig{},
+			rt:     *new(runtime.MockRuntime),
+			si: ServiceInstance{
+				ID:         u,
+				Spec:       spec,
+				Context:    ctx,
+				Parameters: &Parameters{"test-param": true},
+			},
+			bindingID: bID.String(),
+			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
+				mockUnbindExecApb(rt, e, u.String())
+				mockCommonUnbind(rt, e)
+				rt.On("CreateSandbox",
+					mock.Anything, mock.Anything, []string{"target"},
+					mock.Anything, mock.Anything,
+				).Return("service-account-1", "location", nil)
+
+				rt.On("DeleteExtractedCredential",
+					bID.String(), mock.Anything,
+				).Return(nil)
+			},
+			validateMessage: func(m []StatusMessage) bool {
+				if len(m) != 2 {
+					return false
+				}
+				first := m[0]
+				second := m[1]
+				if first.State != StateInProgress {
+					return false
+				}
+				if second.State != StateSucceeded {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name: "unbind successfully skip ns",
+			config: ExecutorConfig{
+				SkipCreateNS: true,
+			},
+			rt: *new(runtime.MockRuntime),
+			si: ServiceInstance{
+				ID:         u,
+				Spec:       spec,
+				Context:    ctx,
+				Parameters: &Parameters{"test-param": true},
+			},
+			bindingID: bID.String(),
+			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
+				mockUnbindExecApb(rt, e, u.String())
+				mockCommonUnbind(rt, e)
+
+				rt.On("CreateSandbox",
+					mock.Anything, "target", []string{"target"},
+					mock.Anything, mock.Anything,
+				).Return("service-account-1", "location", nil)
+
+				rt.On("DeleteExtractedCredential",
+					bID.String(), mock.Anything,
+				).Return(nil)
+			},
+			validateMessage: func(m []StatusMessage) bool {
+				if len(m) != 2 {
+					return false
+				}
+				first := m[0]
+				second := m[1]
+				if first.State != StateInProgress {
+					return false
+				}
+				if second.State != StateSucceeded {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			name:   "unbind fails to delete extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -104,13 +178,8 @@ func TestBind(t *testing.T) {
 					mock.Anything, mock.Anything,
 				).Return("service-account-1", "location", nil)
 
-				rt.On("CreateExtractedCredential", bID.String(), mock.Anything,
-					map[string]interface{}{"test": "testingcreds"},
-					map[string]string{
-						"bundleAction": "bind",
-						"bundleName":   "new-fq-name",
-					},
-				).Return(nil)
+				rt.On("DeleteExtractedCredential", bID.String(),
+					mock.Anything).Return(errors.New("failed to delete credentials"))
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 2 {
@@ -126,120 +195,9 @@ func TestBind(t *testing.T) {
 				}
 				return true
 			},
-			extractedCreds: &ExtractedCredentials{
-				Credentials: map[string]interface{}{"test": "testingcreds"},
-			},
 		},
 		{
-			name: "bind successfully skip ns",
-			config: ExecutorConfig{
-				SkipCreateNS: true,
-			},
-			rt: *new(runtime.MockRuntime),
-			si: ServiceInstance{
-				ID:         u,
-				Spec:       spec,
-				Context:    ctx,
-				Parameters: &Parameters{"test-param": true},
-			},
-			bindingID: bID.String(),
-			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
-				mockExecuteApb(rt, e, u.String())
-				mockCommonBind(rt, e)
-
-				rt.On("CreateSandbox",
-					mock.Anything, "target", []string{"target"},
-					mock.Anything, mock.Anything,
-				).Return("service-account-1", "location", nil)
-
-				rt.On("CreateExtractedCredential", bID.String(), mock.Anything,
-					map[string]interface{}{"test": "testingcreds"},
-					map[string]string{
-						"bundleAction": "bind",
-						"bundleName":   "new-fq-name",
-					},
-				).Return(nil)
-			},
-			validateMessage: func(m []StatusMessage) bool {
-				if len(m) != 2 {
-					return false
-				}
-				first := m[0]
-				second := m[1]
-				if first.State != StateInProgress {
-					return false
-				}
-				if second.State != StateSucceeded {
-					return false
-				}
-				return true
-			},
-			extractedCreds: &ExtractedCredentials{
-				Credentials: map[string]interface{}{"test": "testingcreds"},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			runtime.Provider = &tc.rt
-			e := NewExecutor(tc.config)
-			if tc.addExpectations != nil {
-				tc.addExpectations(&tc.rt, e)
-			}
-			s := e.Bind(&tc.si, tc.si.Parameters, bID.String())
-			m := []StatusMessage{}
-			for msg := range s {
-				m = append(m, msg)
-			}
-			if !tc.validateMessage(m) {
-				t.Fatalf("invalid messages - %#v", m)
-			}
-
-			// verify credentials
-			if tc.extractedCreds != nil {
-				if !reflect.DeepEqual(e.ExtractedCredentials(), tc.extractedCreds) {
-					t.Fatalf("Invalid extracted credentials\nexpected: %#+v\n\nactual: %#+v",
-						tc.extractedCreds, e.ExtractedCredentials())
-				}
-			}
-
-		})
-	}
-}
-
-func TestBindFailure(t *testing.T) {
-	// common variables for majority of the testcases
-	bID := uuid.NewUUID()
-	u := uuid.NewUUID()
-
-	ctx := &Context{
-		Namespace: "target",
-		Platform:  "kubernetes",
-	}
-
-	spec := &Spec{
-		ID:       "new-spec-id",
-		Image:    "new-image",
-		FQName:   "new-fq-name",
-		Runtime:  2,
-		Bindable: true,
-	}
-
-	// define test cases
-	testCases := []*struct {
-		name            string
-		config          ExecutorConfig
-		rt              runtime.MockRuntime
-		si              ServiceInstance
-		bindingID       string
-		params          *Parameters
-		extractedCreds  *ExtractedCredentials
-		addExpectations func(rt *runtime.MockRuntime, e Executor)
-		validateMessage func([]StatusMessage) bool
-	}{
-		{
-			name:   "bind failed to copystate",
+			name:   "unbind failed to copystate",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -284,10 +242,60 @@ func TestBindFailure(t *testing.T) {
 				}
 				return true
 			},
-			extractedCreds: nil,
 		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			runtime.Provider = &tc.rt
+			e := NewExecutor(tc.config)
+			if tc.addExpectations != nil {
+				tc.addExpectations(&tc.rt, e)
+			}
+			s := e.Unbind(&tc.si, tc.si.Parameters, bID.String())
+			m := []StatusMessage{}
+			for msg := range s {
+				m = append(m, msg)
+			}
+			if !tc.validateMessage(m) {
+				t.Fatalf("invalid messages - %#v", m)
+			}
+
+		})
+	}
+}
+
+func TestUnbindFailure(t *testing.T) {
+	// common variables for majority of the testcases
+	bID := uuid.NewUUID()
+	u := uuid.NewUUID()
+
+	ctx := &Context{
+		Namespace: "target",
+		Platform:  "kubernetes",
+	}
+
+	spec := &Spec{
+		ID:       "new-spec-id",
+		Image:    "new-image",
+		FQName:   "new-fq-name",
+		Runtime:  2,
+		Bindable: true,
+	}
+
+	// define test cases
+	testCases := []*struct {
+		name            string
+		config          ExecutorConfig
+		rt              runtime.MockRuntime
+		si              ServiceInstance
+		bindingID       string
+		params          *Parameters
+		addExpectations func(rt *runtime.MockRuntime, e Executor)
+		validateMessage func([]StatusMessage) bool
+	}{
 		{
-			name:   "bind failed to createsandbox",
+			name:   "unbind failed to createsandbox",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -317,96 +325,6 @@ func TestBindFailure(t *testing.T) {
 				}
 				return true
 			},
-			extractedCreds: nil,
-		},
-		{
-			name:   "bind failed to extract credentials",
-			config: ExecutorConfig{},
-			rt:     *new(runtime.MockRuntime),
-			si: ServiceInstance{
-				ID:         u,
-				Spec:       spec,
-				Context:    ctx,
-				Parameters: &Parameters{"test-param": true},
-			},
-			bindingID: bID.String(),
-			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
-				mockExecuteApb(rt, e, u.String())
-
-				// include only what's required for failing CopyState
-				rt.On("CreateSandbox",
-					mock.Anything, mock.Anything, []string{"target"},
-					mock.Anything, mock.Anything,
-				).Return("service-account-1", "location", nil)
-				rt.On("CopyState",
-					mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-				).Return(nil)
-				rt.On("WatchRunningBundle",
-					mock.Anything, mock.Anything, mock.Anything,
-				).Return(nil)
-				rt.On("DestroySandbox",
-					mock.Anything, mock.Anything, mock.Anything,
-					mock.Anything, mock.Anything, mock.Anything)
-
-				b := make([]byte, 1)
-				rt.On("ExtractCredentials",
-					mock.Anything, mock.Anything, mock.Anything,
-				).Return(b, errors.New("extract creds failed"))
-			},
-			validateMessage: func(m []StatusMessage) bool {
-				if len(m) != 2 {
-					return false
-				}
-				first := m[0]
-				second := m[1]
-				if first.State != StateInProgress {
-					return false
-				}
-				if second.State != StateFailed {
-					return false
-				}
-				return true
-			},
-			extractedCreds: nil,
-		},
-		{
-			name:   "bind fails to create extracted credentials",
-			config: ExecutorConfig{},
-			rt:     *new(runtime.MockRuntime),
-			si: ServiceInstance{
-				ID:         u,
-				Spec:       spec,
-				Context:    ctx,
-				Parameters: &Parameters{"test-param": true},
-			},
-			bindingID: bID.String(),
-			addExpectations: func(rt *runtime.MockRuntime, e Executor) {
-				mockExecuteApb(rt, e, u.String())
-				mockCommonBind(rt, e)
-				rt.On("CreateSandbox",
-					mock.Anything, mock.Anything, []string{"target"},
-					mock.Anything, mock.Anything,
-				).Return("service-account-1", "location", nil)
-
-				rt.On("CreateExtractedCredential", bID.String(), mock.Anything,
-					mock.Anything, mock.Anything,
-				).Return(errors.New("failed to create credentials"))
-			},
-			validateMessage: func(m []StatusMessage) bool {
-				if len(m) != 2 {
-					return false
-				}
-				first := m[0]
-				second := m[1]
-				if first.State != StateInProgress {
-					return false
-				}
-				if second.State != StateFailed {
-					return false
-				}
-				return true
-			},
-			extractedCreds: nil,
 		},
 		{
 			name:   "watch pod fails",
@@ -450,7 +368,6 @@ func TestBindFailure(t *testing.T) {
 				}
 				return true
 			},
-			extractedCreds: nil,
 		},
 		{
 			name:   "executeApb fails",
@@ -493,7 +410,6 @@ func TestBindFailure(t *testing.T) {
 				}
 				return true
 			},
-			extractedCreds: nil,
 		},
 	}
 
@@ -504,26 +420,13 @@ func TestBindFailure(t *testing.T) {
 			if tc.addExpectations != nil {
 				tc.addExpectations(&tc.rt, e)
 			}
-			s := e.Bind(&tc.si, tc.si.Parameters, bID.String())
+			s := e.Unbind(&tc.si, tc.si.Parameters, bID.String())
 			m := []StatusMessage{}
 			for msg := range s {
 				m = append(m, msg)
 			}
 			if !tc.validateMessage(m) {
 				t.Fatalf("invalid messages - %#v", m)
-			}
-
-			// verify we get an error
-			if e.LastStatus().Error == nil {
-				t.Fatal("we expected the executor to have an error")
-			}
-
-			// verify credentials
-			if tc.extractedCreds != nil {
-				if !reflect.DeepEqual(e.ExtractedCredentials(), tc.extractedCreds) {
-					t.Fatalf("Invalid extracted credentials\nexpected: %#+v\n\nactual: %#+v",
-						tc.extractedCreds, e.ExtractedCredentials())
-				}
 			}
 
 		})
