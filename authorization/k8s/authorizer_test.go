@@ -204,7 +204,7 @@ func TestSARUserInfoAuthorizer(t *testing.T) {
 			shouldError:      true,
 		},
 		{
-			name: "error unkown user.,",
+			name: "error unknown user.,",
 			sar: fakeSubjectAccessReview{
 				SubjectAccessReview: &authorizationv1.SubjectAccessReview{
 					Spec: authorizationv1.SubjectAccessReviewSpec{

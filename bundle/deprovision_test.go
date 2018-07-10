@@ -21,7 +21,7 @@ func TestDeprovision(t *testing.T) {
 		validateMessage func([]StatusMessage) bool
 	}{
 		{
-			name:   "deprovison successfully",
+			name:   "deprovision successfully",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -67,7 +67,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison successfully stae is presetn",
+			name:   "deprovision successfully state is present",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -115,7 +115,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison successfully with extracted credentials",
+			name:   "deprovision successfully with extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -163,7 +163,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison successfully with extracted credentials and dashboard url",
+			name:   "deprovision successfully with extracted credentials and dashboard url",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -221,7 +221,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name: "deprovison successfully skip ns",
+			name: "deprovision successfully skip ns",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -269,7 +269,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison unsuccessfully no image",
+			name:   "deprovision unsuccessfully no image",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -305,7 +305,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name: "deprovison unsuccessfully sandbox fail",
+			name: "deprovision unsuccessfully sandbox fail",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -343,7 +343,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison unsuccessfully execute fails",
+			name:   "deprovision unsuccessfully execute fails",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -385,7 +385,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison unsuccessfull watch bundle",
+			name:   "deprovision unsuccessful watch bundle",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -430,7 +430,7 @@ func TestDeprovision(t *testing.T) {
 			},
 		},
 		{
-			name:   "deprovison unsuccessfull delete extracted credentials",
+			name:   "deprovision unsuccessful delete extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{

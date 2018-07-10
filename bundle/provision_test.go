@@ -23,7 +23,7 @@ func TestProvision(t *testing.T) {
 		validateMessage func([]StatusMessage) bool
 	}{
 		{
-			name:   "provison successfully",
+			name:   "provision successfully",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -68,7 +68,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison successfully with extracted credentials",
+			name:   "provision successfully with extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -119,7 +119,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison successfully with extracted credentials and dashboard url",
+			name:   "provision successfully with extracted credentials and dashboard url",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -180,7 +180,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name: "provison successfully skip ns",
+			name: "provision successfully skip ns",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -227,7 +227,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison unsuccessfully no image",
+			name:   "provision unsuccessfully no image",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
@@ -263,7 +263,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name: "provison unsuccessfully sandbox fail",
+			name: "provision unsuccessfully sandbox fail",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -301,7 +301,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name: "provison unsuccessfully no location or targets",
+			name: "provision unsuccessfully no location or targets",
 			config: ExecutorConfig{
 				SkipCreateNS: true,
 			},
@@ -341,7 +341,7 @@ func TestProvision(t *testing.T) {
 			},
 		},
 		{
-			name:   "provison unsuccessfully to create extracted credentials",
+			name:   "provision unsuccessfully to create extracted credentials",
 			config: ExecutorConfig{},
 			rt:     *new(runtime.MockRuntime),
 			si: ServiceInstance{
