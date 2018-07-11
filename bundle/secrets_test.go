@@ -21,6 +21,8 @@ import (
 	"sync"
 	"testing"
 
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/automationbroker/bundle-lib/clients"
@@ -241,21 +243,291 @@ func TestSecretsCache(t *testing.T) {
 	}
 }
 
-func TestSecretsFooCache(t *testing.T) {
-	t.Skip()
+func TestFilterSecrets(t *testing.T) {
 	k, err := clients.Kubernetes()
 	if err != nil {
 		t.Fail()
 	}
 
+	type ValidationData struct {
+		plans  []Plan
+		params []ParameterDescriptor
+		specs  []*Spec
+		keys   []string
+	}
+
+	// setup the cache for this test
+	rules := []AssociationRule{
+		{
+			BundleName: "puertorican/marc-anthony-apb",
+			Secret:     "secret",
+		},
+		{
+			BundleName: "dockerhub/not-added-apb",
+			Secret:     "secret",
+		},
+	}
+
+	InitializeSecretsCache(rules)
+
+	assert := assert.New(t)
+
 	testCases := []struct {
-		name   string
-		client *fake.Clientset
-	}{}
+		name        string
+		client      *fake.Clientset
+		data        ValidationData
+		expectation interface{}
+		validate    func(interface{}, *ValidationData) bool
+	}{
+		{
+			name:        "get secret keys",
+			expectation: "credentials",
+			client: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "xxxxx",
+					Namespace: "testing",
+					Labels: map[string]string{
+						"action": "provision",
+					},
+					OwnerReferences: nil,
+				},
+				Data: map[string][]byte{"credentials": []byte(`{"hello":{"test":"12"},"hey":1}`)},
+			}),
+			validate: func(exp interface{}, v *ValidationData) bool {
+				data, err := getSecretKeys("xxxxx", "testing")
+				return assert.Nil(err) && assert.Len(data, 1) && assert.Equal(exp, data[0])
+			},
+		},
+		{
+			name:        "param in secret",
+			expectation: true,
+			data: ValidationData{
+				params: []ParameterDescriptor{
+					{
+						Name: "foo",
+					},
+				},
+				keys: []string{
+					"foo", "bar",
+				},
+			},
+			validate: func(exp interface{}, v *ValidationData) bool {
+				return assert.Equal(exp, paramInSecret(v.params[0], v.keys))
+			},
+		},
+		{
+			name:        "param not in secret",
+			expectation: false,
+			data: ValidationData{
+				params: []ParameterDescriptor{
+					{
+						Name: "foo",
+					},
+				},
+				keys: []string{"bar"},
+			},
+			validate: func(exp interface{}, v *ValidationData) bool {
+				return assert.Equal(exp, paramInSecret(v.params[0], v.keys))
+			},
+		},
+		{
+			name: "filter parameters",
+			expectation: []ParameterDescriptor{
+				{
+					Name: "bar",
+				},
+			},
+			data: ValidationData{
+				params: []ParameterDescriptor{
+					{
+						Name: "foo",
+					},
+					{
+						Name: "bar",
+					},
+				},
+				keys: []string{"foo"},
+			},
+			validate: func(exp interface{}, v *ValidationData) bool {
+				params := filterParameters(v.params, v.keys)
+				return assert.Len(params, 1) && assert.Equal(exp, params)
+			},
+		},
+		{
+			name:        "filter parameters nothing found",
+			expectation: []ParameterDescriptor{},
+			data: ValidationData{
+				params: []ParameterDescriptor{
+					{
+						Name: "foo",
+					},
+				},
+				keys: []string{"foo"},
+			},
+			validate: func(exp interface{}, v *ValidationData) bool {
+				params := filterParameters(v.params, v.keys)
+				return assert.Len(params, 0) && assert.Equal(exp, params)
+			},
+		},
+		{
+			name: "filter plans",
+			expectation: []Plan{
+				{
+					Name:       "plan a",
+					Parameters: []ParameterDescriptor{},
+				},
+				{
+					Name: "plan b",
+					Parameters: []ParameterDescriptor{
+						{
+							Name: "bfoo",
+						},
+						{
+							Name: "bbar",
+						},
+					},
+				},
+			},
+			data: ValidationData{
+				plans: []Plan{
+					{
+						Name: "plan a",
+						Parameters: []ParameterDescriptor{
+							{
+								Name: "afoo",
+							},
+							{
+								Name: "abar",
+							},
+						},
+					},
+					{
+						Name: "plan b",
+						Parameters: []ParameterDescriptor{
+							{
+								Name: "bfoo",
+							},
+							{
+								Name: "bbar",
+							},
+						},
+					},
+				},
+				keys: []string{"afoo", "abar"},
+			},
+			validate: func(exp interface{}, v *ValidationData) bool {
+				plans := filterPlans(v.plans, v.keys)
+				return assert.Len(plans, 2) && assert.Equal(exp, plans)
+			},
+		},
+		{
+			name: "filter secrets",
+			expectation: []*Spec{
+				{
+					ID:     "10",
+					FQName: "puertorican/marc-anthony-apb",
+					Plans: []Plan{
+						{
+							Name: "plan a",
+							Parameters: []ParameterDescriptor{
+								{
+									Name: "abar",
+								},
+							},
+						},
+					},
+				},
+				{
+					ID:     "20",
+					FQName: "colombian/shakira-apb",
+					Plans: []Plan{
+						{
+							Name: "plan c",
+							Parameters: []ParameterDescriptor{
+								{
+									Name: "cfoo",
+								},
+							},
+						},
+						{
+							Name: "plan b",
+							Parameters: []ParameterDescriptor{
+								{
+									Name: "bfoo",
+								},
+							},
+						},
+					},
+				},
+			},
+			client: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "secret",
+					Namespace:       "testing",
+					OwnerReferences: nil,
+				},
+				Data: map[string][]byte{
+					"afoo": []byte{},
+					"bfoo": []byte{},
+				},
+			}),
+			data: ValidationData{
+				specs: []*Spec{
+					{
+						ID:     "10",
+						FQName: "puertorican/marc-anthony-apb",
+						Plans: []Plan{
+							{
+								Name: "plan a",
+								Parameters: []ParameterDescriptor{
+									{
+										Name: "afoo",
+									},
+									{
+										Name: "abar",
+									},
+								},
+							},
+						},
+					},
+					{
+						ID:     "20",
+						FQName: "colombian/shakira-apb",
+						Plans: []Plan{
+							{
+								Name: "plan c",
+								Parameters: []ParameterDescriptor{
+									{
+										Name: "cfoo",
+									},
+								},
+							},
+							{
+								Name: "plan b",
+								Parameters: []ParameterDescriptor{
+									{
+										Name: "bfoo",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validate: func(exp interface{}, v *ValidationData) bool {
+				clusterConfig.Namespace = "testing"
+				AddSecrets(v.specs)
+				specs, err := FilterSecrets(v.specs)
+				return assert.Nil(err) && assert.Len(specs, 2) && assert.Equal(exp, specs)
+			},
+		},
+	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			k.Client = tc.client
+			msg := fmt.Sprintf("%s failed", tc.name)
+			assert.True(tc.validate(tc.expectation, &tc.data), msg)
 		})
 	}
 }
