@@ -239,6 +239,7 @@ func (r GalaxyAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		Updatable: false,
 		Required:  true,
 		Default:   roleResp.Name,
+		Pattern:   fmt.Sprintf("^%s$", roleResp.Name),
 	}
 	namespaceParam := bundle.ParameterDescriptor{
 		Name:      "role_namespace",
@@ -247,9 +248,10 @@ func (r GalaxyAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		Updatable: false,
 		Required:  true,
 		Default:   roleResp.Summary.Namespace.Name,
+		Pattern:   fmt.Sprintf("^%s$", roleResp.Summary.Namespace.Name),
 	}
 	for key, plan := range spec.Plans {
-		plan.Parameters = append(plan.Parameters, roleParam, namespaceParam)
+		plan.Parameters = append([]bundle.ParameterDescriptor{roleParam, namespaceParam}, plan.Parameters...)
 		spec.Plans[key].Parameters = plan.Parameters
 	}
 
