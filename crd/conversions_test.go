@@ -17,8 +17,6 @@
 package crd
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/automationbroker/broker-client-go/pkg/apis/automationbroker/v1alpha1"
@@ -345,18 +343,182 @@ func TestConvertServiceBindingToCRD(t *testing.T) {
 	}
 }
 
-func TestFoo(t *testing.T) {
-	t.Skip()
-	bb := &bundle.BindInstance{
-		Parameters: &bundle.Parameters{
-			"foo": "bar",
-			"_apb_provision_creds": "letmein",
+func TestConvertServiceInstanceToAPB(t *testing.T) {
+	uid := uuid.New()
+
+	testCases := []struct {
+		name        string
+		input       v1alpha1.BundleInstance
+		spec        *bundle.Spec
+		expected    *bundle.ServiceInstance
+		expectederr bool
+	}{
+		{
+			name:  "BindInstance zero value",
+			input: v1alpha1.BundleInstance{},
+			spec:  &bundle.Spec{},
+			expected: &bundle.ServiceInstance{
+				ID:         uuid.Parse(uid),
+				Spec:       &bundle.Spec{},
+				Context:    &bundle.Context{},
+				Parameters: &bundle.Parameters{},
+				BindingIDs: map[string]bool{},
+			},
+		},
+		{
+			name: "parameters should get copied",
+			input: v1alpha1.BundleInstance{
+				Spec: v1alpha1.BundleInstanceSpec{
+					Bundle: v1alpha1.LocalObjectReference{Name: uid},
+					Context: v1alpha1.Context{
+						Namespace: "testnamespace",
+						Platform:  "kubernetes",
+					},
+					Parameters:   `{"_apb_creds":"letmein","foo":"bar"}`,
+					DashboardURL: "http://example.com/dashboard",
+				},
+				Status: v1alpha1.BundleInstanceStatus{
+					Bindings: []v1alpha1.LocalObjectReference{
+						{
+							Name: "a binding",
+						},
+					},
+				},
+			},
+			spec: &bundle.Spec{},
+			expected: &bundle.ServiceInstance{
+				ID:   uuid.Parse(uid),
+				Spec: &bundle.Spec{},
+				Context: &bundle.Context{
+					Namespace: "testnamespace",
+					Platform:  "kubernetes",
+				},
+				Parameters: &bundle.Parameters{
+					"foo":        "bar",
+					"_apb_creds": "letmein",
+				},
+				BindingIDs: map[string]bool{
+					"a binding": true,
+				},
+				DashboardURL: "http://example.com/dashboard",
+			},
+
+			expectederr: false,
 		},
 	}
 
-	params, err := json.Marshal(bb.Parameters)
-	if err != nil {
-		t.Fatal("wtf")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := ConvertServiceInstanceToAPB(tc.input, tc.spec, uid)
+			if tc.expectederr {
+				assert.Error(t, err)
+			}
+			assert.Equal(t, tc.expected, output)
+		})
 	}
-	fmt.Printf("|%s|\n", params)
+}
+
+func TestConvertServiceInstanceToCRD(t *testing.T) {
+	uid := uuid.New()
+
+	testCases := []struct {
+		name        string
+		input       *bundle.ServiceInstance
+		expected    v1alpha1.BundleInstance
+		expectederr bool
+		panics      bool
+	}{
+		{
+			name:     "nil spec should cause error",
+			input:    &bundle.ServiceInstance{},
+			expected: v1alpha1.BundleInstance{},
+			panics:   true,
+		},
+		{
+			name:     "nil ServiceInstance should cause error",
+			input:    nil,
+			expected: v1alpha1.BundleInstance{},
+			panics:   true,
+		},
+		{
+			name: "BindInstance zero value",
+			input: &bundle.ServiceInstance{
+				Spec:    &bundle.Spec{},
+				Context: &bundle.Context{},
+			},
+			expected: v1alpha1.BundleInstance{
+				Status: v1alpha1.BundleInstanceStatus{
+					Bindings: []v1alpha1.LocalObjectReference{},
+				},
+			},
+		},
+		{
+			name: "invalid parameters should return error",
+			input: &bundle.ServiceInstance{
+				Parameters: &bundle.Parameters{
+					// force json marshal to fail
+					"foo": make(chan int),
+				},
+			},
+			expected:    v1alpha1.BundleInstance{},
+			expectederr: true,
+		},
+		{
+			name: "parameters should get copied",
+			input: &bundle.ServiceInstance{
+				ID: uuid.Parse(uid),
+				Spec: &bundle.Spec{
+					ID: uid,
+				},
+				Context: &bundle.Context{
+					Namespace: "testnamespace",
+					Platform:  "kubernetes",
+				},
+				Parameters: &bundle.Parameters{
+					"foo":        "bar",
+					"_apb_creds": "letmein",
+				},
+				BindingIDs: map[string]bool{
+					"a binding": true,
+				},
+				DashboardURL: "http://example.com/dashboard",
+			},
+			expected: v1alpha1.BundleInstance{
+				Spec: v1alpha1.BundleInstanceSpec{
+					Bundle: v1alpha1.LocalObjectReference{Name: uid},
+					Context: v1alpha1.Context{
+						Namespace: "testnamespace",
+						Platform:  "kubernetes",
+					},
+					Parameters:   `{"_apb_creds":"letmein","foo":"bar"}`,
+					DashboardURL: "http://example.com/dashboard",
+				},
+				Status: v1alpha1.BundleInstanceStatus{
+					Bindings: []v1alpha1.LocalObjectReference{
+						{
+							Name: "a binding",
+						},
+					},
+				},
+			},
+			expectederr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			if tc.panics {
+				assert.Panics(t, func() { ConvertServiceInstanceToCRD(tc.input) })
+				return
+			}
+
+			output, err := ConvertServiceInstanceToCRD(tc.input)
+			if tc.expectederr {
+				assert.Error(t, err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
 }
