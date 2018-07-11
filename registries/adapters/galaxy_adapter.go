@@ -201,8 +201,9 @@ func (r GalaxyAdapter) getNextImages(ctx context.Context,
 }
 
 func (r GalaxyAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
-	spec := bundle.Spec{}
-	roleID := strings.Split(imageName, "#")[1]
+	imageSplit := strings.Split(imageName, "#")
+	roleName := imageSplit[0]
+	roleID := imageSplit[1]
 	req, err := http.NewRequest("GET", fmt.Sprintf(galaxyRoleURL, roleID), nil)
 	if err != nil {
 		return nil, err
@@ -222,13 +223,15 @@ func (r GalaxyAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
 		return nil, err
 	}
 
-	spec = roleResp.Metadata.Spec
+	spec := roleResp.Metadata.Spec
 	spec.Runtime = 2
-
 	spec.Image = defaultRunner
 	if len(r.Config.Runner) != 0 {
 		spec.Image = r.Config.Runner
 	}
+	// Override the name, or else APBs from galaxy will be indistinguishable from dockerhub
+	spec.Metadata["displayName"] = fmt.Sprintf("%s (galaxy)", roleName)
+
 	roleParam := bundle.ParameterDescriptor{
 		Name:      "role_name",
 		Title:     "Galaxy Role Name",
