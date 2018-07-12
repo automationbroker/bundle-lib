@@ -418,6 +418,179 @@ func TestConvertServiceInstanceToAPB(t *testing.T) {
 	}
 }
 
+func TestConvertSpecToBundle(t *testing.T) {
+	uid := uuid.New()
+
+	testCases := []struct {
+		name        string
+		input       *bundle.Spec
+		expected    v1alpha1.BundleSpec
+		expectederr bool
+	}{
+		{
+			name:  "bundle.Spec zero value",
+			input: &bundle.Spec{},
+			expected: v1alpha1.BundleSpec{
+				Async:    convertToAsyncType("required"),
+				Metadata: "null",
+				Alpha:    "null",
+				Plans:    []v1alpha1.Plan{},
+			},
+		},
+		{
+			name: "parameters should get copied",
+			input: &bundle.Spec{
+				ID:          uid,
+				Runtime:     2,
+				Version:     "1.2.3",
+				FQName:      "chevy/camaro-apb",
+				Image:       "chevy/cavalier-apb",
+				Tags:        []string{"cars", "chevy"},
+				Bindable:    true,
+				Description: "description",
+				Async:       "optional",
+				Metadata: map[string]interface{}{
+					"_apb_creds": "letmein",
+					"foo":        "bar",
+				},
+				Alpha: map[string]interface{}{
+					"alpha_apb_creds": "letmein",
+					"alphafoo":        "bar",
+				},
+				Plans: []bundle.Plan{
+					{
+						Name:     "dev",
+						Bindable: true,
+						Metadata: map[string]interface{}{
+							"plan_param1": "letmein",
+							"plan_param2": "bar",
+						},
+						Parameters:     []bundle.ParameterDescriptor{},
+						BindParameters: []bundle.ParameterDescriptor{},
+					},
+				},
+			},
+			expected: v1alpha1.BundleSpec{
+				Runtime:     2,
+				Version:     "1.2.3",
+				FQName:      "chevy/camaro-apb",
+				Image:       "chevy/cavalier-apb",
+				Tags:        []string{"cars", "chevy"},
+				Bindable:    true,
+				Description: "description",
+				Async:       convertToAsyncType("optional"),
+				Metadata:    `{"_apb_creds":"letmein","foo":"bar"}`,
+				Alpha:       `{"alpha_apb_creds":"letmein","alphafoo":"bar"}`,
+				Plans: []v1alpha1.Plan{
+					{
+						Name:           "dev",
+						Bindable:       true,
+						Metadata:       `{"plan_param1":"letmein","plan_param2":"bar"}`,
+						Parameters:     []v1alpha1.Parameter{},
+						BindParameters: []v1alpha1.Parameter{},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			output, err := ConvertSpecToBundle(tc.input)
+			if tc.expectederr {
+				assert.Error(t, err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
+
+func TestConvertBundleToSpec(t *testing.T) {
+	uid := uuid.New()
+
+	testCases := []struct {
+		name        string
+		input       v1alpha1.BundleSpec
+		expected    *bundle.Spec
+		expectederr bool
+	}{
+		{
+			name:        "BundleSpec zero value",
+			input:       v1alpha1.BundleSpec{},
+			expected:    &bundle.Spec{},
+			expectederr: true,
+		},
+		{
+			name: "parameters should get copied",
+			input: v1alpha1.BundleSpec{
+				Runtime:     2,
+				Version:     "1.2.3",
+				FQName:      "chevy/camaro-apb",
+				Image:       "chevy/cavalier-apb",
+				Tags:        []string{"cars", "chevy"},
+				Bindable:    true,
+				Description: "description",
+				Async:       convertToAsyncType("optional"),
+				Metadata:    `{"_apb_creds":"letmein","foo":"bar"}`,
+				Alpha:       `{"alpha_apb_creds":"letmein","alphafoo":"bar"}`,
+				Plans: []v1alpha1.Plan{
+					{
+						Name:     "dev",
+						Bindable: true,
+						Metadata: `{"plan_param1":"letmein","plan_param2":"bar"}`,
+					},
+				},
+			},
+
+			expected: &bundle.Spec{
+				ID:          uid,
+				Runtime:     2,
+				Version:     "1.2.3",
+				FQName:      "chevy/camaro-apb",
+				Image:       "chevy/cavalier-apb",
+				Tags:        []string{"cars", "chevy"},
+				Bindable:    true,
+				Description: "description",
+				Async:       "optional",
+				Metadata: map[string]interface{}{
+					"_apb_creds": "letmein",
+					"foo":        "bar",
+				},
+				Alpha: map[string]interface{}{
+					"alpha_apb_creds": "letmein",
+					"alphafoo":        "bar",
+				},
+				Plans: []bundle.Plan{
+					{
+						Name:     "dev",
+						Bindable: true,
+						Metadata: map[string]interface{}{
+							"plan_param1": "letmein",
+							"plan_param2": "bar",
+						},
+						Parameters:     []bundle.ParameterDescriptor{},
+						BindParameters: []bundle.ParameterDescriptor{},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			output, err := ConvertBundleToSpec(tc.input, tc.expected.ID)
+			if tc.expectederr {
+				assert.Error(t, err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
+
 func TestConvertServiceInstanceToCRD(t *testing.T) {
 	uid := uuid.New()
 
