@@ -22,8 +22,7 @@
 
 [[constraint]]
   name = "github.com/automationbroker/broker-client-go"
-  branch = "deletion-field"
-  source = "github.com/alaypatel07/broker-client-go"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/coreos/etcd"
