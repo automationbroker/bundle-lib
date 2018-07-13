@@ -465,8 +465,32 @@ func TestConvertSpecToBundle(t *testing.T) {
 							"plan_param1": "letmein",
 							"plan_param2": "bar",
 						},
-						Parameters:     []bundle.ParameterDescriptor{},
-						BindParameters: []bundle.ParameterDescriptor{},
+						Parameters: []bundle.ParameterDescriptor{
+							{
+								Name:        "param1",
+								Type:        "string",
+								Description: "parameter one",
+							},
+							{
+								Name:        "param2",
+								Type:        "int",
+								Description: "parameter two",
+								Default:     10,
+							},
+						},
+						BindParameters: []bundle.ParameterDescriptor{
+							{
+								Name:        "bindparam1",
+								Type:        "string",
+								Description: "bind parameter one",
+							},
+							{
+								Name:        "bindparam2",
+								Type:        "int",
+								Description: "bind parameter two",
+								Default:     10,
+							},
+						},
 					},
 				},
 			},
@@ -483,11 +507,37 @@ func TestConvertSpecToBundle(t *testing.T) {
 				Alpha:       `{"alpha_apb_creds":"letmein","alphafoo":"bar"}`,
 				Plans: []v1alpha1.Plan{
 					{
-						Name:           "dev",
-						Bindable:       true,
-						Metadata:       `{"plan_param1":"letmein","plan_param2":"bar"}`,
-						Parameters:     []v1alpha1.Parameter{},
-						BindParameters: []v1alpha1.Parameter{},
+						Name:     "dev",
+						Bindable: true,
+						Metadata: `{"plan_param1":"letmein","plan_param2":"bar"}`,
+						Parameters: []v1alpha1.Parameter{
+							{
+								Name:        "param1",
+								Type:        "string",
+								Description: "parameter one",
+								Default:     "{\"default\":null}",
+							},
+							{
+								Name:        "param2",
+								Type:        "int",
+								Description: "parameter two",
+								Default:     "{\"default\":10}",
+							},
+						},
+						BindParameters: []v1alpha1.Parameter{
+							{
+								Name:        "bindparam1",
+								Type:        "string",
+								Description: "bind parameter one",
+								Default:     "{\"default\":null}",
+							},
+							{
+								Name:        "bindparam2",
+								Type:        "int",
+								Description: "bind parameter two",
+								Default:     "{\"default\":10}",
+							},
+						},
 					},
 				},
 			},
@@ -540,6 +590,34 @@ func TestConvertBundleToSpec(t *testing.T) {
 						Name:     "dev",
 						Bindable: true,
 						Metadata: `{"plan_param1":"letmein","plan_param2":"bar"}`,
+						Parameters: []v1alpha1.Parameter{
+							{
+								Name:        "param1",
+								Type:        "string",
+								Description: "parameter one",
+								Default:     "{\"default\":null}",
+							},
+							{
+								Name:        "param2",
+								Type:        "int",
+								Description: "parameter two",
+								Default:     "{\"default\":10}",
+							},
+						},
+						BindParameters: []v1alpha1.Parameter{
+							{
+								Name:        "bindparam1",
+								Type:        "string",
+								Description: "bind parameter one",
+								Default:     "{\"default\":null}",
+							},
+							{
+								Name:        "bindparam2",
+								Type:        "int",
+								Description: "bind parameter two",
+								Default:     "{\"default\":10}",
+							},
+						},
 					},
 				},
 			},
@@ -570,8 +648,32 @@ func TestConvertBundleToSpec(t *testing.T) {
 							"plan_param1": "letmein",
 							"plan_param2": "bar",
 						},
-						Parameters:     []bundle.ParameterDescriptor{},
-						BindParameters: []bundle.ParameterDescriptor{},
+						Parameters: []bundle.ParameterDescriptor{
+							{
+								Name:        "param1",
+								Type:        "string",
+								Description: "parameter one",
+							},
+							{
+								Name:        "param2",
+								Type:        "int",
+								Description: "parameter two",
+								Default:     float64(10),
+							},
+						},
+						BindParameters: []bundle.ParameterDescriptor{
+							{
+								Name:        "bindparam1",
+								Type:        "string",
+								Description: "bind parameter one",
+							},
+							{
+								Name:        "bindparam2",
+								Type:        "int",
+								Description: "bind parameter two",
+								Default:     float64(10),
+							},
+						},
 					},
 				},
 			},
