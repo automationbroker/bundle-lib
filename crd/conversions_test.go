@@ -472,10 +472,14 @@ func TestConvertSpecToBundle(t *testing.T) {
 								Description: "parameter one",
 							},
 							{
-								Name:        "param2",
-								Type:        "int",
-								Description: "parameter two",
-								Default:     10,
+								Name:             "param2",
+								Type:             "int",
+								Description:      "parameter two",
+								Default:          10,
+								Maximum:          bundleNilableNumber(float64(20)),
+								ExclusiveMaximum: bundleNilableNumber(float64(40)),
+								Minimum:          bundleNilableNumber(float64(5)),
+								ExclusiveMinimum: bundleNilableNumber(float64(5)),
 							},
 						},
 						BindParameters: []bundle.ParameterDescriptor{
@@ -518,10 +522,14 @@ func TestConvertSpecToBundle(t *testing.T) {
 								Default:     "{\"default\":null}",
 							},
 							{
-								Name:        "param2",
-								Type:        "int",
-								Description: "parameter two",
-								Default:     "{\"default\":10}",
+								Name:             "param2",
+								Type:             "int",
+								Description:      "parameter two",
+								Default:          "{\"default\":10}",
+								Maximum:          v1alpha1NilableNumber(float64(20)),
+								ExclusiveMaximum: v1alpha1NilableNumber(float64(40)),
+								Minimum:          v1alpha1NilableNumber(float64(5)),
+								ExclusiveMinimum: v1alpha1NilableNumber(float64(5)),
 							},
 						},
 						BindParameters: []v1alpha1.Parameter{
@@ -598,10 +606,14 @@ func TestConvertBundleToSpec(t *testing.T) {
 								Default:     "{\"default\":null}",
 							},
 							{
-								Name:        "param2",
-								Type:        "int",
-								Description: "parameter two",
-								Default:     "{\"default\":10}",
+								Name:             "param2",
+								Type:             "int",
+								Description:      "parameter two",
+								Default:          "{\"default\":10}",
+								Maximum:          v1alpha1NilableNumber(float64(20)),
+								ExclusiveMaximum: v1alpha1NilableNumber(float64(40)),
+								Minimum:          v1alpha1NilableNumber(float64(5)),
+								ExclusiveMinimum: v1alpha1NilableNumber(float64(5)),
 							},
 						},
 						BindParameters: []v1alpha1.Parameter{
@@ -655,10 +667,14 @@ func TestConvertBundleToSpec(t *testing.T) {
 								Description: "parameter one",
 							},
 							{
-								Name:        "param2",
-								Type:        "int",
-								Description: "parameter two",
-								Default:     float64(10),
+								Name:             "param2",
+								Type:             "int",
+								Description:      "parameter two",
+								Default:          float64(10),
+								Maximum:          bundleNilableNumber(float64(20)),
+								ExclusiveMaximum: bundleNilableNumber(float64(40)),
+								Minimum:          bundleNilableNumber(float64(5)),
+								ExclusiveMinimum: bundleNilableNumber(float64(5)),
 							},
 						},
 						BindParameters: []bundle.ParameterDescriptor{
@@ -796,4 +812,14 @@ func TestConvertServiceInstanceToCRD(t *testing.T) {
 			assert.Equal(t, tc.expected, output)
 		})
 	}
+}
+
+func bundleNilableNumber(i float64) *bundle.NilableNumber {
+	n := bundle.NilableNumber(i)
+	return &n
+}
+
+func v1alpha1NilableNumber(i float64) *v1alpha1.NilableNumber {
+	n := v1alpha1.NilableNumber(i)
+	return &n
 }
