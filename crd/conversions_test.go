@@ -17,7 +17,10 @@
 package crd
 
 import (
+	"encoding/base64"
 	"testing"
+
+	yaml "gopkg.in/yaml.v1"
 
 	"github.com/automationbroker/broker-client-go/pkg/apis/automationbroker/v1alpha1"
 	"github.com/automationbroker/bundle-lib/bundle"
@@ -822,4 +825,105 @@ func bundleNilableNumber(i float64) *bundle.NilableNumber {
 func v1alpha1NilableNumber(i float64) *v1alpha1.NilableNumber {
 	n := v1alpha1.NilableNumber(i)
 	return &n
+}
+
+// TestConvertSpecToBundleUsingEncodedSpec uses a base64 encoded apb.yml spec
+// to verify that the conversion code works with what the broker would normally
+// see.
+//
+func TestConvertSpecToBundleUsingEncodedSpec(t *testing.T) {
+	// Here is the yaml we encoded
+	//
+	// version: 1.0
+	// name: testapp
+	// description: your description
+	// bindable: False
+	// async: optional
+	// metadata:
+	//   displayName: testapp
+	// plans:
+	//   - name: default
+	//     description: This default plan deploys testapp
+	//     free: True
+	//     metadata: {}
+	//     parameters:
+	//     - name: countwithrange
+	//       title: Count Chocula
+	//       type: int
+	//       required: true
+	//       updatable: true
+	//       display_type: text
+	//       maximum: 10
+	//       minimum: 2
+	//     - name: exclusiveberries
+	//       title: Franken Berry
+	//       type: int
+	//       required: true
+	//       updatable: true
+	//       display_type: text
+	//       maximum: 10
+	//       exclusive_maximum: 10
+	//       minimum: 2
+	//       exclusive_minimum: 2
+	//
+
+	apb := `dmVyc2lvbjogMS4wDQpuYW1lOiB0ZXN0YXBwDQpkZXNjcmlwdGlvbjogeW91ciBkZXNjcmlwdGlvbg0KYmluZGFibGU6IEZhbHNlDQphc3luYzogb3B0aW9uYWwNCm1ldGFkYXRhOg0KICBkaXNwbGF5TmFtZTogdGVzdGFwcA0KcGxhbnM6DQogIC0gbmFtZTogZGVmYXVsdA0KICAgIGRlc2NyaXB0aW9uOiBUaGlzIGRlZmF1bHQgcGxhbiBkZXBsb3lzIHRlc3RhcHANCiAgICBmcmVlOiBUcnVlDQogICAgbWV0YWRhdGE6IHt9DQogICAgcGFyYW1ldGVyczoNCiAgICAtIG5hbWU6IGNvdW50d2l0aHJhbmdlDQogICAgICB0aXRsZTogQ291bnQgQ2hvY3VsYQ0KICAgICAgdHlwZTogaW50DQogICAgICByZXF1aXJlZDogdHJ1ZQ0KICAgICAgdXBkYXRhYmxlOiB0cnVlDQogICAgICBkaXNwbGF5X3R5cGU6IHRleHQNCiAgICAgIG1heGltdW06IDEwDQogICAgICBtaW5pbXVtOiAyDQogICAgLSBuYW1lOiBleGNsdXNpdmViZXJyaWVzDQogICAgICB0aXRsZTogRnJhbmtlbiBCZXJyeQ0KICAgICAgdHlwZTogaW50DQogICAgICByZXF1aXJlZDogdHJ1ZQ0KICAgICAgdXBkYXRhYmxlOiB0cnVlDQogICAgICBkaXNwbGF5X3R5cGU6IHRleHQNCiAgICAgIG1heGltdW06IDEwDQogICAgICBleGNsdXNpdmVfbWF4aW11bTogMTANCiAgICAgIG1pbmltdW06IDINCiAgICAgIGV4Y2x1c2l2ZV9taW5pbXVtOiAy`
+
+	decodedyaml, err := base64.StdEncoding.DecodeString(apb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// This is a spec created from an encoded apb.yml.
+	spec := &bundle.Spec{}
+	if err = yaml.Unmarshal(decodedyaml, spec); err != nil {
+		t.Fatal(err)
+	}
+	expected := v1alpha1.BundleSpec{
+		Version:     "1.0",
+		FQName:      "testapp",
+		Bindable:    false,
+		Description: "your description",
+		Async:       convertToAsyncType("optional"),
+		Metadata:    `{"displayName":"testapp"}`,
+		Alpha:       "null",
+		Plans: []v1alpha1.Plan{
+			{
+				Name:        "default",
+				Bindable:    false,
+				Free:        true,
+				Metadata:    `{}`,
+				Description: "This default plan deploys testapp",
+				Parameters: []v1alpha1.Parameter{
+					{
+						Name:        "countwithrange",
+						Type:        "int",
+						Title:       "Count Chocula",
+						Required:    true,
+						Updatable:   true,
+						Default:     "{\"default\":null}",
+						Maximum:     v1alpha1NilableNumber(float64(10)),
+						Minimum:     v1alpha1NilableNumber(float64(2)),
+						DisplayType: "text",
+					},
+					{
+						Name:             "exclusiveberries",
+						Type:             "int",
+						Title:            "Franken Berry",
+						Required:         true,
+						Updatable:        true,
+						Default:          "{\"default\":null}",
+						Maximum:          v1alpha1NilableNumber(float64(10)),
+						ExclusiveMaximum: v1alpha1NilableNumber(float64(10)),
+						Minimum:          v1alpha1NilableNumber(float64(2)),
+						ExclusiveMinimum: v1alpha1NilableNumber(float64(2)),
+						DisplayType:      "text",
+					},
+				},
+				BindParameters: []v1alpha1.Parameter{},
+			},
+		},
+	}
+	output, err := ConvertSpecToBundle(spec)
+	assert.Equal(t, expected, output)
 }
