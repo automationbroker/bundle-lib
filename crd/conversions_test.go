@@ -18,6 +18,7 @@ package crd
 
 import (
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	yaml "gopkg.in/yaml.v1"
@@ -280,6 +281,8 @@ func TestConvertServiceBindingToAPB(t *testing.T) {
 			output, err := ConvertServiceBindingToAPB(tc.input, tc.input.GetName())
 			if tc.expectederr {
 				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
 			}
 			assert.Equal(t, tc.expected, output)
 		})
@@ -340,6 +343,8 @@ func TestConvertServiceBindingToCRD(t *testing.T) {
 			output, err := ConvertServiceBindingToCRD(tc.input)
 			if tc.expectederr {
 				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
 			}
 			assert.Equal(t, tc.expected, output)
 		})
@@ -367,6 +372,29 @@ func TestConvertServiceInstanceToAPB(t *testing.T) {
 				Parameters: &bundle.Parameters{},
 				BindingIDs: map[string]bool{},
 			},
+		},
+		{
+			name: "invalid parameter specs",
+			input: v1alpha1.BundleInstance{
+				Spec: v1alpha1.BundleInstanceSpec{
+					Bundle: v1alpha1.LocalObjectReference{Name: uid},
+					Context: v1alpha1.Context{
+						Namespace: "testnamespace",
+						Platform:  "kubernetes",
+					},
+					Parameters: `"_apb_creds":"letmein","foo":"bar"}`,
+				},
+				Status: v1alpha1.BundleInstanceStatus{
+					Bindings: []v1alpha1.LocalObjectReference{
+						{
+							Name: "a binding",
+						},
+					},
+				},
+			},
+			spec:        &bundle.Spec{},
+			expected:    &bundle.ServiceInstance{},
+			expectederr: true,
 		},
 		{
 			name: "parameters should get copied",
@@ -415,6 +443,8 @@ func TestConvertServiceInstanceToAPB(t *testing.T) {
 			output, err := ConvertServiceInstanceToAPB(tc.input, tc.spec, uid)
 			if tc.expectederr {
 				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
 			}
 			assert.Equal(t, tc.expected, output)
 		})
@@ -439,6 +469,41 @@ func TestConvertSpecToBundle(t *testing.T) {
 				Alpha:    "null",
 				Plans:    []v1alpha1.Plan{},
 			},
+		},
+		{
+			name:        "invalid alpha",
+			expectederr: true,
+			input: &bundle.Spec{
+				Alpha: map[string]interface{}{
+					"foo": make(chan int),
+				},
+			},
+			expected: v1alpha1.BundleSpec{},
+		},
+		{
+			name:        "invalid metadata",
+			expectederr: true,
+			input: &bundle.Spec{
+				Metadata: map[string]interface{}{
+					"foo": make(chan int),
+				},
+			},
+			expected: v1alpha1.BundleSpec{},
+		},
+		{
+			name:        "invalid plan metadata",
+			expectederr: true,
+			input: &bundle.Spec{
+				Plans: []bundle.Plan{
+					{
+						Name: "blowup",
+						Metadata: map[string]interface{}{
+							"foo": make(chan int),
+						},
+					},
+				},
+			},
+			expected: v1alpha1.BundleSpec{},
 		},
 		{
 			name: "parameters should get copied",
@@ -561,6 +626,8 @@ func TestConvertSpecToBundle(t *testing.T) {
 			output, err := ConvertSpecToBundle(tc.input)
 			if tc.expectederr {
 				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
 			}
 
 			assert.Equal(t, tc.expected, output)
@@ -582,6 +649,38 @@ func TestConvertBundleToSpec(t *testing.T) {
 			input:       v1alpha1.BundleSpec{},
 			expected:    &bundle.Spec{},
 			expectederr: true,
+		},
+		{
+			name:        "invalid metadata",
+			expectederr: true,
+			input: v1alpha1.BundleSpec{
+				Metadata: `{"_apb_creds":"letmein","foo":"bar"`,
+			},
+			expected: &bundle.Spec{},
+		},
+		{
+			name:        "invalid alpha",
+			expectederr: true,
+			input: v1alpha1.BundleSpec{
+				Metadata: `{}`,
+				Alpha:    `"alpha_apb_creds":"letmein","alphafoo":"bar"}`,
+			},
+			expected: &bundle.Spec{},
+		},
+		{
+			name:        "invalid plan metadata",
+			expectederr: true,
+			input: v1alpha1.BundleSpec{
+				Metadata: `{}`,
+				Alpha:    `{}`,
+				Plans: []v1alpha1.Plan{
+					{
+						Name:     "dev",
+						Metadata: `"plan_param1":"letmein","plan_param2":"bar"`,
+					},
+				},
+			},
+			expected: &bundle.Spec{},
 		},
 		{
 			name: "parameters should get copied",
@@ -703,8 +802,11 @@ func TestConvertBundleToSpec(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			output, err := ConvertBundleToSpec(tc.input, tc.expected.ID)
+			fmt.Println(err)
 			if tc.expectederr {
 				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
 			}
 
 			assert.Equal(t, tc.expected, output)
@@ -810,6 +912,8 @@ func TestConvertServiceInstanceToCRD(t *testing.T) {
 			output, err := ConvertServiceInstanceToCRD(tc.input)
 			if tc.expectederr {
 				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
 			}
 
 			assert.Equal(t, tc.expected, output)
@@ -926,4 +1030,50 @@ func TestConvertSpecToBundleUsingEncodedSpec(t *testing.T) {
 	}
 	output, err := ConvertSpecToBundle(spec)
 	assert.Equal(t, expected, output)
+}
+
+func TestConvertToAsyncType(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected v1alpha1.AsyncType
+	}{
+		{
+			name:     "optional",
+			input:    "optional",
+			expected: v1alpha1.OptionalAsync,
+		},
+		{
+			name:     "required",
+			input:    "required",
+			expected: v1alpha1.RequiredAsync,
+		},
+		{
+			name:     "unsupported",
+			input:    "unsupported",
+			expected: v1alpha1.Unsupported,
+		},
+		{
+			name:     "unknown",
+			input:    "unknown",
+			expected: v1alpha1.RequiredAsync,
+		},
+		{
+			name:     "mismatched case",
+			input:    "Optional",
+			expected: v1alpha1.RequiredAsync,
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: v1alpha1.RequiredAsync,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			assert.Equal(t, tc.expected, convertToAsyncType(tc.input))
+		})
+	}
 }
