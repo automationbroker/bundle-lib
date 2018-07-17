@@ -18,7 +18,6 @@ package crd
 
 import (
 	"encoding/base64"
-	"fmt"
 	"testing"
 
 	yaml "gopkg.in/yaml.v1"
@@ -528,6 +527,28 @@ func TestConvertSpecToBundle(t *testing.T) {
 			expected: v1alpha1.BundleSpec{},
 		},
 		{
+			name:        "invalid plan bind parameters",
+			expectederr: true,
+			input: &bundle.Spec{
+				Plans: []bundle.Plan{
+					{
+						Name: "blowup",
+						Metadata: map[string]interface{}{
+							"_apb_creds": "letmein",
+						},
+						BindParameters: []bundle.ParameterDescriptor{
+							{
+								Name:    "param1",
+								Type:    "string",
+								Default: make(chan int),
+							},
+						},
+					},
+				},
+			},
+			expected: v1alpha1.BundleSpec{},
+		},
+		{
 			name: "parameters should get copied",
 			input: &bundle.Spec{
 				ID:          uid,
@@ -708,11 +729,36 @@ func TestConvertBundleToSpec(t *testing.T) {
 			name:        "invalid plan parameters",
 			expectederr: true,
 			input: v1alpha1.BundleSpec{
+				Alpha:    `{"alpha_apb_creds":"letmein","alphafoo":"bar"}`,
+				Metadata: `{"_apb_creds":"letmein","foo":"bar"}`,
 				Plans: []v1alpha1.Plan{
 					{
-						//Name:     "dev",
-						//Metadata: `"plan_param1":"letmein","plan_param2":"bar"`,
+						Name:     "dev",
+						Metadata: `{"plan_param1":"letmein","plan_param2":"bar"}`,
 						Parameters: []v1alpha1.Parameter{
+							{
+								Name:        "param1",
+								Type:        "string",
+								Description: "parameter one",
+								Default:     `"default":null}`,
+							},
+						},
+					},
+				},
+			},
+			expected: &bundle.Spec{},
+		},
+		{
+			name:        "invalid plan bind parameters",
+			expectederr: true,
+			input: v1alpha1.BundleSpec{
+				Alpha:    `{"alpha_apb_creds":"letmein","alphafoo":"bar"}`,
+				Metadata: `{"_apb_creds":"letmein","foo":"bar"}`,
+				Plans: []v1alpha1.Plan{
+					{
+						Name:     "dev",
+						Metadata: `{"plan_param1":"letmein","plan_param2":"bar"}`,
+						BindParameters: []v1alpha1.Parameter{
 							{
 								Name:        "param1",
 								Type:        "string",
@@ -845,7 +891,6 @@ func TestConvertBundleToSpec(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			output, err := ConvertBundleToSpec(tc.input, tc.expected.ID)
-			fmt.Println(err)
 			if tc.expectederr {
 				assert.Error(t, err)
 			} else if err != nil {
