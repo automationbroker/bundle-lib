@@ -260,61 +260,72 @@ func setUpBadRuntime() Registry {
 	return r
 }
 
-func TestRegistryLoadSpecsNoError(t *testing.T) {
-	r := setUp()
-	specs, numImages, err := r.LoadSpecs()
-	if err != nil {
-		assert.True(t, false)
+func TestRegistryLoadSpecs(t *testing.T) {
+	testCases := []struct {
+		name        string
+		r           Registry
+		validate    func([]*bundle.Spec, int, error) bool
+		expectederr bool
+	}{
+		{
+			name: "load specs no error",
+			r:    setUp(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, images, 2)
+				assert.Equal(t, len(specs), 1)
+				assert.Equal(t, specs[0], &s)
+				return true
+			},
+		},
+		{
+			name: "load specs no plans",
+			r:    setUpNoPlans(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs no version",
+			r:    setUpNoVersion(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs bad version",
+			r:    setUpBadVersion(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs bad runtime",
+			r:    setUpBadRuntime(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
 	}
-	assert.True(t, a.Called["GetImageNames"])
-	assert.True(t, a.Called["FetchSpecs"])
-	assert.Equal(t, numImages, 2)
-	assert.Equal(t, len(specs), 1)
-	assert.Equal(t, specs[0], &s)
-}
 
-func TestRegistryLoadSpecsNoPlans(t *testing.T) {
-	r := setUpNoPlans()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		assert.True(t, false)
-	}
-	assert.True(t, a.Called["GetImageNames"])
-	assert.True(t, a.Called["FetchSpecs"])
-	assert.Equal(t, len(specs), 0)
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			specs, numImages, err := tc.r.LoadSpecs()
 
-func TestRegistryLoadSpecsNoVersion(t *testing.T) {
-	r := setUpNoVersion()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		assert.True(t, false)
-	}
-	assert.True(t, a.Called["GetImageNames"])
-	assert.True(t, a.Called["FetchSpecs"])
-	assert.Equal(t, len(specs), 0)
-}
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
 
-func TestRegistryLoadSpecsBadVersion(t *testing.T) {
-	r := setUpBadVersion()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		assert.True(t, false)
+			// assert.True(t, tc.r.adapter.Called["GetImageNames"])
+			// assert.True(t, tc.r.adapter.Called["FetchSpecs"])
+			assert.True(t, tc.validate(specs, numImages, err))
+		})
 	}
-	assert.True(t, a.Called["GetImageNames"])
-	assert.True(t, a.Called["FetchSpecs"])
-	assert.Equal(t, len(specs), 0)
-}
-
-func TestRegistryLoadSpecsBadRuntime(t *testing.T) {
-	r := setUpBadRuntime()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		assert.True(t, false)
-	}
-	assert.True(t, a.Called["GetImageNames"])
-	assert.True(t, a.Called["FetchSpecs"])
-	assert.Equal(t, len(specs), 0)
 }
 
 func TestFail(t *testing.T) {
