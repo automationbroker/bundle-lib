@@ -387,13 +387,115 @@ func TestUnknownType(t *testing.T) {
 	}
 }
 
-func TestValidateName(t *testing.T) {
-	c := Config{
-		Type: "dockerhub",
+func TestValidate(t *testing.T) {
+
+	testCases := []struct {
+		name     string
+		c        Config
+		expected bool
+	}{
+		{
+			name:     "empty name",
+			c:        Config{Name: ""},
+			expected: false,
+		},
+		{
+			name: "valid name, empty authtype and authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "",
+				AuthType: "",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, empty authtype, non-empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "shouldfail",
+				AuthType: "",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, file, empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "",
+				AuthType: "file",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, file, non-empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "non-empty",
+				AuthType: "file",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, secret, empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "",
+				AuthType: "secret",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, secret, non-empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "non-empty",
+				AuthType: "secret",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, config, without user",
+			c: Config{
+				Name:     "daname",
+				User:     "",
+				AuthType: "config",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, config, without pass",
+			c: Config{
+				Name:     "daname",
+				User:     "user",
+				Pass:     "",
+				AuthType: "config",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, config, user, pass",
+			c: Config{
+				Name:     "daname",
+				User:     "user",
+				Pass:     "$3cr3+",
+				AuthType: "config",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, unknown",
+			c: Config{
+				Name:     "daname",
+				AuthType: "unknown",
+			},
+			expected: false,
+		},
 	}
-	_, err := NewRegistry(c, "")
-	if err == nil {
-		assert.True(t, false)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.c.Validate())
+		})
 	}
 }
 
