@@ -387,6 +387,39 @@ func TestUnknownType(t *testing.T) {
 	}
 }
 
+func TestRegistryName(t *testing.T) {
+	testCases := []struct {
+		name     string
+		r        Registry
+		expected string
+	}{
+		{
+			name: "registry name",
+			r: Registry{
+				config: Config{
+					Name: "registryname",
+				},
+			},
+			expected: "registryname",
+		},
+		{
+			name: "empty name",
+			r: Registry{
+				config: Config{
+					Name: "",
+				},
+			},
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.r.RegistryName())
+		})
+	}
+}
+
 func TestValidate(t *testing.T) {
 
 	testCases := []struct {
