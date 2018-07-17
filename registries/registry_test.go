@@ -417,6 +417,61 @@ func TestNewRegistry(t *testing.T) {
 			},
 			expectederr: true,
 		},
+		{
+			name: "local openshift registry",
+			c: Config{
+				Type: "local_openshift",
+				Name: "local_openshift",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.LocalOpenShiftAdapter)
+				return ok
+			},
+		},
+		{
+			name: "helm registry",
+			c: Config{
+				Type: "helm",
+				Name: "helm",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.HelmAdapter)
+				return ok
+			},
+		},
+		{
+			name: "openshift registry",
+			c: Config{
+				Type: "openshift",
+				Name: "openshift",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.OpenShiftAdapter)
+				return ok
+			},
+		},
+		{
+			name: "partner rhcc registry",
+			c: Config{
+				Type: "partner_rhcc",
+				Name: "partner_rhcc",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.PartnerRhccAdapter)
+				return ok
+			},
+		},
+		{
+			name: "apiv2 registry",
+			c: Config{
+				Type: "apiv2",
+				Name: "genericapiv2",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.APIV2Adapter)
+				return ok
+			},
+		},
 	}
 
 	for _, tc := range testCases {
