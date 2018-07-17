@@ -506,6 +506,28 @@ func TestConvertSpecToBundle(t *testing.T) {
 			expected: v1alpha1.BundleSpec{},
 		},
 		{
+			name:        "invalid plan parameters",
+			expectederr: true,
+			input: &bundle.Spec{
+				Plans: []bundle.Plan{
+					{
+						Name: "blowup",
+						Metadata: map[string]interface{}{
+							"_apb_creds": "letmein",
+						},
+						Parameters: []bundle.ParameterDescriptor{
+							{
+								Name:    "param1",
+								Type:    "string",
+								Default: make(chan int),
+							},
+						},
+					},
+				},
+			},
+			expected: v1alpha1.BundleSpec{},
+		},
+		{
 			name: "parameters should get copied",
 			input: &bundle.Spec{
 				ID:          uid,
@@ -677,6 +699,27 @@ func TestConvertBundleToSpec(t *testing.T) {
 					{
 						Name:     "dev",
 						Metadata: `"plan_param1":"letmein","plan_param2":"bar"`,
+					},
+				},
+			},
+			expected: &bundle.Spec{},
+		},
+		{
+			name:        "invalid plan parameters",
+			expectederr: true,
+			input: v1alpha1.BundleSpec{
+				Plans: []v1alpha1.Plan{
+					{
+						//Name:     "dev",
+						//Metadata: `"plan_param1":"letmein","plan_param2":"bar"`,
+						Parameters: []v1alpha1.Parameter{
+							{
+								Name:        "param1",
+								Type:        "string",
+								Description: "parameter one",
+								Default:     `"default":null}`,
+							},
+						},
 					},
 				},
 			},
@@ -1032,6 +1075,41 @@ func TestConvertSpecToBundleUsingEncodedSpec(t *testing.T) {
 	assert.Equal(t, expected, output)
 }
 
+func TestConvertToAsyncTypeToString(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    v1alpha1.AsyncType
+		expected string
+	}{
+		{
+			name:     "optional",
+			input:    v1alpha1.OptionalAsync,
+			expected: "optional",
+		},
+		{
+			name:     "required",
+			input:    v1alpha1.RequiredAsync,
+			expected: "required",
+		},
+		{
+			name:     "unsupported",
+			input:    v1alpha1.Unsupported,
+			expected: "unsupported",
+		},
+		{
+			name:     "unknown",
+			input:    v1alpha1.AsyncType("unknown"),
+			expected: "required",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, convertAsyncTypeToString(tc.input))
+		})
+	}
+}
+
 func TestConvertToAsyncType(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -1072,7 +1150,6 @@ func TestConvertToAsyncType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			assert.Equal(t, tc.expected, convertToAsyncType(tc.input))
 		})
 	}
