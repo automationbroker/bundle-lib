@@ -363,57 +363,76 @@ func TestFail(t *testing.T) {
 	}
 }
 
-func TestNewRegistryRHCC(t *testing.T) {
-	c := Config{
-		Type: "rhcc",
-		Name: "rhcc",
+func TestNewRegistry(t *testing.T) {
+	testCases := []struct {
+		name        string
+		c           Config
+		validate    func(Registry) bool
+		expectederr bool
+	}{
+		{
+			name: "rhcc registry",
+			c: Config{
+				Type: "rhcc",
+				Name: "rhcc",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.RHCCAdapter)
+				return ok
+			},
+		},
+		{
+			name: "dockerhub registry",
+			c: Config{
+				Type: "dockerhub",
+				Name: "dh",
+				URL:  "https://registry.hub.docker.com",
+				User: "shurley",
+				Org:  "shurley",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.DockerHubAdapter)
+				return ok
+			},
+		},
+		{
+			name: "mock registry",
+			c: Config{
+				Type: "mock",
+				Name: "mock",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.MockAdapter)
+				return ok
+			},
+		},
+		{
+			name: "unknown registry",
+			c: Config{
+				Type: "makes_no_sense",
+				Name: "dh",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
+		},
 	}
-	reg, err := NewRegistry(c, "")
-	if err != nil {
-		assert.True(t, false)
-	}
-	_, ok := reg.adapter.(*adapters.RHCCAdapter)
-	assert.True(t, ok)
-}
 
-func TestNewRegistryDockerHub(t *testing.T) {
-	c := Config{
-		Type: "dockerhub",
-		Name: "dh",
-		URL:  "https://registry.hub.docker.com",
-		User: "shurley",
-		Org:  "shurley",
-	}
-	reg, err := NewRegistry(c, "")
-	if err != nil {
-		assert.True(t, false)
-	}
-	_, ok := reg.adapter.(*adapters.DockerHubAdapter)
-	assert.True(t, ok)
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reg, err := NewRegistry(tc.c, "")
 
-func TestNewRegistryMock(t *testing.T) {
-	c := Config{
-		Type: "mock",
-		Name: "mock",
-	}
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
 
-	reg, err := NewRegistry(c, "")
-	if err != nil {
-		assert.True(t, false)
-	}
-	_, ok := reg.adapter.(*adapters.MockAdapter)
-	assert.True(t, ok)
-}
-
-func TestUnknownType(t *testing.T) {
-	c := Config{
-		Type: "makes_no_sense",
-		Name: "dh",
-	}
-	_, err := NewRegistry(c, "")
-	if err == nil {
-		t.Fatal("Error: error was nil")
+			// assert.True(t, tc.r.adapter.Called["GetImageNames"])
+			// assert.True(t, tc.r.adapter.Called["FetchSpecs"])
+			assert.True(t, tc.validate(reg))
+		})
 	}
 }
 
