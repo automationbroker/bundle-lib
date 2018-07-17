@@ -359,9 +359,11 @@ func convertPlanToCRD(plan bundle.Plan) (v1alpha1.Plan, error) {
 		}
 		bindParams = append(bindParams, param)
 	}
+
 	if len(errs) > 0 {
-		return v1alpha1.Plan{}, err
+		return v1alpha1.Plan{}, errs
 	}
+
 	return v1alpha1.Plan{
 		ID:             plan.ID,
 		Name:           plan.Name,
