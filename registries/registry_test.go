@@ -22,7 +22,7 @@ import (
 
 	"github.com/automationbroker/bundle-lib/bundle"
 	"github.com/automationbroker/bundle-lib/registries/adapters"
-	ft "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 var SpecTags = []string{"latest", "old-release"}
@@ -264,57 +264,57 @@ func TestRegistryLoadSpecsNoError(t *testing.T) {
 	r := setUp()
 	specs, numImages, err := r.LoadSpecs()
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, numImages, 2)
-	ft.Equal(t, len(specs), 1)
-	ft.Equal(t, specs[0], &s)
+	assert.True(t, a.Called["GetImageNames"])
+	assert.True(t, a.Called["FetchSpecs"])
+	assert.Equal(t, numImages, 2)
+	assert.Equal(t, len(specs), 1)
+	assert.Equal(t, specs[0], &s)
 }
 
 func TestRegistryLoadSpecsNoPlans(t *testing.T) {
 	r := setUpNoPlans()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
+	assert.True(t, a.Called["GetImageNames"])
+	assert.True(t, a.Called["FetchSpecs"])
+	assert.Equal(t, len(specs), 0)
 }
 
 func TestRegistryLoadSpecsNoVersion(t *testing.T) {
 	r := setUpNoVersion()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
+	assert.True(t, a.Called["GetImageNames"])
+	assert.True(t, a.Called["FetchSpecs"])
+	assert.Equal(t, len(specs), 0)
 }
 
 func TestRegistryLoadSpecsBadVersion(t *testing.T) {
 	r := setUpBadVersion()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
+	assert.True(t, a.Called["GetImageNames"])
+	assert.True(t, a.Called["FetchSpecs"])
+	assert.Equal(t, len(specs), 0)
 }
 
 func TestRegistryLoadSpecsBadRuntime(t *testing.T) {
 	r := setUpBadRuntime()
 	specs, _, err := r.LoadSpecs()
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
+	assert.True(t, a.Called["GetImageNames"])
+	assert.True(t, a.Called["FetchSpecs"])
+	assert.Equal(t, len(specs), 0)
 }
 
 func TestFail(t *testing.T) {
@@ -322,7 +322,7 @@ func TestFail(t *testing.T) {
 	r.config.Fail = true
 
 	fail := r.Fail(fmt.Errorf("new error"))
-	ft.True(t, fail)
+	assert.True(t, fail)
 }
 
 func TestFailIsFalse(t *testing.T) {
@@ -330,7 +330,7 @@ func TestFailIsFalse(t *testing.T) {
 	r.config.Fail = false
 
 	fail := r.Fail(fmt.Errorf("new error"))
-	ft.False(t, fail)
+	assert.False(t, fail)
 }
 
 func TestNewRegistryRHCC(t *testing.T) {
@@ -340,10 +340,10 @@ func TestNewRegistryRHCC(t *testing.T) {
 	}
 	reg, err := NewRegistry(c, "")
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
 	_, ok := reg.adapter.(*adapters.RHCCAdapter)
-	ft.True(t, ok)
+	assert.True(t, ok)
 }
 
 func TestNewRegistryDockerHub(t *testing.T) {
@@ -356,10 +356,10 @@ func TestNewRegistryDockerHub(t *testing.T) {
 	}
 	reg, err := NewRegistry(c, "")
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
 	_, ok := reg.adapter.(*adapters.DockerHubAdapter)
-	ft.True(t, ok)
+	assert.True(t, ok)
 }
 
 func TestNewRegistryMock(t *testing.T) {
@@ -370,10 +370,10 @@ func TestNewRegistryMock(t *testing.T) {
 
 	reg, err := NewRegistry(c, "")
 	if err != nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
 	_, ok := reg.adapter.(*adapters.MockAdapter)
-	ft.True(t, ok)
+	assert.True(t, ok)
 }
 
 func TestUnknownType(t *testing.T) {
@@ -393,7 +393,7 @@ func TestValidateName(t *testing.T) {
 	}
 	_, err := NewRegistry(c, "")
 	if err == nil {
-		ft.True(t, false)
+		assert.True(t, false)
 	}
 }
 
@@ -423,6 +423,6 @@ func TestAdapterWithConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ft.Equal(t, reg.adapter, f, "registry uses wrong adapter")
-	ft.Equal(t, reg.config, c, "registrying using wrong config")
+	assert.Equal(t, reg.adapter, f, "registry uses wrong adapter")
+	assert.Equal(t, reg.config, c, "registrying using wrong config")
 }
