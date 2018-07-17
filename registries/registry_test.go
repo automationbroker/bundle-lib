@@ -22,6 +22,7 @@ import (
 
 	"github.com/automationbroker/bundle-lib/bundle"
 	"github.com/automationbroker/bundle-lib/registries/adapters"
+	"github.com/automationbroker/bundle-lib/registries/adapters/adaptertest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -418,10 +419,10 @@ func TestNewRegistry(t *testing.T) {
 			expectederr: true,
 		},
 		{
-			name: "local openshift registry",
+			name: "local_openshift should return a LocalOpenShiftAdapter",
 			c: Config{
 				Type: "local_openshift",
-				Name: "local_openshift",
+				Name: "localopenshift",
 			},
 			validate: func(reg Registry) bool {
 				_, ok := reg.adapter.(*adapters.LocalOpenShiftAdapter)
@@ -429,7 +430,7 @@ func TestNewRegistry(t *testing.T) {
 			},
 		},
 		{
-			name: "helm registry",
+			name: "helm should return a HelmAdapter",
 			c: Config{
 				Type: "helm",
 				Name: "helm",
@@ -440,42 +441,104 @@ func TestNewRegistry(t *testing.T) {
 			},
 		},
 		{
-			name: "openshift registry",
+			name: "openshift should return an OpenShiftAdapter",
 			c: Config{
-				Type: "openshift",
-				Name: "openshift",
+				Type:          "openshift",
+				Name:          "openshift",
+				SkipVerifyTLS: true,
+				URL:           "NEEDSURL",
 			},
 			validate: func(reg Registry) bool {
-				_, ok := reg.adapter.(*adapters.OpenShiftAdapter)
+				_, ok := reg.adapter.(adapters.OpenShiftAdapter)
 				return ok
 			},
 		},
 		{
-			name: "partner rhcc registry",
+			name: "partner_rhcc should return a PartnerRhccAdapter",
 			c: Config{
-				Type: "partner_rhcc",
-				Name: "partner_rhcc",
+				Type:          "partner_rhcc",
+				Name:          "partnerrhcc",
+				SkipVerifyTLS: true,
+				URL:           "NEEDSURL",
 			},
 			validate: func(reg Registry) bool {
-				_, ok := reg.adapter.(*adapters.PartnerRhccAdapter)
+				_, ok := reg.adapter.(adapters.PartnerRhccAdapter)
 				return ok
 			},
 		},
 		{
-			name: "apiv2 registry",
+			name: "apiv2 should return an APIV2Adapter",
+			c: Config{
+				Type:          "apiv2",
+				Name:          "genericapiv2",
+				SkipVerifyTLS: true,
+				URL:           "NEEDSURL",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(adapters.APIV2Adapter)
+				return ok
+			},
+		},
+		{
+			name: "underscores in names should fail",
+			c: Config{
+				Type: "helm",
+				Name: "underscores_are_bad",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "apiv2 with no url should fail",
 			c: Config{
 				Type: "apiv2",
-				Name: "genericapiv2",
+				Name: "nourl",
 			},
 			validate: func(reg Registry) bool {
-				_, ok := reg.adapter.(*adapters.APIV2Adapter)
-				return ok
+				return true
 			},
+			expectederr: true,
+		},
+		{
+			name: "retrieve registry auth should fail",
+			c: Config{
+				Type:     "dockerhub",
+				Name:     "nourl",
+				AuthType: "file",
+				AuthName: "fakefile/tocause/error",
+			},
+			validate: func(reg Registry) bool {
+				// should probably verify the registry, but the important part
+				// is that we got an error
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "bad url should not fail",
+			c: Config{
+				Type: "dockerhub",
+				Name: "nourl",
+				URL:  "http://%41:8080/",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// HACK: if we need a url for testing the server, then set it here
+			if tc.c.URL == "NEEDSURL" {
+				s := adaptertest.GetAPIV2Server(t)
+				defer s.Close()
+				tc.c.URL = adaptertest.GetURL(t, s).String()
+			}
+
 			reg, err := NewRegistry(tc.c, "")
 
 			if tc.expectederr {
