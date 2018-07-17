@@ -318,19 +318,38 @@ func TestRegistryLoadSpecsBadRuntime(t *testing.T) {
 }
 
 func TestFail(t *testing.T) {
-	r := setUp()
-	r.config.Fail = true
+	inputerr := fmt.Errorf("sample test err")
 
-	fail := r.Fail(fmt.Errorf("new error"))
-	assert.True(t, fail)
-}
+	testCases := []struct {
+		name     string
+		r        Registry
+		expected bool
+	}{
+		{
+			name: "fail should return true",
+			r: Registry{
+				config: Config{
+					Fail: true,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "fail should return false",
+			r: Registry{
+				config: Config{
+					Fail: false,
+				},
+			},
+			expected: false,
+		},
+	}
 
-func TestFailIsFalse(t *testing.T) {
-	r := setUp()
-	r.config.Fail = false
-
-	fail := r.Fail(fmt.Errorf("new error"))
-	assert.False(t, fail)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.r.Fail(inputerr))
+		})
+	}
 }
 
 func TestNewRegistryRHCC(t *testing.T) {
