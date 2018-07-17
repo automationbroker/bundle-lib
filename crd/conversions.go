@@ -469,6 +469,11 @@ func convertPlanToAPB(plan v1alpha1.Plan) (bundle.Plan, error) {
 		}
 		bindParams = append(bindParams, param)
 	}
+
+	if len(errs) > 0 {
+		return bundle.Plan{}, errs
+	}
+
 	return bundle.Plan{
 		ID:             plan.ID,
 		Name:           plan.Name,
