@@ -311,6 +311,7 @@ func TestRegistryResponseHandler(t *testing.T) {
 			output, err := registryResponseHandler(w.Result())
 			if tc.expectederr {
 				assert.Error(t, err)
+				assert.NotEmpty(t, err.Error())
 			} else if err != nil {
 				t.Fatalf("unexpected error during test: %v\n", err)
 			}
