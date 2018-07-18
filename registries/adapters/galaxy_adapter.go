@@ -22,19 +22,20 @@ import (
 	"fmt"
 	"github.com/automationbroker/bundle-lib/bundle"
 	log "github.com/sirupsen/logrus"
-	//yaml "gopkg.in/yaml.v1"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
 const (
 	defaultRunner     = "ansibleplaybookbundle/apb-base:latest"
+	defaultURL        = "https://galaxy.ansible.com"
 	galaxyName        = "galaxy"
-	galaxySearchURL   = "https://galaxy-qa.ansible.com/api/v1/content/?content_type__name=apb"
-	galaxyNSSearchURL = "https://galaxy-qa.ansible.com/api/v1/content/?content_type__name=apb&namespace__name=%v"
-	galaxyRoleURL     = "https://galaxy-qa.ansible.com/api/v1/content/%v/"
-	galaxyAPIURL      = "https://galaxy-qa.ansible.com/api/v1"
+	galaxySearchURL   = "%v/api/v1/content/?content_type__name=apb"
+	galaxyNSSearchURL = "%v/api/v1/content/?content_type__name=apb&namespace__name=%v"
+	galaxyRoleURL     = "%v/api/v1/content/%v/"
+	galaxyAPIURL      = "%v/api/v1%v"
 )
 
 // GalaxyAdapter - Galaxy Adapter
@@ -89,18 +90,29 @@ func (r GalaxyAdapter) GetImageNames() ([]string, error) {
 	log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
 	log.Debug("Loading role list with tag: [apb]")
 
+	// default galaxy url
+	if r.Config.URL == nil {
+		log.Debugf("Using default galaxy url: %v", defaultURL)
+		r.Config.URL, _ = url.Parse(defaultURL)
+	}
+
+	// generate search url
+	searchURL := fmt.Sprintf(galaxySearchURL, r.Config.URL.String())
+	if len(r.Config.Org) != 0 {
+		log.Debugf("Using namespaced galaxy search")
+		searchURL = fmt.Sprintf(galaxyNSSearchURL, r.Config.URL.String(), r.Config.Org)
+	}
+
 	channel := make(chan string)
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
 	var imageResp *GalaxySearchResponse
 	var err error
+
 	// Intial call to getNextImages this will fan out to retrieve all the values.
-	if len(r.Config.Org) == 0 {
-		imageResp, err = r.getNextImages(ctx, galaxySearchURL, channel, cancelFunc)
-	} else {
-		imageResp, err = r.getNextImages(ctx, fmt.Sprintf(galaxyNSSearchURL, r.Config.Org), channel, cancelFunc)
-	}
+	imageResp, err = r.getNextImages(ctx, searchURL, channel, cancelFunc)
+
 	// if there was an issue with the first call, return the error
 	if err != nil {
 		return nil, err
@@ -180,8 +192,9 @@ func (r GalaxyAdapter) getNextImages(ctx context.Context,
 	// Keep getting the images
 	if iResp.Next != "" {
 		log.Debugf("getting next page of results - %v", iResp.Next)
+		searchURL := fmt.Sprintf(galaxyAPIURL, r.Config.URL.String(), iResp.Next)
 		// Fan out calls to get the next images.
-		go r.getNextImages(ctx, fmt.Sprintf("%v%v", galaxyAPIURL, iResp.Next), ch, cancelFunc)
+		go r.getNextImages(ctx, fmt.Sprintf("%v%v", searchURL, iResp.Next), ch, cancelFunc)
 	}
 	for _, imageName := range iResp.Results {
 		log.Debugf("Trying to load %v.%v", imageName.Summary.Namespace.Name, imageName.Name)
@@ -201,10 +214,16 @@ func (r GalaxyAdapter) getNextImages(ctx context.Context,
 }
 
 func (r GalaxyAdapter) loadSpec(imageName string) (*bundle.Spec, error) {
+
 	imageSplit := strings.Split(imageName, "#")
+	if len(imageSplit) < 2 {
+		log.Debugf("Expected image [%v] to be of the form roleName#roleID", imageName)
+		return nil, nil
+	}
 	roleName := imageSplit[0]
 	roleID := imageSplit[1]
-	req, err := http.NewRequest("GET", fmt.Sprintf(galaxyRoleURL, roleID), nil)
+
+	req, err := http.NewRequest("GET", fmt.Sprintf(galaxyRoleURL, r.Config.URL.String(), roleID), nil)
 	if err != nil {
 		return nil, err
 	}
