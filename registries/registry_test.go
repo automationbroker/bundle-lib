@@ -116,6 +116,19 @@ var s = bundle.Spec{
 	Plans:       []bundle.Plan{p},
 }
 
+var dupePlansSpec = bundle.Spec{
+	Version:     SpecVersion,
+	Runtime:     SpecRuntime,
+	ID:          SpecID,
+	Description: SpecDescription,
+	FQName:      SpecName,
+	Image:       SpecImage,
+	Tags:        SpecTags,
+	Bindable:    SpecBindable,
+	Async:       SpecAsync,
+	Plans:       []bundle.Plan{p, p},
+}
+
 var noPlansSpec = bundle.Spec{
 	Version:     SpecVersion,
 	Runtime:     SpecRuntime,
@@ -206,6 +219,21 @@ func setUp() Registry {
 	return r
 }
 
+func setUpDupePlans() Registry {
+	a = &TestingAdapter{
+		Name:   "dupeadapter",
+		Images: []string{"image1-bundle", "image2"},
+		Specs:  []*bundle.Spec{&dupePlansSpec},
+		Called: map[string]bool{},
+	}
+	filter := Filter{}
+	c := Config{}
+	r = Registry{config: c,
+		adapter: a,
+		filter:  filter}
+	return r
+}
+
 func setUpNoPlans() Registry {
 	a = &TestingAdapter{
 		Name:   "testing",
@@ -282,6 +310,16 @@ func TestRegistryLoadSpecs(t *testing.T) {
 				assert.Equal(t, specs[0], &s)
 				return true
 			},
+		},
+		{
+			name: "load specs with duplicate plans",
+			r:    setUpDupePlans(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, images, 2)
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+			expectederr: false,
 		},
 		{
 			name: "load specs no plans",
