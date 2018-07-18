@@ -174,3 +174,97 @@ func TestConfigToSpec(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAPBRuntimeVersion(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       string
+		expected    int
+		expectederr bool
+	}{
+		{
+			name:     "empty version string",
+			input:    "",
+			expected: 1,
+		},
+		{
+			name:     "version 1",
+			input:    "1",
+			expected: 1,
+		},
+		{
+			name:     "version 2",
+			input:    "2",
+			expected: 2,
+		},
+		{
+			name:     "version 2000",
+			input:    "2000",
+			expected: 2000,
+		},
+		{
+			name:        "invalid version number",
+			input:       "invalid version",
+			expected:    0,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := getAPBRuntimeVersion(tc.input)
+			if tc.expectederr {
+				ft.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			ft.Equal(t, tc.expected, output)
+		})
+	}
+}
+
+func TestGetSchemaVersion(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       string
+		expected    int
+		expectederr bool
+	}{
+		{
+			name:        "empty response string",
+			input:       "",
+			expected:    0,
+			expectederr: true,
+		},
+		{
+			name:     "valid schema version string",
+			input:    schema1Ct,
+			expected: 1,
+		},
+		{
+			name:     "valid schema version 2 string",
+			input:    schema2Ct,
+			expected: 2,
+		},
+		{
+			name:        "invalid schema version string",
+			input:       "invalid version",
+			expected:    0,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := getSchemaVersion(tc.input)
+			if tc.expectederr {
+				ft.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			ft.Equal(t, tc.expected, output)
+		})
+	}
+}
