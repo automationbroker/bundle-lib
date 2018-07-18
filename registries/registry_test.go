@@ -571,6 +571,30 @@ func TestNewRegistry(t *testing.T) {
 			},
 			expectederr: true,
 		},
+		{
+			name: "invalid whitelist should not fail",
+			c: Config{
+				Type:      "dockerhub",
+				Name:      "invalidwhitelist",
+				WhiteList: []string{"[0-9]++"},
+			},
+			validate: func(reg Registry) bool {
+				return assert.True(t, len(reg.filter.whiteRegexp) == 0) &&
+					assert.True(t, len(reg.filter.failedWhiteRegexp) == 1)
+			},
+		},
+		{
+			name: "invalid blacklist should not fail",
+			c: Config{
+				Type:      "dockerhub",
+				Name:      "invalidblackist",
+				BlackList: []string{"[0-9]++"},
+			},
+			validate: func(reg Registry) bool {
+				return assert.True(t, len(reg.filter.blackRegexp) == 0) &&
+					assert.True(t, len(reg.filter.failedBlackRegexp) == 1)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
