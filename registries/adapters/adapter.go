@@ -182,14 +182,3 @@ func getAPBRuntimeVersion(version string) (int, error) {
 	}
 	return runtime, nil
 }
-
-// manifest schema version
-func getSchemaVersion(response []byte) (int, error) {
-	mResp := manifestResponse{}
-	r := bytes.NewReader(response)
-	if err := json.NewDecoder(r).Decode(&mResp); err != nil {
-		log.Errorf("Error getting schemaVersion", err)
-		return 0, err
-	}
-	return mResp.SchemaVersion, nil
-}

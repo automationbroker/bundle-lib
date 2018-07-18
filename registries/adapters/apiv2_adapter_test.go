@@ -199,6 +199,7 @@ func getServer(t *testing.T) *httptest.Server {
 	}))
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", fmt.Sprintf("%s", schema1Ct))
 		if r.Method != "GET" {
 			t.Errorf("Expected `GET` request, got `%s`", r.Method)
 		}
