@@ -44,7 +44,7 @@ func TestResponseToSpec(t *testing.T) {
 				SchemaVersion: 1,
 				History: []map[string]string{
 					{
-						"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\"}}}", testApbSpec),
+						"v1Compatibility": fmt.Sprintf(`{"config":{"Labels":{"build-date":"20170801","com.redhat.apb.spec":"%s","com.redhat.apb.version":"0.1.0"}}}"`, testApbSpec),
 					},
 				},
 			},
@@ -63,7 +63,7 @@ func TestResponseToSpec(t *testing.T) {
 				SchemaVersion: 1,
 				History: []map[string]string{
 					{
-						"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.apb.runtime\":\"2\"}}}", testApbSpec),
+						"v1Compatibility": fmt.Sprintf(`{"config":{"Labels":{"build-date":"20170801","com.redhat.apb.spec":"%s","com.redhat.apb.version":"0.1.0","com.redhat.apb.runtime":"2"}}}`, testApbSpec),
 					},
 				},
 			},
@@ -82,7 +82,7 @@ func TestResponseToSpec(t *testing.T) {
 				SchemaVersion: 1,
 				History: []map[string]string{
 					{
-						"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.bundle.runtime\":\"2\"}}}", testApbSpec),
+						"v1Compatibility": fmt.Sprintf(`{"config":{"Labels":{"build-date":"20170801","com.redhat.apb.spec":"%s","com.redhat.apb.version":"0.1.0","com.redhat.bundle.runtime":"2"}}}`, testApbSpec),
 					},
 				},
 			},
