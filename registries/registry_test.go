@@ -179,6 +179,29 @@ var badRuntimeSpec = bundle.Spec{
 	Plans:       []bundle.Plan{p},
 }
 
+type errorAdapter struct {
+	errGetImageNames bool
+	errFetchSpecs    bool
+}
+
+func (e errorAdapter) GetImageNames() ([]string, error) {
+	if e.errGetImageNames {
+		return []string{}, fmt.Errorf("always return an error")
+	}
+	return []string{}, nil
+}
+
+func (e errorAdapter) FetchSpecs(names []string) ([]*bundle.Spec, error) {
+	if e.errFetchSpecs {
+		return []*bundle.Spec{}, fmt.Errorf("always return an error")
+	}
+	return []*bundle.Spec{}, nil
+}
+
+func (e errorAdapter) RegistryName() string {
+	return ""
+}
+
 type TestingAdapter struct {
 	Name   string
 	Images []string
@@ -294,6 +317,19 @@ func setUpBadRuntime() Registry {
 	return r
 }
 
+func setUpWithErrors(eg bool, ef bool) Registry {
+	e := &errorAdapter{
+		errGetImageNames: eg,
+		errFetchSpecs:    ef,
+	}
+	filter := Filter{}
+	c := Config{}
+	r = Registry{config: c,
+		adapter: e,
+		filter:  filter}
+	return r
+}
+
 func TestRegistryLoadSpecs(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -352,6 +388,24 @@ func TestRegistryLoadSpecs(t *testing.T) {
 				assert.Equal(t, len(specs), 0)
 				return true
 			},
+		},
+		{
+			name: "load specs getimagenames returns error",
+			r:    setUpWithErrors(true, false),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "load specs fetchspecs returns error",
+			r:    setUpWithErrors(false, true),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+			expectederr: true,
 		},
 	}
 
