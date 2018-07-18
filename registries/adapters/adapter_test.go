@@ -18,6 +18,8 @@ package adapters
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"fmt"
@@ -258,6 +260,55 @@ func TestGetSchemaVersion(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			output, err := getSchemaVersion(tc.input)
+			if tc.expectederr {
+				ft.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			ft.Equal(t, tc.expected, output)
+		})
+	}
+}
+
+func TestRegistryResponseHandler(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       []byte
+		code        int
+		expected    []byte
+		expectederr bool
+	}{
+		{
+			name:        "empty response string",
+			input:       []byte("hello world"),
+			code:        http.StatusOK,
+			expected:    []byte("hello world"),
+			expectederr: false,
+		},
+		{
+			name:        "unauthorized response code",
+			input:       []byte(""),
+			code:        http.StatusUnauthorized,
+			expected:    nil,
+			expectederr: true,
+		},
+		{
+			name:        "something other than unauthorized and ok code",
+			input:       []byte(""),
+			code:        http.StatusAccepted,
+			expected:    nil,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			w.Write(tc.input)
+			w.Code = tc.code
+
+			output, err := registryResponseHandler(w.Result())
 			if tc.expectederr {
 				ft.Error(t, err)
 			} else if err != nil {
