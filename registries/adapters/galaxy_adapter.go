@@ -87,7 +87,7 @@ func (r GalaxyAdapter) RegistryName() string {
 // GetImageNames - retrieve the images
 func (r GalaxyAdapter) GetImageNames() ([]string, error) {
 	log.Debug("GalaxyAdapter::GetImages")
-	log.Debug("BundleSpecLabel: %s", BundleSpecLabel)
+	log.Debugf("BundleSpecLabel: %s", BundleSpecLabel)
 	log.Debug("Loading role list with tag: [apb]")
 
 	// default galaxy url
@@ -118,7 +118,7 @@ func (r GalaxyAdapter) GetImageNames() ([]string, error) {
 		return nil, err
 	}
 
-	// If no results in the fist call then close the channel as nothing will get loaded.
+	// If no results in the first call then close the channel as nothing will get loaded.
 	if len(imageResp.Results) == 0 {
 		log.Info("canceled retrieval as no items in org")
 		close(channel)
