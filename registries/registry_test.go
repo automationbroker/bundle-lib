@@ -20,7 +20,12 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
+
 	"github.com/automationbroker/bundle-lib/bundle"
+	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/registries/adapters"
 	"github.com/automationbroker/bundle-lib/registries/adapters/adaptertest"
 	"github.com/stretchr/testify/assert"
@@ -727,4 +732,185 @@ func TestAdapterWithConfiguration(t *testing.T) {
 	}
 	assert.Equal(t, reg.adapter, f, "registry uses wrong adapter")
 	assert.Equal(t, reg.config, c, "registrying using wrong config")
+}
+
+func TestRetrieveRegistryAuth(t *testing.T) {
+
+	testCases := []struct {
+		name        string
+		input       Config
+		ns          string
+		client      *fake.Clientset
+		expected    Config
+		expectederr bool
+	}{
+		{
+			name: "secret auth type with no client should fail",
+			input: Config{
+				AuthName: "secret",
+				AuthType: "secret",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "secret auth type",
+			ns:   "testing",
+			input: Config{
+				AuthName: "registrysecret",
+				AuthType: "secret",
+			},
+			client: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "registrysecret",
+					Namespace: "testing",
+				},
+				Data: map[string][]byte{
+					"username": []byte("secretusername"),
+					"password": []byte("secretpassword"),
+				},
+			}),
+			expected: Config{
+				AuthName: "registrysecret",
+				AuthType: "secret",
+				User:     "secretusername",
+				Pass:     "secretpassword",
+			},
+		},
+		{
+			name: "secret auth type with empty secret should fail",
+			ns:   "testing",
+			input: Config{
+				AuthName: "registrysecret",
+				AuthType: "secret",
+			},
+			client: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "registrysecret",
+					Namespace: "testing",
+				},
+				Data: map[string][]byte{
+					"username": []byte(""),
+					"password": []byte(""),
+				},
+			}),
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "file auth type with no auth name should fail",
+			input: Config{
+				AuthName: "",
+				AuthType: "file",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "file auth type",
+			input: Config{
+				AuthName: "testdata/fileauthtest",
+				AuthType: "file",
+			},
+			expected: Config{
+				AuthName: "testdata/fileauthtest",
+				AuthType: "file",
+				User:     "fileuser",
+				Pass:     "filepassword",
+			},
+		},
+		{
+			name: "file auth type with invalidfile",
+			input: Config{
+				AuthName: "testdata/invalidfileauthtest",
+				AuthType: "file",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "config auth type with empty user should fail",
+			input: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "",
+				Pass:     "password",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "config auth type with empty password should fail",
+			input: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "username",
+				Pass:     "",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "config auth type",
+			input: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "username",
+				Pass:     "password",
+			},
+			expected: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "username",
+				Pass:     "password",
+			},
+		},
+		{
+			name: "empty auth type",
+			input: Config{
+				AuthName: "empty",
+				AuthType: "",
+			},
+			expected: Config{
+				AuthName: "empty",
+				AuthType: "",
+				User:     "",
+				Pass:     "",
+			},
+		},
+		{
+			name: "unknown auth type",
+			input: Config{
+				AuthName: "unknown",
+				AuthType: "unknown",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// we need the client for the secrets portion of the test
+			k, err := clients.Kubernetes()
+			if err != nil {
+				t.Fail()
+			}
+
+			if tc.client != nil {
+				k.Client = tc.client
+			}
+
+			output, err := retrieveRegistryAuth(tc.input, tc.ns)
+
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
 }
