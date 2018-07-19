@@ -142,6 +142,7 @@ const SpecImage = "ansibleplaybookbundle/mediawiki123-apb"
 const SpecBindable = false
 const SpecAsync = "optional"
 const SpecDescription = "Mediawiki123 apb implementation"
+const SpecDelete = false
 const SpecPlans = `
 [
    {
@@ -260,9 +261,10 @@ var SpecJSON = fmt.Sprintf(`
 	"bindable": %t,
 	"async": "%s",
 	"plans": %s,
-	"alpha": %s
+	"alpha": %s,
+	"delete": %t
 }
-`, SpecDescription, SpecVersion, SpecRuntime, SpecName, SpecImage, SpecBindable, SpecAsync, SpecPlans, SpecAlphaStr)
+`, SpecDescription, SpecVersion, SpecRuntime, SpecName, SpecImage, SpecBindable, SpecAsync, SpecPlans, SpecAlphaStr, SpecDelete)
 
 func TestSpecLoadJSON(t *testing.T) {
 	s := Spec{}
@@ -278,6 +280,7 @@ func TestSpecLoadJSON(t *testing.T) {
 	ft.Equal(t, s.Image, SpecImage)
 	ft.Equal(t, s.Bindable, SpecBindable)
 	ft.Equal(t, s.Async, SpecAsync)
+	ft.Equal(t, s.Delete, SpecDelete)
 	ft.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
 	ft.True(t, reflect.DeepEqual(s.Alpha, SpecAlpha))
 }

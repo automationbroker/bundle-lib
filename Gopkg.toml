@@ -21,8 +21,8 @@
 
 
 [[constraint]]
-  version = "0.1.2"
   name = "github.com/automationbroker/broker-client-go"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/coreos/etcd"
