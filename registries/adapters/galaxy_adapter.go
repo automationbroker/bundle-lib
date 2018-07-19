@@ -85,7 +85,7 @@ func (r GalaxyAdapter) RegistryName() string {
 }
 
 // GetImageNames - retrieve the images
-func (r GalaxyAdapter) GetImageNames() ([]string, error) {
+func (r *GalaxyAdapter) GetImageNames() ([]string, error) {
 	log.Debug("GalaxyAdapter::GetImages")
 	log.Debugf("BundleSpecLabel: %s", BundleSpecLabel)
 	log.Debug("Loading role list with tag: [apb]")
@@ -144,6 +144,13 @@ func (r GalaxyAdapter) GetImageNames() ([]string, error) {
 
 // FetchSpecs - retrieve the spec for the image names.
 func (r GalaxyAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, error) {
+
+	// default galaxy url
+	if r.Config.URL.Host == "" {
+		log.Debugf("Using default galaxy url: %v", defaultURL)
+		r.Config.URL, _ = url.Parse(defaultURL)
+	}
+
 	specs := []*bundle.Spec{}
 	for _, imageName := range imageNames {
 		spec, err := r.loadSpec(imageName)
