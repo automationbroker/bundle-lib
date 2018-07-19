@@ -228,6 +228,8 @@ func NewCustomRegistry(configuration Config, adapter adapters.Adapter, asbNamesp
 			adapter, err = adapters.NewAPIV2Adapter(c)
 		case "quay":
 			adapter, err = adapters.NewQuayAdapter(c)
+		case "galaxy":
+			adapter = &adapters.GalaxyAdapter{Config: c}
 		default:
 			log.Errorf("Unknown registry type - %s", configuration.Type)
 			return Registry{}, errors.New("Unknown registry type")
