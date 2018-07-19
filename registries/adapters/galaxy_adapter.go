@@ -110,7 +110,7 @@ func (r GalaxyAdapter) GetImageNames() ([]string, error) {
 	var imageResp *GalaxySearchResponse
 	var err error
 
-	// Intial call to getNextImages this will fan out to retrieve all the values.
+	// Initial call to getNextImages this will fan out to retrieve all the values.
 	imageResp, err = r.getNextImages(ctx, searchURL, channel, cancelFunc)
 
 	// if there was an issue with the first call, return the error
