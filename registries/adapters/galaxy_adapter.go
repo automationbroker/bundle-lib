@@ -91,7 +91,7 @@ func (r GalaxyAdapter) GetImageNames() ([]string, error) {
 	log.Debug("Loading role list with tag: [apb]")
 
 	// default galaxy url
-	if r.Config.URL == nil {
+	if r.Config.URL.Host == "" {
 		log.Debugf("Using default galaxy url: %v", defaultURL)
 		r.Config.URL, _ = url.Parse(defaultURL)
 	}
