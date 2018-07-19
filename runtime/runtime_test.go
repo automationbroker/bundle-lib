@@ -25,6 +25,7 @@ import (
 
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime/mocks"
+	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -97,7 +98,7 @@ func TestCreateSandbox(t *testing.T) {
 			name:      "Test Create Sandbox with namespace not in target",
 			podName:   "pod-name",
 			client:    fake.NewSimpleClientset(),
-			namespace: "foo-ns",
+			namespace: "bar-ns",
 			targets:   []string{"satoshi-ns", "nakamoto-ns"},
 			apbRole:   "edit",
 		},
@@ -121,18 +122,36 @@ func TestCreateSandbox(t *testing.T) {
 						StatusCode: http.StatusOK,
 						Body:       ioutil.NopCloser(bytes.NewReader([]byte(`{"major": "3", "minor": "2"}`))),
 					},
+					NegotiatedSerializer: scheme.Codecs,
 				},
 			}
+			// Create target namespaces for client
+			for _, target := range tc.targets {
+				ns := &apicorev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: target,
+					},
+				}
+				_, err := k.Client.CoreV1().Namespaces().Create(ns)
+				if err != nil {
+					t.Fatalf("Failed to create ns: %v", err)
+				}
+			}
+			NewRuntime(Configuration{})
 			p := Provider.(*provider)
-			p.CreateSandbox(tc.podName, tc.namespace, tc.targets, tc.apbRole, tc.metadata)
+			_, _, err = p.CreateSandbox(tc.podName, tc.namespace, tc.targets, tc.apbRole, tc.metadata)
+			if err != nil {
+				t.Fatalf("Failed to create sandbox: %v", err)
+			}
 			list, err := k.Client.NetworkingV1().NetworkPolicies(tc.targets[0]).List(metav1.ListOptions{})
 			if err != nil {
-				t.Fatalf("Failed to get list of network policies")
+				t.Fatalf("Failed to get list of network policies: %v", err)
 			}
 			// Test case where we are deploying to target
 			if isNamespaceInTargets(tc.namespace, tc.targets) && len(list.Items) > 0 {
 				t.Fatalf("Found a network policy when namespace is in target")
 			}
+			// Test case where we are not deploying to target
 			if !isNamespaceInTargets(tc.namespace, tc.targets) && len(list.Items) == 0 {
 				t.Fatalf("Namespace is not in target and found no network policies")
 			}
