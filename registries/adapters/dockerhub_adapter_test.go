@@ -19,10 +19,10 @@ package adapters
 import (
 	"testing"
 
-	ft "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDockerhubName(t *testing.T) {
 	dha := DockerHubAdapter{}
-	ft.Equal(t, dha.RegistryName(), "docker.io", "dockerhub name does not match docker.io")
+	assert.Equal(t, dha.RegistryName(), "docker.io", "dockerhub name does not match docker.io")
 }
