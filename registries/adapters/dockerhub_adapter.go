@@ -123,19 +123,14 @@ func (r DockerHubAdapter) FetchSpecs(imageNames []string) ([]*bundle.Spec, error
 
 // getDockerHubToken - will retrieve the docker hub token.
 func (r DockerHubAdapter) getDockerHubToken() (string, error) {
-	type Payload struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
 	type TokenResponse struct {
 		Token string `json:"token"`
 	}
-	data := Payload{
-		Username: r.Config.User,
-		Password: r.Config.Pass,
-	}
-	payloadBytes, err := json.Marshal(data)
+
+	payloadBytes, err := json.Marshal(map[string]string{
+		"username": r.Config.User,
+		"password": r.Config.Pass,
+	})
 	if err != nil {
 		return "", err
 	}
