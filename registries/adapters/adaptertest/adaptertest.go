@@ -14,25 +14,16 @@
 // limitations under the License.
 //
 
-package adapters
+package adaptertest
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
-	"sort"
+	"strings"
 	"testing"
-
-	"github.com/automationbroker/bundle-lib/registries/adapters/adaptertest"
-	"github.com/automationbroker/bundle-lib/registries/adapters/oauth"
-	ft "github.com/stretchr/testify/assert"
 )
-
-var apiV2Images = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides", "foo/bar"}
-
-var apiV2UniqueImages = []string{"satoshi/nakamoto", "foo/bar", "paul/atreides"}
-
-var testConfig = Configuration{
-	Images: apiV2Images,
-}
 
 const apiV2TestCatalogResponse = `
 {
@@ -99,90 +90,39 @@ const apiV2AuthResponse = `
   "issued_at": "2018-03-27T19:54:19Z"
 }`
 
-func TestAPIV2NewAPIV2Adapter(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
-	defer serv.Close()
-	testConfig.URL = adaptertest.GetURL(t, serv)
+const schema1Ct = "application/vnd.docker.distribution.manifest.v1+json"
 
-	apiv2a, err := NewAPIV2Adapter(testConfig)
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
+func GetAPIV2Server(t *testing.T) *httptest.Server {
+	authServ := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("Expected `GET` request, got `%s`", r.Method)
+		}
+		fmt.Fprintf(w, apiV2AuthResponse)
+	}))
 
-	ft.NotEqual(t, apiv2a, APIV2Adapter{}, "adaptor returned is not valid")
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", fmt.Sprintf("%s", schema1Ct))
+		if r.Method != "GET" {
+			t.Errorf("Expected `GET` request, got `%s`", r.Method)
+		}
+
+		if strings.HasSuffix(r.URL.EscapedPath(), "/v2/") {
+			w.Header().Add("Www-Authenticate", fmt.Sprintf("Bearer realm=\"%v/v2/auth/realms/foo-docker-v2/auth\",service=\"docker-registry\"", authServ.URL))
+		}
+		if strings.Contains(r.URL.EscapedPath(), "_catalog") {
+			fmt.Fprintf(w, apiV2TestCatalogResponse)
+		}
+		if strings.Contains(r.URL.EscapedPath(), "manifests/") {
+			name := strings.Split(r.URL.EscapedPath(), "manifests/")[1]
+			fmt.Fprintf(w, fmt.Sprintf(apiV2ManifestResponse, name))
+		}
+	}))
 }
 
-func TestNewOpenShiftAdapter(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
-	defer serv.Close()
-	testConfig.URL = adaptertest.GetURL(t, serv)
-
-	osAdapter, err := NewOpenShiftAdapter(testConfig)
+func GetURL(t *testing.T, s *httptest.Server) *url.URL {
+	url, err := url.Parse(s.URL)
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
-	ft.NotEqual(t, osAdapter, OpenShiftAdapter{}, "OpenShift adaptor returned is not valid")
-}
-
-func TestNewPartnerRhccAdapter(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
-	defer serv.Close()
-	testConfig.URL = adaptertest.GetURL(t, serv)
-
-	prAdapter, err := NewPartnerRhccAdapter(testConfig)
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
-	ft.NotEqual(t, prAdapter, PartnerRhccAdapter{}, "Partner RHCC adaptor returned is not valid")
-}
-
-func TestAPIV2GetImageNames(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
-	defer serv.Close()
-	testConfig.URL = adaptertest.GetURL(t, serv)
-	apiv2a, _ := NewAPIV2Adapter(testConfig)
-
-	imagesFound, err := apiv2a.GetImageNames()
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
-	sort.Strings(imagesFound)
-	sort.Strings(apiV2UniqueImages)
-	ft.Equal(t, imagesFound, apiV2UniqueImages, "image names returned did not match expected config")
-}
-
-func TestAPIV2GetImageNamesBadURL(t *testing.T) {
-	// This test also covers the test case of a registry that does not implement discovery
-	// AKA <url>/v2/_catalog returns 404
-	testConfig.URL, _ = url.Parse("https://www.google.com")
-	apiv2a := APIV2Adapter{
-		config: testConfig,
-		client: oauth.NewClient("user", "pass", true, testConfig.URL),
-	}
-
-	imagesFound, err := apiv2a.GetImageNames()
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
-	sort.Strings(imagesFound)
-	sort.Strings(apiV2UniqueImages)
-	ft.Equal(t, imagesFound, apiV2UniqueImages, "image names returned did not match images in config")
-}
-
-func TestAPIV2FetchSpecs(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
-	defer serv.Close()
-	testConfig.URL = adaptertest.GetURL(t, serv)
-	apiv2a, _ := NewAPIV2Adapter(testConfig)
-
-	specs, err := apiv2a.FetchSpecs(apiV2UniqueImages)
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
-	if specs == nil {
-		t.Fatal("Error: did not find fetch any valid specs")
-	}
-	if len(specs) != 3 {
-		t.Fatal("Error: did not find 3 expected specs, only found: ", len(specs))
-	}
+	return url
 }

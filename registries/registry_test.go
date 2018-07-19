@@ -20,9 +20,15 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
+
 	"github.com/automationbroker/bundle-lib/bundle"
+	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/registries/adapters"
-	ft "github.com/stretchr/testify/assert"
+	"github.com/automationbroker/bundle-lib/registries/adapters/adaptertest"
+	"github.com/stretchr/testify/assert"
 )
 
 var SpecTags = []string{"latest", "old-release"}
@@ -110,6 +116,19 @@ var s = bundle.Spec{
 	Plans:       []bundle.Plan{p},
 }
 
+var dupePlansSpec = bundle.Spec{
+	Version:     SpecVersion,
+	Runtime:     SpecRuntime,
+	ID:          SpecID,
+	Description: SpecDescription,
+	FQName:      SpecName,
+	Image:       SpecImage,
+	Tags:        SpecTags,
+	Bindable:    SpecBindable,
+	Async:       SpecAsync,
+	Plans:       []bundle.Plan{p, p},
+}
+
 var noPlansSpec = bundle.Spec{
 	Version:     SpecVersion,
 	Runtime:     SpecRuntime,
@@ -160,6 +179,29 @@ var badRuntimeSpec = bundle.Spec{
 	Plans:       []bundle.Plan{p},
 }
 
+type errorAdapter struct {
+	errGetImageNames bool
+	errFetchSpecs    bool
+}
+
+func (e errorAdapter) GetImageNames() ([]string, error) {
+	if e.errGetImageNames {
+		return []string{}, fmt.Errorf("always return an error")
+	}
+	return []string{}, nil
+}
+
+func (e errorAdapter) FetchSpecs(names []string) ([]*bundle.Spec, error) {
+	if e.errFetchSpecs {
+		return []*bundle.Spec{}, fmt.Errorf("always return an error")
+	}
+	return []*bundle.Spec{}, nil
+}
+
+func (e errorAdapter) RegistryName() string {
+	return ""
+}
+
 type TestingAdapter struct {
 	Name   string
 	Images []string
@@ -190,6 +232,21 @@ func setUp() Registry {
 		Name:   "testing",
 		Images: []string{"image1-bundle", "image2"},
 		Specs:  []*bundle.Spec{&s},
+		Called: map[string]bool{},
+	}
+	filter := Filter{}
+	c := Config{}
+	r = Registry{config: c,
+		adapter: a,
+		filter:  filter}
+	return r
+}
+
+func setUpDupePlans() Registry {
+	a = &TestingAdapter{
+		Name:   "dupeadapter",
+		Images: []string{"image1-bundle", "image2"},
+		Specs:  []*bundle.Spec{&dupePlansSpec},
 		Called: map[string]bool{},
 	}
 	filter := Filter{}
@@ -260,140 +317,506 @@ func setUpBadRuntime() Registry {
 	return r
 }
 
-func TestRegistryLoadSpecsNoError(t *testing.T) {
-	r := setUp()
-	specs, numImages, err := r.LoadSpecs()
-	if err != nil {
-		ft.True(t, false)
+func setUpWithErrors(eg bool, ef bool) Registry {
+	e := &errorAdapter{
+		errGetImageNames: eg,
+		errFetchSpecs:    ef,
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, numImages, 2)
-	ft.Equal(t, len(specs), 1)
-	ft.Equal(t, specs[0], &s)
+	filter := Filter{}
+	c := Config{}
+	r = Registry{config: c,
+		adapter: e,
+		filter:  filter}
+	return r
 }
 
-func TestRegistryLoadSpecsNoPlans(t *testing.T) {
-	r := setUpNoPlans()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		ft.True(t, false)
+func TestRegistryLoadSpecs(t *testing.T) {
+	testCases := []struct {
+		name        string
+		r           Registry
+		validate    func([]*bundle.Spec, int, error) bool
+		expectederr bool
+	}{
+		{
+			name: "load specs no error",
+			r:    setUp(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, images, 2)
+				assert.Equal(t, len(specs), 1)
+				assert.Equal(t, specs[0], &s)
+				return true
+			},
+		},
+		{
+			name: "load specs with duplicate plans",
+			r:    setUpDupePlans(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, images, 2)
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+			expectederr: false,
+		},
+		{
+			name: "load specs no plans",
+			r:    setUpNoPlans(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs no version",
+			r:    setUpNoVersion(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs bad version",
+			r:    setUpBadVersion(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs bad runtime",
+			r:    setUpBadRuntime(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+		},
+		{
+			name: "load specs getimagenames returns error",
+			r:    setUpWithErrors(true, false),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "load specs fetchspecs returns error",
+			r:    setUpWithErrors(false, true),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				assert.Equal(t, len(specs), 0)
+				return true
+			},
+			expectederr: true,
+		},
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
-}
 
-func TestRegistryLoadSpecsNoVersion(t *testing.T) {
-	r := setUpNoVersion()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		ft.True(t, false)
-	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			specs, numImages, err := tc.r.LoadSpecs()
 
-func TestRegistryLoadSpecsBadVersion(t *testing.T) {
-	r := setUpBadVersion()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		ft.True(t, false)
-	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
-}
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
 
-func TestRegistryLoadSpecsBadRuntime(t *testing.T) {
-	r := setUpBadRuntime()
-	specs, _, err := r.LoadSpecs()
-	if err != nil {
-		ft.True(t, false)
+			// assert.True(t, tc.r.adapter.Called["GetImageNames"])
+			// assert.True(t, tc.r.adapter.Called["FetchSpecs"])
+			assert.True(t, tc.validate(specs, numImages, err))
+		})
 	}
-	ft.True(t, a.Called["GetImageNames"])
-	ft.True(t, a.Called["FetchSpecs"])
-	ft.Equal(t, len(specs), 0)
 }
 
 func TestFail(t *testing.T) {
-	r := setUp()
-	r.config.Fail = true
+	inputerr := fmt.Errorf("sample test err")
 
-	fail := r.Fail(fmt.Errorf("new error"))
-	ft.True(t, fail)
-}
-
-func TestFailIsFalse(t *testing.T) {
-	r := setUp()
-	r.config.Fail = false
-
-	fail := r.Fail(fmt.Errorf("new error"))
-	ft.False(t, fail)
-}
-
-func TestNewRegistryRHCC(t *testing.T) {
-	c := Config{
-		Type: "rhcc",
-		Name: "rhcc",
-	}
-	reg, err := NewRegistry(c, "")
-	if err != nil {
-		ft.True(t, false)
-	}
-	_, ok := reg.adapter.(*adapters.RHCCAdapter)
-	ft.True(t, ok)
-}
-
-func TestNewRegistryDockerHub(t *testing.T) {
-	c := Config{
-		Type: "dockerhub",
-		Name: "dh",
-		URL:  "https://registry.hub.docker.com",
-		User: "shurley",
-		Org:  "shurley",
-	}
-	reg, err := NewRegistry(c, "")
-	if err != nil {
-		ft.True(t, false)
-	}
-	_, ok := reg.adapter.(*adapters.DockerHubAdapter)
-	ft.True(t, ok)
-}
-
-func TestNewRegistryMock(t *testing.T) {
-	c := Config{
-		Type: "mock",
-		Name: "mock",
+	testCases := []struct {
+		name     string
+		r        Registry
+		expected bool
+	}{
+		{
+			name: "fail should return true",
+			r: Registry{
+				config: Config{
+					Fail: true,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "fail should return false",
+			r: Registry{
+				config: Config{
+					Fail: false,
+				},
+			},
+			expected: false,
+		},
 	}
 
-	reg, err := NewRegistry(c, "")
-	if err != nil {
-		ft.True(t, false)
-	}
-	_, ok := reg.adapter.(*adapters.MockAdapter)
-	ft.True(t, ok)
-}
-
-func TestUnknownType(t *testing.T) {
-	c := Config{
-		Type: "makes_no_sense",
-		Name: "dh",
-	}
-	_, err := NewRegistry(c, "")
-	if err == nil {
-		t.Fatal("Error: error was nil")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.r.Fail(inputerr))
+		})
 	}
 }
 
-func TestValidateName(t *testing.T) {
-	c := Config{
-		Type: "dockerhub",
+func TestNewRegistry(t *testing.T) {
+	testCases := []struct {
+		name        string
+		c           Config
+		validate    func(Registry) bool
+		expectederr bool
+	}{
+		{
+			name: "rhcc registry",
+			c: Config{
+				Type: "rhcc",
+				Name: "rhcc",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.RHCCAdapter)
+				return ok
+			},
+		},
+		{
+			name: "dockerhub registry",
+			c: Config{
+				Type: "dockerhub",
+				Name: "dh",
+				URL:  "https://registry.hub.docker.com",
+				User: "shurley",
+				Org:  "shurley",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.DockerHubAdapter)
+				return ok
+			},
+		},
+		{
+			name: "mock registry",
+			c: Config{
+				Type: "mock",
+				Name: "mock",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.MockAdapter)
+				return ok
+			},
+		},
+		{
+			name: "unknown registry",
+			c: Config{
+				Type: "makes_no_sense",
+				Name: "dh",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "local_openshift should return a LocalOpenShiftAdapter",
+			c: Config{
+				Type: "local_openshift",
+				Name: "localopenshift",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.LocalOpenShiftAdapter)
+				return ok
+			},
+		},
+		{
+			name: "helm should return a HelmAdapter",
+			c: Config{
+				Type: "helm",
+				Name: "helm",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.HelmAdapter)
+				return ok
+			},
+		},
+		{
+			name: "openshift should return an OpenShiftAdapter",
+			c: Config{
+				Type:          "openshift",
+				Name:          "openshift",
+				SkipVerifyTLS: true,
+				URL:           "NEEDSURL",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(adapters.OpenShiftAdapter)
+				return ok
+			},
+		},
+		{
+			name: "partner_rhcc should return a PartnerRhccAdapter",
+			c: Config{
+				Type:          "partner_rhcc",
+				Name:          "partnerrhcc",
+				SkipVerifyTLS: true,
+				URL:           "NEEDSURL",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(adapters.PartnerRhccAdapter)
+				return ok
+			},
+		},
+		{
+			name: "apiv2 should return an APIV2Adapter",
+			c: Config{
+				Type:          "apiv2",
+				Name:          "genericapiv2",
+				SkipVerifyTLS: true,
+				URL:           "NEEDSURL",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(adapters.APIV2Adapter)
+				return ok
+			},
+		},
+		{
+			name: "underscores in names should fail",
+			c: Config{
+				Type: "helm",
+				Name: "underscores_are_bad",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "apiv2 with no url should fail",
+			c: Config{
+				Type: "apiv2",
+				Name: "nourl",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "retrieve registry auth should fail",
+			c: Config{
+				Type:     "dockerhub",
+				Name:     "nourl",
+				AuthType: "file",
+				AuthName: "fakefile/tocause/error",
+			},
+			validate: func(reg Registry) bool {
+				// should probably verify the registry, but the important part
+				// is that we got an error
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "bad url should not fail",
+			c: Config{
+				Type: "dockerhub",
+				Name: "nourl",
+				URL:  "http://%41:8080/",
+			},
+			validate: func(reg Registry) bool {
+				return true
+			},
+			expectederr: true,
+		},
+		{
+			name: "invalid whitelist should not fail",
+			c: Config{
+				Type:      "dockerhub",
+				Name:      "invalidwhitelist",
+				WhiteList: []string{"[0-9]++"},
+			},
+			validate: func(reg Registry) bool {
+				return assert.True(t, len(reg.filter.whiteRegexp) == 0) &&
+					assert.True(t, len(reg.filter.failedWhiteRegexp) == 1)
+			},
+		},
+		{
+			name: "invalid blacklist should not fail",
+			c: Config{
+				Type:      "dockerhub",
+				Name:      "invalidblackist",
+				BlackList: []string{"[0-9]++"},
+			},
+			validate: func(reg Registry) bool {
+				return assert.True(t, len(reg.filter.blackRegexp) == 0) &&
+					assert.True(t, len(reg.filter.failedBlackRegexp) == 1)
+			},
+		},
 	}
-	_, err := NewRegistry(c, "")
-	if err == nil {
-		ft.True(t, false)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// HACK: if we need a url for testing the server, then set it here
+			if tc.c.URL == "NEEDSURL" {
+				s := adaptertest.GetAPIV2Server(t)
+				defer s.Close()
+				tc.c.URL = adaptertest.GetURL(t, s).String()
+			}
+
+			reg, err := NewRegistry(tc.c, "")
+
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			// assert.True(t, tc.r.adapter.Called["GetImageNames"])
+			// assert.True(t, tc.r.adapter.Called["FetchSpecs"])
+			assert.True(t, tc.validate(reg))
+		})
+	}
+}
+
+func TestRegistryName(t *testing.T) {
+	testCases := []struct {
+		name     string
+		r        Registry
+		expected string
+	}{
+		{
+			name: "registry name",
+			r: Registry{
+				config: Config{
+					Name: "registryname",
+				},
+			},
+			expected: "registryname",
+		},
+		{
+			name: "empty name",
+			r: Registry{
+				config: Config{
+					Name: "",
+				},
+			},
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.r.RegistryName())
+		})
+	}
+}
+
+func TestValidate(t *testing.T) {
+
+	testCases := []struct {
+		name     string
+		c        Config
+		expected bool
+	}{
+		{
+			name:     "empty name",
+			c:        Config{Name: ""},
+			expected: false,
+		},
+		{
+			name: "valid name, empty authtype and authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "",
+				AuthType: "",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, empty authtype, non-empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "shouldfail",
+				AuthType: "",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, file, empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "",
+				AuthType: "file",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, file, non-empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "non-empty",
+				AuthType: "file",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, secret, empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "",
+				AuthType: "secret",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, secret, non-empty authname",
+			c: Config{
+				Name:     "daname",
+				AuthName: "non-empty",
+				AuthType: "secret",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, config, without user",
+			c: Config{
+				Name:     "daname",
+				User:     "",
+				AuthType: "config",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, config, without pass",
+			c: Config{
+				Name:     "daname",
+				User:     "user",
+				Pass:     "",
+				AuthType: "config",
+			},
+			expected: false,
+		},
+		{
+			name: "valid name, config, user, pass",
+			c: Config{
+				Name:     "daname",
+				User:     "user",
+				Pass:     "$3cr3+",
+				AuthType: "config",
+			},
+			expected: true,
+		},
+		{
+			name: "valid name, unknown",
+			c: Config{
+				Name:     "daname",
+				AuthType: "unknown",
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.c.Validate())
+		})
 	}
 }
 
@@ -423,6 +846,187 @@ func TestAdapterWithConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ft.Equal(t, reg.adapter, f, "registry uses wrong adapter")
-	ft.Equal(t, reg.config, c, "registrying using wrong config")
+	assert.Equal(t, reg.adapter, f, "registry uses wrong adapter")
+	assert.Equal(t, reg.config, c, "registrying using wrong config")
+}
+
+func TestRetrieveRegistryAuth(t *testing.T) {
+
+	testCases := []struct {
+		name        string
+		input       Config
+		ns          string
+		client      *fake.Clientset
+		expected    Config
+		expectederr bool
+	}{
+		{
+			name: "secret auth type with no client should fail",
+			input: Config{
+				AuthName: "secret",
+				AuthType: "secret",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "secret auth type",
+			ns:   "testing",
+			input: Config{
+				AuthName: "registrysecret",
+				AuthType: "secret",
+			},
+			client: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "registrysecret",
+					Namespace: "testing",
+				},
+				Data: map[string][]byte{
+					"username": []byte("secretusername"),
+					"password": []byte("secretpassword"),
+				},
+			}),
+			expected: Config{
+				AuthName: "registrysecret",
+				AuthType: "secret",
+				User:     "secretusername",
+				Pass:     "secretpassword",
+			},
+		},
+		{
+			name: "secret auth type with empty secret should fail",
+			ns:   "testing",
+			input: Config{
+				AuthName: "registrysecret",
+				AuthType: "secret",
+			},
+			client: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "registrysecret",
+					Namespace: "testing",
+				},
+				Data: map[string][]byte{
+					"username": []byte(""),
+					"password": []byte(""),
+				},
+			}),
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "file auth type with no auth name should fail",
+			input: Config{
+				AuthName: "",
+				AuthType: "file",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "file auth type",
+			input: Config{
+				AuthName: "testdata/fileauthtest",
+				AuthType: "file",
+			},
+			expected: Config{
+				AuthName: "testdata/fileauthtest",
+				AuthType: "file",
+				User:     "fileuser",
+				Pass:     "filepassword",
+			},
+		},
+		{
+			name: "file auth type with invalidfile",
+			input: Config{
+				AuthName: "testdata/invalidfileauthtest",
+				AuthType: "file",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "config auth type with empty user should fail",
+			input: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "",
+				Pass:     "password",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "config auth type with empty password should fail",
+			input: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "username",
+				Pass:     "",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+		{
+			name: "config auth type",
+			input: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "username",
+				Pass:     "password",
+			},
+			expected: Config{
+				AuthName: "config",
+				AuthType: "config",
+				User:     "username",
+				Pass:     "password",
+			},
+		},
+		{
+			name: "empty auth type",
+			input: Config{
+				AuthName: "empty",
+				AuthType: "",
+			},
+			expected: Config{
+				AuthName: "empty",
+				AuthType: "",
+				User:     "",
+				Pass:     "",
+			},
+		},
+		{
+			name: "unknown auth type",
+			input: Config{
+				AuthName: "unknown",
+				AuthType: "unknown",
+			},
+			expected:    Config{},
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// we need the client for the secrets portion of the test
+			k, err := clients.Kubernetes()
+			if err != nil {
+				t.Fail()
+			}
+
+			if tc.client != nil {
+				k.Client = tc.client
+			}
+
+			output, err := retrieveRegistryAuth(tc.input, tc.ns)
+
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
 }
