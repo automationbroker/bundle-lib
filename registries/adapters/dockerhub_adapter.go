@@ -28,10 +28,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const dockerhubName = "docker.io"
-const dockerHubLoginURL = "https://hub.docker.com/v2/users/login/"
-const dockerHubRepoImages = "https://hub.docker.com/v2/repositories/%v/?page_size=100"
-const dockerHubManifestURL = "https://registry.hub.docker.com/v2/%v/manifests/%v"
+var (
+	dockerhubName        = "docker.io"
+	dockerHubLoginURL    = "https://hub.docker.com/v2/users/login/"
+	dockerHubRepoImages  = "https://hub.docker.com/v2/repositories/%v/?page_size=100"
+	dockerHubManifestURL = "https://registry.hub.docker.com/v2/%v/manifests/%v"
+)
 
 // DockerHubAdapter - Docker Hub Adapter
 type DockerHubAdapter struct {
