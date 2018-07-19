@@ -442,14 +442,16 @@ func (p provider) DestroySandbox(podName string,
 		log.Infof("Successfully deleted rolebinding %s, namespace %s", podName, target)
 	}
 
-	log.Debugf("Deleting network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
-	// Must clean up the network policy that allowed communication from the APB pod to the target namespace.
-	err = k8scli.Client.NetworkingV1().NetworkPolicies(targets[0]).Delete(podName, &metav1.DeleteOptions{})
-	if err != nil {
-		log.Errorf("unable to delete the network policy object - %v", err)
-		return
+	if !isNamespaceInTargets(namespace, targets) {
+		log.Debugf("Deleting network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
+		// Must clean up the network policy that allowed communication from the APB pod to the target namespace.
+		err = k8scli.Client.NetworkingV1().NetworkPolicies(targets[0]).Delete(podName, &metav1.DeleteOptions{})
+		if err != nil {
+			log.Errorf("unable to delete the network policy object - %v", err)
+			return
+		}
+		log.Debugf("Successfully deleted network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
 	}
-	log.Debugf("Successfully deleted network policy for pod: %v to grant network access to ns: %v", podName, targets[0])
 
 	log.Debugf("Running post sandbox destroy hooks")
 	for i, f := range p.postSandboxDestroy {

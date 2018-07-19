@@ -25,6 +25,7 @@ import (
 
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime/mocks"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -74,6 +75,70 @@ func newCopySecretsToNamespace(ex ExecutionContext, cns string, targets []string
 	return nil
 }
 
+func TestCreateSandbox(t *testing.T) {
+	testCases := []struct {
+		name      string
+		podName   string
+		client    *fake.Clientset
+		namespace string
+		targets   []string
+		apbRole   string
+		metadata  map[string]string
+	}{
+		{
+			name:      "Test Create Sandbox with namespace in target",
+			podName:   "pod-name",
+			client:    fake.NewSimpleClientset(),
+			namespace: "foo-ns",
+			targets:   []string{"foo-ns"},
+			apbRole:   "edit",
+		},
+		{
+			name:      "Test Create Sandbox with namespace not in target",
+			podName:   "pod-name",
+			client:    fake.NewSimpleClientset(),
+			namespace: "foo-ns",
+			targets:   []string{"satoshi-ns", "nakamoto-ns"},
+			apbRole:   "edit",
+		},
+	}
+	k, err := clients.Kubernetes()
+	if err != nil {
+		t.Fail()
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("test panic unexpectedly: %#+v", r)
+				}
+			}()
+			k.Client = &fakeClientSet{
+				tc.client,
+				&fakerest.RESTClient{
+					Resp: &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       ioutil.NopCloser(bytes.NewReader([]byte(`{"major": "3", "minor": "2"}`))),
+					},
+				},
+			}
+			p := Provider.(*provider)
+			p.CreateSandbox(tc.podName, tc.namespace, tc.targets, tc.apbRole, tc.metadata)
+			list, err := k.Client.NetworkingV1().NetworkPolicies(tc.targets[0]).List(metav1.ListOptions{})
+			if err != nil {
+				t.Fatalf("Failed to get list of network policies")
+			}
+			// Test case where we are deploying to target
+			if isNamespaceInTargets(tc.namespace, tc.targets) && len(list.Items) > 0 {
+				t.Fatalf("Found a network policy when namespace is in target")
+			}
+			if !isNamespaceInTargets(tc.namespace, tc.targets) && len(list.Items) == 0 {
+				t.Fatalf("Namespace is not in target and found no network policies")
+			}
+		})
+	}
+}
 func TestNewRuntime(t *testing.T) {
 	stateManager := state{nsTarget: defaultNamespace, mountLocation: defaultMountLocation}
 	testCases := []struct {
