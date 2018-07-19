@@ -194,7 +194,7 @@ func (r GalaxyAdapter) getNextImages(ctx context.Context,
 		log.Debugf("getting next page of results - %v", iResp.Next)
 		searchURL := fmt.Sprintf(galaxyAPIURL, r.Config.URL.String(), iResp.Next)
 		// Fan out calls to get the next images.
-		go r.getNextImages(ctx, fmt.Sprintf("%v%v", searchURL, iResp.Next), ch, cancelFunc)
+		go r.getNextImages(ctx, searchURL, ch, cancelFunc)
 	}
 	for _, imageName := range iResp.Results {
 		log.Debugf("Trying to load %v.%v", imageName.Summary.Namespace.Name, imageName.Name)
