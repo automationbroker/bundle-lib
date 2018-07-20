@@ -122,19 +122,17 @@ func TestCreateSandbox(t *testing.T) {
 			tc.client.PrependReactor("create", "namespaces", func(action clientgotesting.Action) (handled bool, ret k8sruntime.Object, err error) {
 				ca, ok := action.(clientgotesting.CreateActionImpl)
 				if !ok {
-					return true, nil, fmt.Errorf("can not get create action")
+					return false, nil, fmt.Errorf("can not get create action")
 				}
 				ns, ok := ca.Object.(*apicorev1.Namespace)
 				if !ok {
-					return true, nil, fmt.Errorf("can not get namespace")
+					return false, nil, fmt.Errorf("can not get namespace")
 				}
-				ns = &apicorev1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:         ns.Name,
-						GenerateName: ns.Name,
-					},
+				// runtime.go only sets generateName so we need to explicitly set name
+				if ns.Name == "" && ns.GenerateName != "" {
+					ns.Name = ns.GenerateName
 				}
-				return true, ns, nil
+				return false, ns, nil
 			})
 
 			k.Client = &fakeClientSet{
@@ -151,7 +149,8 @@ func TestCreateSandbox(t *testing.T) {
 			for _, target := range tc.targets {
 				ns := &apicorev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: target,
+						Name:         target,
+						GenerateName: target,
 					},
 				}
 				_, err := k.Client.CoreV1().Namespaces().Create(ns)
