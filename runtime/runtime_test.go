@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -27,12 +28,14 @@ import (
 	"github.com/automationbroker/bundle-lib/runtime/mocks"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	rest "k8s.io/client-go/rest"
 	fakerest "k8s.io/client-go/rest/fake"
+	clientgotesting "k8s.io/client-go/testing"
 )
 
 type fakeClientSet struct {
@@ -94,14 +97,14 @@ func TestCreateSandbox(t *testing.T) {
 			targets:   []string{"foo-ns"},
 			apbRole:   "edit",
 		},
-		/*		{
-				name:      "Test Create Sandbox with namespace not in target",
-				podName:   "pod-name",
-				client:    fake.NewSimpleClientset(),
-				namespace: "bar-ns",
-				targets:   []string{"satoshi-ns", "nakamoto-ns"},
-				apbRole:   "edit",
-			},*/
+		{
+			name:      "Test Create Sandbox with namespace not in target",
+			podName:   "pod-name",
+			client:    fake.NewSimpleClientset(),
+			namespace: "bar-ns",
+			targets:   []string{"satoshi-ns", "nakamoto-ns"},
+			apbRole:   "edit",
+		},
 	}
 	k, err := clients.Kubernetes()
 	if err != nil {
@@ -115,6 +118,25 @@ func TestCreateSandbox(t *testing.T) {
 					t.Fatalf("test panic unexpectedly: %#+v", r)
 				}
 			}()
+
+			tc.client.PrependReactor("create", "namespaces", func(action clientgotesting.Action) (handled bool, ret k8sruntime.Object, err error) {
+				ca, ok := action.(clientgotesting.CreateActionImpl)
+				if !ok {
+					return true, nil, fmt.Errorf("can not get create action")
+				}
+				ns, ok := ca.Object.(*apicorev1.Namespace)
+				if !ok {
+					return true, nil, fmt.Errorf("can not get namespace")
+				}
+				ns = &apicorev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:         ns.Name,
+						GenerateName: ns.Name,
+					},
+				}
+				return true, ns, nil
+			})
+
 			k.Client = &fakeClientSet{
 				tc.client,
 				&fakerest.RESTClient{
