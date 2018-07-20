@@ -27,11 +27,11 @@ vet: ## Run go vet
 	@$(foreach dir,$(SOURCE_DIRS),\
 		go tool vet $(dir);)
 
-coverage-all.out: $(SOURCES)
-	@echo "mode: count" > coverage-all.out
-	@$(foreach pkg,$(PACKAGES),\
-		go test -coverprofile=coverage.out -covermode=count $(pkg);\
-		tail -n +2 coverage.out >> coverage-all.out;)
+coverage-all.out: $(PACKAGES)
+	@sed -i '1i mode: count' coverage-all.out
+
+$(PACKAGES): $(SOURCES)
+	@go test -coverprofile=coverage.out -covermode=count $@ && tail -n +2 coverage.out >> coverage-all.out;
 
 test-coverage-html: coverage-all.out ## Check out the test coverage locally
 	@go tool cover -html=coverage-all.out
@@ -56,4 +56,4 @@ help: ## Show this help screen
 	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: ensure build lint fmt fmtcheck test vet check help test-coverage-html clean
+.PHONY: ensure build lint fmt fmtcheck test vet check help test-coverage-html clean $(PACKAGES)
