@@ -11,8 +11,7 @@ build: $(SOURCES) ## Build Test
 	go build -i -ldflags="-s -w" ./...
 
 lint: ## Run golint
-	@$(foreach dir,$(SOURCE_DIRS),\
-		golint -set_exit_status $(dir)/...;)
+	@golint -set_exit_status $(addsuffix /... , $(SOURCE_DIRS))
 
 fmt: ## Run go fmt
 	@gofmt -d $(SOURCES)
@@ -24,8 +23,7 @@ test: ## Run unit tests
 	@go test -cover $(addprefix ./, $(addsuffix /... , $(SOURCE_DIRS)))
 
 vet: ## Run go vet
-	@$(foreach dir,$(SOURCE_DIRS),\
-		go tool vet $(dir);)
+	@go tool vet $(addprefix ./, $(SOURCE_DIRS))
 
 coverage-all.out: $(PACKAGES)
 	@sed -i '1i mode: count' coverage-all.out
