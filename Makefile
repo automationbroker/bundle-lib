@@ -23,8 +23,7 @@ test: ## Run unit tests
 	@go test -cover $(addprefix ./, $(addsuffix /... , $(SOURCE_DIRS)))
 
 vet: ## Run go vet
-	@$(foreach dir,$(SOURCE_DIRS),\
-		go tool vet $(dir);)
+	@go tool vet $(addprefix ./, $(SOURCE_DIRS))
 
 coverage-all.out: $(SOURCES)
 	@echo "mode: count" > coverage-all.out
