@@ -94,14 +94,14 @@ func TestCreateSandbox(t *testing.T) {
 			targets:   []string{"foo-ns"},
 			apbRole:   "edit",
 		},
-		{
-			name:      "Test Create Sandbox with namespace not in target",
-			podName:   "pod-name",
-			client:    fake.NewSimpleClientset(),
-			namespace: "bar-ns",
-			targets:   []string{"satoshi-ns", "nakamoto-ns"},
-			apbRole:   "edit",
-		},
+		/*		{
+				name:      "Test Create Sandbox with namespace not in target",
+				podName:   "pod-name",
+				client:    fake.NewSimpleClientset(),
+				namespace: "bar-ns",
+				targets:   []string{"satoshi-ns", "nakamoto-ns"},
+				apbRole:   "edit",
+			},*/
 	}
 	k, err := clients.Kubernetes()
 	if err != nil {

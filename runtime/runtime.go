@@ -262,8 +262,8 @@ func (p provider) CreateSandbox(podName string,
 		// Create namespace.
 		ns := &apicorev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: metadata,
-				Name:   namespace,
+				Labels:       metadata,
+				GenerateName: namespace,
 			},
 		}
 		ns, err = k8scli.Client.CoreV1().Namespaces().Create(ns)
