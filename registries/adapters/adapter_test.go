@@ -18,19 +18,57 @@ package adapters
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"fmt"
 
 	"github.com/automationbroker/bundle-lib/bundle"
-	ft "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSpecLabel(t *testing.T) {
-	ft.Equal(t, BundleSpecLabel, "com.redhat.apb.spec", "spec label does not match dockerhub")
+	assert.Equal(t, BundleSpecLabel, "com.redhat.apb.spec", "spec label does not match dockerhub")
 }
 
 const testApbSpec = "dmVyc2lvbjogMS4wCm5hbWU6IG1lZGlhd2lraS1hcGIKZGVzY3JpcHRpb246IE1lZGlhd2lraSBhcGIgaW1wbGVtZW50YXRpb24KYmluZGFibGU6IEZhbHNlCmFzeW5jOiBvcHRpb25hbAptZXRhZGF0YToKICBkb2N1bWVudGF0aW9uVXJsOiBodHRwczovL3d3dy5tZWRpYXdpa2kub3JnL3dpa2kvRG9jdW1lbnRhdGlvbgogIGxvbmdEZXNjcmlwdGlvbjogQW4gYXBiIHRoYXQgZGVwbG95cyBNZWRpYXdpa2kgMS4yMwogIGRlcGVuZGVuY2llczogWydkb2NrZXIuaW8vYW5zaWJsZXBsYXlib29rYnVuZGxlL21lZGlhd2lraTEyMzpsYXRlc3QnXQogIGRpc3BsYXlOYW1lOiBNZWRpYXdpa2kgKEFQQikKICBjb25zb2xlLm9wZW5zaGlmdC5pby9pY29uQ2xhc3M6IGljb24tbWVkaWF3aWtpCiAgcHJvdmlkZXJEaXNwbGF5TmFtZTogIlJlZCBIYXQsIEluYy4iCnBsYW5zOgogIC0gbmFtZTogZGVmYXVsdAogICAgZGVzY3JpcHRpb246IEFuIEFQQiB0aGF0IGRlcGxveXMgTWVkaWFXaWtpCiAgICBmcmVlOiBUcnVlCiAgICBtZXRhZGF0YToKICAgICAgZGlzcGxheU5hbWU6IERlZmF1bHQKICAgICAgbG9uZ0Rlc2NyaXB0aW9uOiBUaGlzIHBsYW4gZGVwbG95cyBhIHNpbmdsZSBtZWRpYXdpa2kgaW5zdGFuY2Ugd2l0aG91dCBhIERCCiAgICAgIGNvc3Q6ICQwLjAwCiAgICBwYXJhbWV0ZXJzOgogICAgICAtIG5hbWU6IG1lZGlhd2lraV9kYl9zY2hlbWEKICAgICAgICBkZWZhdWx0OiBtZWRpYXdpa2kKICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICB0aXRsZTogTWVkaWF3aWtpIERCIFNjaGVtYQogICAgICAgIHJlcXVpcmVkOiBUcnVlCiAgICAgIC0gbmFtZTogbWVkaWF3aWtpX3NpdGVfbmFtZQogICAgICAgIGRlZmF1bHQ6IE1lZGlhV2lraQogICAgICAgIHR5cGU6IHN0cmluZwogICAgICAgIHRpdGxlOiBNZWRpYXdpa2kgU2l0ZSBOYW1lCiAgICAgICAgcmVxdWlyZWQ6IFRydWUKICAgICAgICB1cGRhdGFibGU6IFRydWUKICAgICAgLSBuYW1lOiBtZWRpYXdpa2lfc2l0ZV9sYW5nCiAgICAgICAgZGVmYXVsdDogZW4KICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICB0aXRsZTogTWVkaWF3aWtpIFNpdGUgTGFuZ3VhZ2UKICAgICAgICByZXF1aXJlZDogVHJ1ZQogICAgICAtIG5hbWU6IG1lZGlhd2lraV9hZG1pbl91c2VyCiAgICAgICAgZGVmYXVsdDogYWRtaW4KICAgICAgICB0eXBlOiBzdHJpbmcKICAgICAgICB0aXRsZTogTWVkaWF3aWtpIEFkbWluIFVzZXIKICAgICAgICByZXF1aXJlZDogVHJ1ZQogICAgICAtIG5hbWU6IG1lZGlhd2lraV9hZG1pbl9wYXNzCiAgICAgICAgdHlwZTogc3RyaW5nCiAgICAgICAgdGl0bGU6IE1lZGlhd2lraSBBZG1pbiBVc2VyIFBhc3N3b3JkCiAgICAgICAgcmVxdWlyZWQ6IFRydWUKICAgICAgICBkaXNwbGF5X3R5cGU6IHBhc3N3b3JkCg=="
+
+func TestResponseToSpecEdgeCases(t *testing.T) {
+	// probably didn't have to do a table drive test for just one but I was
+	// hoping to merge this with the TestResponseToSpec tests below, but it was
+	// proving to be more work than I expected because of the manifest response
+	// json formatting.
+	testCases := []struct {
+		name        string
+		input       []byte
+		image       string
+		expected    *bundle.Spec
+		expectederr bool
+	}{
+		{
+			name: "invalid manifest response string",
+			// remove some { to make the json invalid
+			input:       []byte(`"manifestResponse":"schemaVersion":1,"history":[]}}`),
+			expected:    nil,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := responseToSpec(tc.input, tc.image)
+			if tc.expectederr {
+				assert.Error(t, err)
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
 
 func TestResponseToSpec(t *testing.T) {
 	cases := []struct {
@@ -44,7 +82,7 @@ func TestResponseToSpec(t *testing.T) {
 				SchemaVersion: 1,
 				History: []map[string]string{
 					{
-						"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\"}}}", testApbSpec),
+						"v1Compatibility": fmt.Sprintf(`{"config":{"Labels":{"build-date":"20170801","com.redhat.apb.spec":"%s","com.redhat.apb.version":"0.1.0"}}}"`, testApbSpec),
 					},
 				},
 			},
@@ -63,7 +101,7 @@ func TestResponseToSpec(t *testing.T) {
 				SchemaVersion: 1,
 				History: []map[string]string{
 					{
-						"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.apb.runtime\":\"2\"}}}", testApbSpec),
+						"v1Compatibility": fmt.Sprintf(`{"config":{"Labels":{"build-date":"20170801","com.redhat.apb.spec":"%s","com.redhat.apb.version":"0.1.0","com.redhat.apb.runtime":"2"}}}`, testApbSpec),
 					},
 				},
 			},
@@ -82,7 +120,7 @@ func TestResponseToSpec(t *testing.T) {
 				SchemaVersion: 1,
 				History: []map[string]string{
 					{
-						"v1Compatibility": fmt.Sprintf("{\"config\":{\"Labels\":{\"build-date\":\"20170801\",\"com.redhat.apb.spec\":\"%s\",\"com.redhat.apb.version\":\"0.1.0\",\"com.redhat.bundle.runtime\":\"2\"}}}", testApbSpec),
+						"v1Compatibility": fmt.Sprintf(`{"config":{"Labels":{"build-date":"20170801","com.redhat.apb.spec":"%s","com.redhat.apb.version":"0.1.0","com.redhat.bundle.runtime":"2"}}}`, testApbSpec),
 					},
 				},
 			},
@@ -110,6 +148,98 @@ func TestResponseToSpec(t *testing.T) {
 			if tc.Validate != nil {
 				tc.Validate(t, spec)
 			}
+		})
+	}
+}
+
+func TestConfigToSpecEdgeCases(t *testing.T) {
+	// probably didn't have to do a table drive test for just one but I was
+	// hoping to merge this with the TestResponseToSpec tests below, but it was
+	// proving to be more work than I expected because of the manifest response
+	// json formatting.
+	testCases := []struct {
+		name        string
+		input       []byte
+		image       string
+		expected    *bundle.Spec
+		expectederr bool
+	}{
+		{
+			name: "invalid manifest config string",
+			// remove some { to make the json invalid
+			input: []byte(`"config":"Labels":{
+				"com.redhat.apb.spec":"",
+				"com.redhat.apb.runtime":"2",
+				"com.redhat.bundle.runtime":"2"
+			}}}`),
+			expected:    nil,
+			expectederr: true,
+		},
+		{
+			name: "empty spec label",
+			// remove some { to make the json invalid
+			input: []byte(`{"config":{"Labels":{
+				"com.redhat.apb.spec":"",
+				"com.redhat.apb.runtime":"2",
+				"com.redhat.bundle.runtime":"2"
+			}}}`),
+			expected:    nil,
+			expectederr: false,
+		},
+		{
+			name: "undecodeable spec label",
+			input: []byte(`{"config":{"Labels":{
+				"com.redhat.apb.spec":" ",
+				"com.redhat.apb.runtime":"2",
+				"com.redhat.bundle.runtime":"2"
+			}}}`),
+			expected:    nil,
+			expectederr: true,
+		},
+		// the following test will not error out like I wanted, skip for now
+		// {
+		//     name: "invalid spec label, but it is base64 encoded",
+		//     input: []byte(`{"config":{"Labels":{
+		//         "com.redhat.apb.spec":"aW52YWxpZCBzcGVjIGRhdGE=",
+		//         "com.redhat.apb.runtime":"2",
+		//         "com.redhat.bundle.runtime":"2"
+		//     }}}`),
+		//     expected:    nil,
+		//     expectederr: true,
+		// },
+		{
+			name: "invalid runtime label",
+			input: []byte(`{"config":{"Labels":{
+				"com.redhat.apb.spec":"aW52YWxpZCBzcGVjIGRhdGE=",
+				"com.redhat.apb.runtime":"invalid",
+				"com.redhat.bundle.runtime":""
+			}}}`),
+			expected:    nil,
+			expectederr: true,
+		},
+		{
+			name: "invalid bundle runtime label",
+			input: []byte(`{"config":{"Labels":{
+				"com.redhat.apb.spec":"aW52YWxpZCBzcGVjIGRhdGE=",
+				"com.redhat.apb.runtime":"2",
+				"com.redhat.bundle.runtime":"invalid"
+			}}}`),
+			expected:    nil,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := configToSpec(tc.input, tc.image)
+			if tc.expectederr {
+				assert.Error(t, err)
+				//assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
 		})
 	}
 }
@@ -171,6 +301,150 @@ func TestConfigToSpec(t *testing.T) {
 			if tc.Validate != nil {
 				tc.Validate(t, spec)
 			}
+		})
+	}
+}
+
+func TestGetAPBRuntimeVersion(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       string
+		expected    int
+		expectederr bool
+	}{
+		{
+			name:     "empty version string",
+			input:    "",
+			expected: 1,
+		},
+		{
+			name:     "version 1",
+			input:    "1",
+			expected: 1,
+		},
+		{
+			name:     "version 2",
+			input:    "2",
+			expected: 2,
+		},
+		{
+			name:     "version 2000",
+			input:    "2000",
+			expected: 2000,
+		},
+		{
+			name:        "invalid version number",
+			input:       "invalid version",
+			expected:    0,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := getAPBRuntimeVersion(tc.input)
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
+
+func TestGetSchemaVersion(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       string
+		expected    int
+		expectederr bool
+	}{
+		{
+			name:        "empty response string",
+			input:       "",
+			expected:    0,
+			expectederr: true,
+		},
+		{
+			name:     "valid schema version string",
+			input:    schema1Ct,
+			expected: 1,
+		},
+		{
+			name:     "valid schema version 2 string",
+			input:    schema2Ct,
+			expected: 2,
+		},
+		{
+			name:        "invalid schema version string",
+			input:       "invalid version",
+			expected:    0,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := getSchemaVersion(tc.input)
+			if tc.expectederr {
+				assert.Error(t, err)
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
+
+func TestRegistryResponseHandler(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       []byte
+		code        int
+		expected    []byte
+		expectederr bool
+	}{
+		{
+			name:        "empty response string",
+			input:       []byte("hello world"),
+			code:        http.StatusOK,
+			expected:    []byte("hello world"),
+			expectederr: false,
+		},
+		{
+			name:        "unauthorized response code",
+			input:       []byte(""),
+			code:        http.StatusUnauthorized,
+			expected:    nil,
+			expectederr: true,
+		},
+		{
+			name:        "something other than unauthorized and ok code",
+			input:       []byte(""),
+			code:        http.StatusAccepted,
+			expected:    nil,
+			expectederr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			w.Write(tc.input)
+			w.Code = tc.code
+
+			output, err := registryResponseHandler(w.Result())
+			if tc.expectederr {
+				assert.Error(t, err)
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, tc.expected, output)
 		})
 	}
 }
