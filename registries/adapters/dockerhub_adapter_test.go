@@ -120,9 +120,10 @@ func TestGetImageNames(t *testing.T) {
 			defer serv.Close()
 
 			// use the test server's url
-			dockerHubLoginURL = join(serv.URL, "/v2/users/login/")
-			dockerHubRepoImages = join(serv.URL, "/v2/repositories/%v/?page_size=100")
-			dockerHubManifestURL = join(serv.URL, "/v2/%v/manifests/%v")
+			dockerHubLoginURL = strings.Join([]string{serv.URL, "/v2/users/login/"}, "")
+			dockerHubRepoImages = strings.Join([]string{serv.URL,
+				"/v2/repositories/%v/?page_size=100"}, "")
+			dockerHubManifestURL = strings.Join([]string{serv.URL, "/v2/%v/manifests/%v"}, "")
 
 			// create the adapter we  want to test
 			dha := DockerHubAdapter{Config: tc.c}
@@ -162,18 +163,97 @@ func TestFetchSpecs(t *testing.T) {
 			expectederr: false,
 			handlerFunc: nil,
 		},
+		{
+			name:  "images returns no error and an array of specs",
+			c:     Configuration{User: ""},
+			input: []string{"docker.io/jmrodri/testapp-apb"},
+			expected: []*bundle.Spec{
+				{
+					Runtime: 1,
+					Version: "1.0",
+					FQName:  "testapp",
+					Metadata: map[string]interface{}{
+						"displayName": "testapp",
+					},
+					Async:       "optional",
+					Image:       "docker.io/docker.io/jmrodri/testapp-apb:latest",
+					Description: "your description",
+					Plans: []bundle.Plan{
+						{
+							Name:        "default",
+							Metadata:    make(map[string]interface{}),
+							Description: "This default plan deploys testapp",
+							Free:        true,
+							Parameters: []bundle.ParameterDescriptor{
+								{
+									Name:        "vncpass",
+									Title:       "VNC Password",
+									Type:        "string",
+									DisplayType: "password",
+									Minimum:     bundleNilableNumber(2),
+									Maximum:     bundleNilableNumber(10),
+									Required:    true,
+									Updatable:   true,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet &&
+					r.URL.Path == "/v2/docker.io/jmrodri/testapp-apb/manifests/latest" {
+					if r.Header.Get("Authorization") == "Bearer: testtoken" {
+						fmt.Println("we have a bearer token")
+					}
+
+					// return a testtoken for login
+					w.WriteHeader(http.StatusOK)
+					// subset of the manifestResponse which is all we need
+					manResp := `{
+						"schemaVersion":1,
+						"history":[
+						{
+							"v1Compatibility":"{
+								\"config\":{
+									\"Labels\":{
+										\"com.redhat.apb.spec\":\"dmVyc2lvbjogMS4wDQpuYW1lOiB0ZXN0YXBwDQpkZXNjcmlwdGlvbjogeW91ciBkZXNjcmlwdGlvbg0KYmluZGFibGU6IEZhbHNlDQphc3luYzogb3B0aW9uYWwNCm1ldGFkYXRhOg0KICBkaXNwbGF5TmFtZTogdGVzdGFwcA0KcGxhbnM6DQogIC0gbmFtZTogZGVmYXVsdA0KICAgIGRlc2NyaXB0aW9uOiBUaGlzIGRlZmF1bHQgcGxhbiBkZXBsb3lzIHRlc3RhcHANCiAgICBmcmVlOiBUcnVlDQogICAgbWV0YWRhdGE6IHt9DQogICAgcGFyYW1ldGVyczoNCiAgICAtIG5hbWU6IHZuY3Bhc3MNCiAgICAgIHRpdGxlOiBWTkMgUGFzc3dvcmQNCiAgICAgIHR5cGU6IHN0cmluZw0KICAgICAgcmVxdWlyZWQ6IHRydWUNCiAgICAgIHVwZGF0YWJsZTogdHJ1ZQ0KICAgICAgZGlzcGxheV90eXBlOiBwYXNzd29yZA0KICAgICAgbWF4aW11bTogMTANCiAgICAgIG1pbmltdW06IDI=\"
+									}
+
+								}
+							}"
+						}]}`
+
+					// TOTAL HACK but the tabs and newlines need to be
+					// removed
+					manResp = strings.Replace(manResp, "\t", "", -1)
+					manResp = strings.Replace(manResp, "\n", "", -1)
+					w.Write([]byte(manResp))
+				} else if r.Method == http.MethodGet && r.URL.Path == "/token" {
+					fmt.Println("we have a token request")
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{"token":"testtoken"}`))
+				} else {
+					assert.Equal(t, http.MethodGet, r.Method)
+					assert.Equal(t, "/v2/repositories/testorg/", r.URL.Path)
+					w.Write([]byte("get images, invalid response"))
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// get test server
-			// serv := GetServer(t, tc.handlerFunc)
-			// defer serv.Close()
+			serv := GetServer(t, tc.handlerFunc)
+			defer serv.Close()
 
 			// use the test server's url
-			// dockerHubLoginURL = join(serv.URL, "/v2/users/login/")
-			// dockerHubRepoImages = join(serv.URL, "/v2/repositories/%v/?page_size=100")
-			// dockerHubManifestURL = join(serv.URL, "/v2/%v/manifests/%v")
+			dockerHubLoginURL = strings.Join([]string{serv.URL, "/v2/users/login/"}, "")
+			dockerHubRepoImages = strings.Join([]string{serv.URL,
+				"/v2/repositories/%v/?page_size=100"}, "")
+			dockerHubManifestURL = strings.Join([]string{serv.URL, "/v2/%v/manifests/%v"}, "")
 
 			// create the adapter we  want to test
 			dha := DockerHubAdapter{Config: tc.c}
@@ -202,10 +282,7 @@ func GetServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	return httptest.NewServer(handler)
 }
 
-// stupid utility to avoid creating []string in the main test function
-func join(prefix string, suffix string) string {
-	var tojoin []string
-	tojoin = append(tojoin, prefix)
-	tojoin = append(tojoin, suffix)
-	return strings.Join(tojoin, "")
+func bundleNilableNumber(i float64) *bundle.NilableNumber {
+	n := bundle.NilableNumber(i)
+	return &n
 }
