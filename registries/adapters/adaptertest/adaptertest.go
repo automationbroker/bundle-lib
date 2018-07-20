@@ -92,6 +92,8 @@ const apiV2AuthResponse = `
 
 const schema1Ct = "application/vnd.docker.distribution.manifest.v1+json"
 
+// GetAPIV2Server returns an httptest Server useful for testing APIV2 type
+// adapters. Instead of having to write your own you can simply get this
 func GetAPIV2Server(t *testing.T) *httptest.Server {
 	authServ := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
@@ -119,6 +121,8 @@ func GetAPIV2Server(t *testing.T) *httptest.Server {
 	}))
 }
 
+// GetURL allows you to get the URL of the server you've created using either
+// the above GetAPIV2Server or your own httptest Server.
 func GetURL(t *testing.T, s *httptest.Server) *url.URL {
 	url, err := url.Parse(s.URL)
 	if err != nil {

@@ -94,7 +94,12 @@ func TestSecretsCache(t *testing.T) {
 			},
 			validate: func(exp interface{}, r []AssociationRule, s []*Spec) bool {
 				InitializeSecretsCache(r)
-				return assert.Equal(exp, secrets)
+				expected, ok := exp.(secretsCache)
+				if !ok {
+					return false
+				}
+				return assert.Equal(expected.mapping, secrets.mapping) &&
+					assert.Equal(expected.rules, secrets.rules)
 			},
 		},
 		{
