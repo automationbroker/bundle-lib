@@ -11,8 +11,7 @@ build: $(SOURCES) ## Build Test
 	go build -i -ldflags="-s -w" ./...
 
 lint: ## Run golint
-	@$(foreach dir,$(SOURCE_DIRS),\
-		golint -set_exit_status $(dir)/...;)
+	@golint -set_exit_status $(addsuffix /... , $(SOURCE_DIRS))
 
 fmt: ## Run go fmt
 	@gofmt -d $(SOURCES)
