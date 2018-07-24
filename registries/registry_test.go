@@ -330,6 +330,24 @@ func setUpWithErrors(eg bool, ef bool) Registry {
 	return r
 }
 
+func setUpValidNameFilter() Registry {
+	a = &TestingAdapter{
+		Name:   "testing",
+		Images: []string{"fusor/etherpad-bundle", "image2"},
+		Specs:  []*bundle.Spec{&s},
+		Called: map[string]bool{},
+	}
+	filter := Filter{
+		whitelist: []string{".*-bundle$"},
+	}
+	filter.Init()
+	c := Config{}
+	r = Registry{config: c,
+		adapter: a,
+		filter:  filter}
+	return r
+}
+
 func TestRegistryLoadSpecs(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -406,6 +424,15 @@ func TestRegistryLoadSpecs(t *testing.T) {
 				return true
 			},
 			expectederr: true,
+		},
+		{
+			name: "load specs validnames",
+			r:    setUpValidNameFilter(),
+			validate: func(specs []*bundle.Spec, images int, err error) bool {
+				return assert.Equal(t, len(specs), 1) &&
+					assert.Equal(t, "fusor/etherpad-bundle", specs[0].Image)
+			},
+			expectederr: false,
 		},
 	}
 
