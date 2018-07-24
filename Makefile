@@ -26,7 +26,7 @@ vet: ## Run go vet
 	@go tool vet $(addprefix ./, $(SOURCE_DIRS))
 
 coverage-all.out: $(PACKAGES)
-	@sed -i '1i mode: count' coverage-all.out
+	@grep -q -F 'mode: count' coverage-all.out || sed -i '1i mode: count' coverage-all.out
 
 $(PACKAGES): $(SOURCES)
 	@go test -coverprofile=coverage.out -covermode=count $@ && tail -n +2 coverage.out >> coverage-all.out;
