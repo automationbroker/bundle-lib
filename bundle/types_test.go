@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/pborman/uuid"
-	ft "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -273,16 +273,16 @@ func TestSpecLoadJSON(t *testing.T) {
 		panic(err)
 	}
 
-	ft.Equal(t, s.Description, SpecDescription)
-	ft.Equal(t, s.FQName, SpecName)
-	ft.Equal(t, s.Version, SpecVersion)
-	ft.Equal(t, s.Runtime, SpecRuntime)
-	ft.Equal(t, s.Image, SpecImage)
-	ft.Equal(t, s.Bindable, SpecBindable)
-	ft.Equal(t, s.Async, SpecAsync)
-	ft.Equal(t, s.Delete, SpecDelete)
-	ft.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
-	ft.True(t, reflect.DeepEqual(s.Alpha, SpecAlpha))
+	assert.Equal(t, s.Description, SpecDescription)
+	assert.Equal(t, s.FQName, SpecName)
+	assert.Equal(t, s.Version, SpecVersion)
+	assert.Equal(t, s.Runtime, SpecRuntime)
+	assert.Equal(t, s.Image, SpecImage)
+	assert.Equal(t, s.Bindable, SpecBindable)
+	assert.Equal(t, s.Async, SpecAsync)
+	assert.Equal(t, s.Delete, SpecDelete)
+	assert.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
+	assert.True(t, reflect.DeepEqual(s.Alpha, SpecAlpha))
 }
 
 func EncodedApb() string {
@@ -313,7 +313,7 @@ func TestSpecDumpJSON(t *testing.T) {
 
 	json.Unmarshal([]byte(SpecJSON), &knownMap)
 	json.Unmarshal([]byte(raw), &subjectMap)
-	ft.True(t, reflect.DeepEqual(knownMap, subjectMap))
+	assert.True(t, reflect.DeepEqual(knownMap, subjectMap))
 }
 
 func TestEncodedParameters(t *testing.T) {
@@ -327,20 +327,20 @@ func TestEncodedParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("%#v", spec)
-	ft.Equal(t, spec.FQName, "mediawiki123-apb")
-	ft.Equal(t, len(spec.Plans[0].Parameters), 5)
+	assert.Equal(t, spec.FQName, "mediawiki123-apb")
+	assert.Equal(t, len(spec.Plans[0].Parameters), 5)
 
 	// picking something other than the first one
 	sitelang := spec.Plans[0].Parameters[2] // mediawiki_site_lang
 
-	ft.Equal(t, sitelang.Name, "mediawiki_site_lang")
-	ft.Equal(t, sitelang.Title, "Mediawiki Site Language")
-	ft.Equal(t, sitelang.Type, "string")
-	ft.Equal(t, sitelang.Description, "")
-	ft.Equal(t, sitelang.Default, "en")
-	ft.Equal(t, sitelang.DeprecatedMaxlength, 0)
-	ft.Equal(t, sitelang.Pattern, "")
-	ft.Equal(t, len(sitelang.Enum), 0)
+	assert.Equal(t, sitelang.Name, "mediawiki_site_lang")
+	assert.Equal(t, sitelang.Title, "Mediawiki Site Language")
+	assert.Equal(t, sitelang.Type, "string")
+	assert.Equal(t, sitelang.Description, "")
+	assert.Equal(t, sitelang.Default, "en")
+	assert.Equal(t, sitelang.DeprecatedMaxlength, 0)
+	assert.Equal(t, sitelang.Pattern, "")
+	assert.Equal(t, len(sitelang.Enum), 0)
 }
 
 func TestBindInstanceUserParamsNil(t *testing.T) {
@@ -349,7 +349,7 @@ func TestBindInstanceUserParamsNil(t *testing.T) {
 		ServiceID: uuid.NewUUID(),
 	}
 	up := a.UserParameters()
-	ft.True(t, up == nil)
+	assert.True(t, up == nil)
 }
 
 func TestBindInstanceUserParams(t *testing.T) {
@@ -367,12 +367,12 @@ func TestBindInstanceUserParams(t *testing.T) {
 	up := a.UserParameters()
 
 	// Make sure the "foo" key is still included
-	ft.True(t, up["foo"] == "bar")
+	assert.True(t, up["foo"] == "bar")
 
 	// Make sure all of these got filtered out
 	for _, key := range []string{"cluster", "namespace", "_apb_provision_creds"} {
 		_, ok := up[key]
-		ft.False(t, ok)
+		assert.False(t, ok)
 	}
 
 }
@@ -455,8 +455,8 @@ func TestBindInstanceEqual(t *testing.T) {
 		ServiceID:  a.ServiceID,
 		Parameters: &Parameters{"foo": "bar"},
 	}
-	ft.True(t, a.IsEqual(&b))
-	ft.True(t, b.IsEqual(&a))
+	assert.True(t, a.IsEqual(&b))
+	assert.True(t, b.IsEqual(&a))
 }
 
 func TestBindInstanceNotEqual(t *testing.T) {
@@ -502,10 +502,10 @@ func TestBindInstanceNotEqual(t *testing.T) {
 func TestBuildExtractedCredentials(t *testing.T) {
 	output := []byte(`{"db": "fusor_guestbook_db", "user": "duder_two", "pass" :"dog8two"}`)
 	bd, _ := buildExtractedCredentials(output)
-	ft.NotNil(t, bd, "credential is nil")
-	ft.Equal(t, bd.Credentials["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
-	ft.Equal(t, bd.Credentials["user"], "duder_two", "user is not duder_two")
-	ft.Equal(t, bd.Credentials["pass"], "dog8two", "password is not dog8two")
+	assert.NotNil(t, bd, "credential is nil")
+	assert.Equal(t, bd.Credentials["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
+	assert.Equal(t, bd.Credentials["user"], "duder_two", "user is not duder_two")
+	assert.Equal(t, bd.Credentials["pass"], "dog8two", "password is not dog8two")
 }
 
 func TestAlphaParser(t *testing.T) {
@@ -530,7 +530,7 @@ func TestAlphaParser(t *testing.T) {
 		t.Error(`spec.Alpha["dashboard_redirect"] should assert to bool`)
 	}
 
-	ft.True(t, dr)
+	assert.True(t, dr)
 }
 
 func TestAddRemoveBinding(t *testing.T) {
@@ -540,10 +540,10 @@ func TestAddRemoveBinding(t *testing.T) {
 
 	bID := uuid.NewUUID()
 	si.AddBinding(bID)
-	ft.True(t, si.BindingIDs[bID.String()], "binding not added")
+	assert.True(t, si.BindingIDs[bID.String()], "binding not added")
 
 	si.RemoveBinding(bID)
 	toDelete, ok := si.BindingIDs[bID.String()]
-	ft.True(t, ok, "binding has been removed, should be marked only")
-	ft.False(t, toDelete, "binding not marked as deleted")
+	assert.True(t, ok, "binding has been removed, should be marked only")
+	assert.False(t, toDelete, "binding not marked as deleted")
 }
