@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	ft "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 var quayTestConfig = Configuration{
@@ -121,7 +121,7 @@ const (
 
 func TestQuayAdaptorName(t *testing.T) {
 	a := QuayAdapter{}
-	ft.Equal(t, a.RegistryName(), "quay.io", "registry adaptor name does not match")
+	assert.Equal(t, a.RegistryName(), "quay.io", "registry adaptor name does not match")
 }
 
 func TestNewQuayAdapter(t *testing.T) {
@@ -134,20 +134,117 @@ func TestNewQuayAdapter(t *testing.T) {
 	b.config.Org = "foo"
 	b.config.Tag = "latest"
 
-	ft.Equal(t, a, b, "adaptor returned is not valid")
+	assert.Equal(t, a, b, "adaptor returned is not valid")
 }
 
 func TestQuayGetImageNames(t *testing.T) {
-	serv := getQuayServer(t)
-	defer serv.Close()
-	quayTestConfig.URL = getQuayURL(t, serv)
-	a, _ := NewQuayAdapter(quayTestConfig)
-
-	imagesFound, err := a.GetImageNames()
-	if err != nil {
-		t.Fatal("Error: ", err)
+	testCases := []struct {
+		name        string
+		c           Configuration
+		expected    []string
+		expectederr bool
+		handlerFunc http.HandlerFunc
+	}{
+		{
+			name: "should return 4 images",
+			c:    Configuration{Org: "foo"},
+			expected: []string{
+				"bar",
+				"test-apb",
+				"baz",
+				"another-apb",
+			},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, quayTestCatalogResponse)
+				}
+			},
+		},
+		{
+			name: "config images should also be returned with repo images",
+			c: Configuration{
+				Org:    "foo",
+				Images: []string{"additional"},
+			},
+			expected: []string{
+				"additional",
+				"bar",
+				"test-apb",
+				"baz",
+				"another-apb",
+			},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, quayTestCatalogResponse)
+				}
+			},
+		},
+		{
+			name:        "invalid catalog response should return error",
+			c:           Configuration{Org: "foo"},
+			expected:    []string{},
+			expectederr: true,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, "invalid response, should fail")
+				}
+			},
+		},
+		{
+			name:        "empty list should return no error",
+			c:           Configuration{Org: "foo"},
+			expected:    []string{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, `{"repositories": [] }`)
+				}
+			},
+		},
 	}
-	ft.Equal(t, 4, len(imagesFound), "image names returned did not match expected config")
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			serv := httptest.NewServer(tc.handlerFunc)
+			defer serv.Close()
+
+			tc.c.URL = getQuayURL(t, serv)
+
+			// create the adapter we want to test
+			qa, err := NewQuayAdapter(tc.c)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// test the GetImageNames method
+			output, err := qa.GetImageNames()
+			if tc.expectederr {
+				if !assert.Error(t, err) {
+					t.Fatal(err)
+				}
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			errmsg := fmt.Sprintf("%s returned the wrong value", tc.name)
+			assert.ElementsMatch(t, tc.expected, output, errmsg)
+		})
+	}
 }
 
 func TestQuayFetchSpecs(t *testing.T) {
@@ -162,7 +259,7 @@ func TestQuayFetchSpecs(t *testing.T) {
 		t.Fatal("Error: ", err)
 	}
 
-	ft.Equal(t, 1, len(s), "image names returned did not match expected config")
+	assert.Equal(t, 1, len(s), "image names returned did not match expected config")
 }
 
 func getQuayServer(t *testing.T) *httptest.Server {
