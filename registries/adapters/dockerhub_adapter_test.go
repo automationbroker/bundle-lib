@@ -116,7 +116,7 @@ func TestGetImageNames(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// get test server
-			serv := GetServer(t, tc.handlerFunc)
+			serv := httptest.NewServer(tc.handlerFunc)
 			defer serv.Close()
 
 			// use the test server's url
@@ -246,7 +246,7 @@ func TestFetchSpecs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// get test server
-			serv := GetServer(t, tc.handlerFunc)
+			serv := httptest.NewServer(tc.handlerFunc)
 			defer serv.Close()
 
 			// use the test server's url
@@ -274,12 +274,6 @@ func TestFetchSpecs(t *testing.T) {
 			assert.Equal(t, tc.expected, output, errmsg)
 		})
 	}
-}
-
-// GetServer returns a test http server which will run whatever HandlerFunc we
-// pass in.
-func GetServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
-	return httptest.NewServer(handler)
 }
 
 func bundleNilableNumber(i float64) *bundle.NilableNumber {
