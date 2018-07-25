@@ -547,3 +547,66 @@ func TestAddRemoveBinding(t *testing.T) {
 	assert.True(t, ok, "binding has been removed, should be marked only")
 	assert.False(t, toDelete, "binding not marked as deleted")
 }
+
+func TestGetParameter(t *testing.T) {
+	testCases := []struct {
+		name     string
+		plan     *Plan
+		input    string
+		expected *ParameterDescriptor
+	}{
+		{
+			name:     "no parameters on empty plan should return nil",
+			plan:     &Plan{},
+			input:    "does_not_exist",
+			expected: nil,
+		},
+		{
+			name: "if name does not match should return nil",
+			plan: &Plan{
+				Name: "plan b",
+				Parameters: []ParameterDescriptor{
+					{
+						Name:        "vncpass",
+						Title:       "VNC Password",
+						Type:        "string",
+						DisplayType: "password",
+						Required:    true,
+					},
+				},
+			},
+			input:    "does_not_match",
+			expected: nil,
+		},
+		{
+			name: "if name matches we should return the ParameterDecriptor",
+			plan: &Plan{
+				Name: "plan b",
+				Parameters: []ParameterDescriptor{
+					{
+						Name:        "vncpass",
+						Title:       "VNC Password",
+						Type:        "string",
+						DisplayType: "password",
+						Required:    true,
+					},
+				},
+			},
+			input: "vncpass",
+			expected: &ParameterDescriptor{
+				Name:        "vncpass",
+				Title:       "VNC Password",
+				Type:        "string",
+				DisplayType: "password",
+				Required:    true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := tc.plan.GetParameter(tc.input)
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
