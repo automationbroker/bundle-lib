@@ -78,12 +78,17 @@ func (c Config) Validate() bool {
 			return false
 		}
 	case "config":
-		if c.Type == "quay" && c.Token == "" {
-			return false
+		if c.Type == "quay" {
+			// quay requires a token
+			return c.Token != ""
 		} else if c.User == "" || c.Pass == "" {
 			return false
 		}
 	case "":
+		if c.Type == "quay" {
+			// no auth is okay for quay
+			return true
+		}
 		if c.AuthName != "" {
 			return false
 		}

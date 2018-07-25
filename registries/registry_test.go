@@ -505,6 +505,30 @@ func TestNewRegistry(t *testing.T) {
 			},
 		},
 		{
+			name: "quay registry",
+			c: Config{
+				Type: "quay",
+				Name: "quay",
+			},
+			validate: func(reg Registry) bool {
+				fmt.Printf("XXX registry: %#v\n", reg.adapter)
+				_, ok := reg.adapter.(adapters.QuayAdapter)
+				fmt.Printf("XXX type is okay: %v\n", ok)
+				return ok
+			},
+		},
+		{
+			name: "galaxy registry",
+			c: Config{
+				Type: "galaxy",
+				Name: "galaxy",
+			},
+			validate: func(reg Registry) bool {
+				_, ok := reg.adapter.(*adapters.GalaxyAdapter)
+				return ok
+			},
+		},
+		{
 			name: "unknown registry",
 			c: Config{
 				Type: "makes_no_sense",
@@ -810,6 +834,35 @@ func TestValidate(t *testing.T) {
 				AuthType: "unknown",
 			},
 			expected: false,
+		},
+		{
+			name: "using quay with config auth without token",
+			c: Config{
+				Name:     "quayname",
+				Type:     "quay",
+				Token:    "",
+				AuthType: "config",
+			},
+			expected: false,
+		},
+		{
+			name: "using quay with config auth type, no userpass",
+			c: Config{
+				Name:     "quayname",
+				Type:     "quay",
+				Token:    "atoken",
+				AuthType: "config",
+			},
+			expected: true,
+		},
+		{
+			name: "using quay with no auth type defined",
+			c: Config{
+				Name:     "quayname",
+				Type:     "quay",
+				AuthType: "",
+			},
+			expected: true,
 		},
 	}
 
