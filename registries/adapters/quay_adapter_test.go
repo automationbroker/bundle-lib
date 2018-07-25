@@ -125,10 +125,7 @@ func TestQuayAdaptorName(t *testing.T) {
 }
 
 func TestNewQuayAdapter(t *testing.T) {
-	a, err := NewQuayAdapter(quayTestConfig)
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
+	a := NewQuayAdapter(quayTestConfig)
 
 	b := QuayAdapter{}
 	b.config.Org = "foo"
@@ -225,10 +222,7 @@ func TestQuayGetImageNames(t *testing.T) {
 			tc.c.URL = getQuayURL(t, serv)
 
 			// create the adapter we want to test
-			qa, err := NewQuayAdapter(tc.c)
-			if err != nil {
-				t.Fatal(err)
-			}
+			qa := NewQuayAdapter(tc.c)
 
 			// test the GetImageNames method
 			output, err := qa.GetImageNames()
@@ -251,7 +245,7 @@ func TestQuayFetchSpecs(t *testing.T) {
 	serv := getQuayServer(t)
 	defer serv.Close()
 	quayTestConfig.URL = getQuayURL(t, serv)
-	a, _ := NewQuayAdapter(quayTestConfig)
+	a := NewQuayAdapter(quayTestConfig)
 
 	imgList := []string{"test-apb"}
 	s, err := a.FetchSpecs(imgList)
