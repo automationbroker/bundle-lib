@@ -474,24 +474,6 @@ func TestQuayFetchSpecs(t *testing.T) {
 	}
 }
 
-func getQuayServer(t *testing.T) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			t.Errorf("Expected `GET` request, got `%s`", r.Method)
-		}
-		if strings.Contains(r.URL.String(), "namespace") {
-			fmt.Fprintf(w, quayTestCatalogResponse)
-		}
-		if strings.Contains(r.URL.String(), "/manifest") {
-			fmt.Fprintf(w, quayTestManifestResponse)
-		}
-		if !strings.Contains(r.URL.String(), "namespace") &&
-			!strings.Contains(r.URL.String(), "/manifest") {
-			fmt.Fprintf(w, quayTestDigestResponse)
-		}
-	}))
-}
-
 func getQuayURL(t *testing.T, s *httptest.Server) *url.URL {
 	url, err := url.Parse(s.URL)
 	if err != nil {
