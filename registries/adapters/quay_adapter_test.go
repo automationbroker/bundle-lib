@@ -29,10 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var quayTestConfig = Configuration{
-	Org: "foo",
-}
-
 const (
 	quayTestCatalogResponse = `
 	{
@@ -127,7 +123,7 @@ func TestQuayAdaptorName(t *testing.T) {
 }
 
 func TestNewQuayAdapter(t *testing.T) {
-	a := NewQuayAdapter(quayTestConfig)
+	a := NewQuayAdapter(Configuration{Org: "foo"})
 
 	b := QuayAdapter{}
 	b.config.Org = "foo"
