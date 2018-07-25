@@ -610,3 +610,59 @@ func TestGetParameter(t *testing.T) {
 		})
 	}
 }
+
+func TestSpecGetPlan(t *testing.T) {
+	testCases := []struct {
+		name      string
+		spec      *Spec
+		input     string
+		expplan   Plan
+		expstatus bool
+	}{
+		{
+			name:      "no plans on empty spec should return false",
+			spec:      &Spec{},
+			input:     "does_not_exist",
+			expplan:   Plan{},
+			expstatus: false,
+		},
+		{
+			name: "if name does not match should return false",
+			spec: &Spec{
+				FQName: "spec b",
+				Plans: []Plan{
+					{
+						Name: "plan b",
+					},
+				},
+			},
+			input:     "does_not_match",
+			expplan:   Plan{},
+			expstatus: false,
+		},
+		{
+			name: "if name matches we should return the Plan",
+			spec: &Spec{
+				FQName: "spec b",
+				Plans: []Plan{
+					{
+						Name: "plan b",
+					},
+				},
+			},
+			input: "plan b",
+			expplan: Plan{
+				Name: "plan b",
+			},
+			expstatus: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, ok := tc.spec.GetPlan(tc.input)
+			assert.Equal(t, tc.expstatus, ok)
+			assert.Equal(t, tc.expplan, output)
+		})
+	}
+}
