@@ -121,7 +121,7 @@ const (
 
 func TestQuayAdaptorName(t *testing.T) {
 	a := QuayAdapter{}
-	assert.Equal(t, a.RegistryName(), "quay.io", "registry adaptor name does not match")
+	assert.Equal(t, "quay.io", a.RegistryName(), "registry adaptor name does not match")
 }
 
 func TestNewQuayAdapter(t *testing.T) {
@@ -134,7 +134,7 @@ func TestNewQuayAdapter(t *testing.T) {
 	b.config.Org = "foo"
 	b.config.Tag = "latest"
 
-	assert.Equal(t, a, b, "adaptor returned is not valid")
+	assert.Equal(t, b, a, "adaptor returned is not valid")
 }
 
 func TestQuayGetImageNames(t *testing.T) {
