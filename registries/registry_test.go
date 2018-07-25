@@ -511,9 +511,7 @@ func TestNewRegistry(t *testing.T) {
 				Name: "quay",
 			},
 			validate: func(reg Registry) bool {
-				fmt.Printf("XXX registry: %#v\n", reg.adapter)
 				_, ok := reg.adapter.(adapters.QuayAdapter)
-				fmt.Printf("XXX type is okay: %v\n", ok)
 				return ok
 			},
 		},
