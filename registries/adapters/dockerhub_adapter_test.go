@@ -125,7 +125,7 @@ func TestGetImageNames(t *testing.T) {
 				"/v2/repositories/%v/?page_size=100"}, "")
 			dockerHubManifestURL = strings.Join([]string{serv.URL, "/v2/%v/manifests/%v"}, "")
 
-			// create the adapter we  want to test
+			// create the adapter we want to test
 			dha := DockerHubAdapter{Config: tc.c}
 
 			// test the GetImageNames method
@@ -255,10 +255,10 @@ func TestFetchSpecs(t *testing.T) {
 				"/v2/repositories/%v/?page_size=100"}, "")
 			dockerHubManifestURL = strings.Join([]string{serv.URL, "/v2/%v/manifests/%v"}, "")
 
-			// create the adapter we  want to test
+			// create the adapter we want to test
 			dha := DockerHubAdapter{Config: tc.c}
 
-			// test the GetImageNames method
+			// test the FetchSpecs method
 			output, err := dha.FetchSpecs(tc.input)
 
 			if tc.expectederr {
