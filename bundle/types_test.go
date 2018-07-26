@@ -877,3 +877,51 @@ func TestSpecsLogDump(t *testing.T) {
 		})
 	}
 }
+
+func TestNewSpecManifest(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    []*Spec
+		expected SpecManifest
+	}{
+		{
+			name:     "empty spec list should return empty SpecManifest",
+			input:    []*Spec{},
+			expected: SpecManifest{},
+		},
+		{
+			name:     "spec list with nils should return nil",
+			input:    []*Spec{nil},
+			expected: nil,
+		},
+		{
+			name: "given a list of specs, manifest should contain them",
+			input: []*Spec{
+				{
+					ID:     "abcdef",
+					FQName: "test-spec-a",
+				},
+				{
+					ID:     "ghijk",
+					FQName: "test-spec-b",
+				},
+			},
+			expected: SpecManifest{
+				"abcdef": &Spec{
+					ID:     "abcdef",
+					FQName: "test-spec-a",
+				},
+				"ghijk": &Spec{
+					ID:     "ghijk",
+					FQName: "test-spec-b",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, NewSpecManifest(tc.input))
+		})
+	}
+}
