@@ -232,7 +232,7 @@ func NewCustomRegistry(configuration Config, adapter adapters.Adapter, asbNamesp
 		case "apiv2":
 			adapter, err = adapters.NewAPIV2Adapter(c)
 		case "quay":
-			adapter, err = adapters.NewQuayAdapter(c)
+			adapter = adapters.NewQuayAdapter(c)
 		case "galaxy":
 			adapter = &adapters.GalaxyAdapter{Config: c}
 		default:

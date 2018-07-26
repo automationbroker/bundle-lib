@@ -17,6 +17,7 @@
 package adapters
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -24,12 +25,9 @@ import (
 	"strings"
 	"testing"
 
-	ft "github.com/stretchr/testify/assert"
+	"github.com/automationbroker/bundle-lib/bundle"
+	"github.com/stretchr/testify/assert"
 )
-
-var quayTestConfig = Configuration{
-	Org: "foo",
-}
 
 const (
 	quayTestCatalogResponse = `
@@ -121,66 +119,359 @@ const (
 
 func TestQuayAdaptorName(t *testing.T) {
 	a := QuayAdapter{}
-	ft.Equal(t, a.RegistryName(), "quay.io", "registry adaptor name does not match")
+	assert.Equal(t, "quay.io", a.RegistryName(), "registry adaptor name does not match")
 }
 
 func TestNewQuayAdapter(t *testing.T) {
-	a, err := NewQuayAdapter(quayTestConfig)
-	if err != nil {
-		t.Fatal("Error: ", err)
-	}
+	a := NewQuayAdapter(Configuration{Org: "foo"})
 
 	b := QuayAdapter{}
 	b.config.Org = "foo"
 	b.config.Tag = "latest"
 
-	ft.Equal(t, a, b, "adaptor returned is not valid")
+	assert.Equal(t, b, a, "adaptor returned is not valid")
 }
 
 func TestQuayGetImageNames(t *testing.T) {
-	serv := getQuayServer(t)
-	defer serv.Close()
-	quayTestConfig.URL = getQuayURL(t, serv)
-	a, _ := NewQuayAdapter(quayTestConfig)
-
-	imagesFound, err := a.GetImageNames()
-	if err != nil {
-		t.Fatal("Error: ", err)
+	testCases := []struct {
+		name        string
+		c           Configuration
+		expected    []string
+		expectederr bool
+		handlerFunc http.HandlerFunc
+	}{
+		{
+			name: "should return 4 images",
+			c:    Configuration{Org: "foo"},
+			expected: []string{
+				"bar",
+				"test-apb",
+				"baz",
+				"another-apb",
+			},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, quayTestCatalogResponse)
+				}
+			},
+		},
+		{
+			name: "config images should also be returned with repo images",
+			c: Configuration{
+				Org:    "foo",
+				Images: []string{"additional"},
+			},
+			expected: []string{
+				"additional",
+				"bar",
+				"test-apb",
+				"baz",
+				"another-apb",
+			},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, quayTestCatalogResponse)
+				}
+			},
+		},
+		{
+			name:        "invalid catalog response should return error",
+			c:           Configuration{Org: "foo"},
+			expected:    []string{},
+			expectederr: true,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, "invalid response, should fail")
+				}
+			},
+		},
+		{
+			name:        "empty list should return no error",
+			c:           Configuration{Org: "foo"},
+			expected:    []string{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" {
+					t.Errorf("Expected `GET` request, got `%s`", r.Method)
+				}
+				if strings.Contains(r.URL.String(), "namespace") {
+					fmt.Fprintf(w, `{"repositories": [] }`)
+				}
+			},
+		},
 	}
-	ft.Equal(t, 4, len(imagesFound), "image names returned did not match expected config")
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			serv := httptest.NewServer(tc.handlerFunc)
+			defer serv.Close()
+
+			tc.c.URL = getQuayURL(t, serv)
+
+			// create the adapter we want to test
+			qa := NewQuayAdapter(tc.c)
+
+			// test the GetImageNames method
+			output, err := qa.GetImageNames()
+			if tc.expectederr {
+				if !assert.Error(t, err) {
+					t.Fatal(err)
+				}
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			errmsg := fmt.Sprintf("%s returned the wrong value", tc.name)
+			assert.ElementsMatch(t, tc.expected, output, errmsg)
+		})
+	}
 }
 
 func TestQuayFetchSpecs(t *testing.T) {
-	serv := getQuayServer(t)
-	defer serv.Close()
-	quayTestConfig.URL = getQuayURL(t, serv)
-	a, _ := NewQuayAdapter(quayTestConfig)
-
-	imgList := []string{"test-apb"}
-	s, err := a.FetchSpecs(imgList)
-	if err != nil {
-		t.Fatal("Error: ", err)
+	testCases := []struct {
+		name        string
+		c           Configuration
+		input       []string
+		expected    []*bundle.Spec
+		expectederr bool
+		handlerFunc http.HandlerFunc
+	}{
+		{
+			name:  "expected one spec",
+			c:     Configuration{Org: "foo"},
+			input: []string{"test-apb"},
+			expected: []*bundle.Spec{
+				{
+					Runtime: 2,
+					Version: "1.0",
+					FQName:  "test-apb",
+					Metadata: map[string]interface{}{
+						"dependencies":        []interface{}{"quay.io/test/test:latest"},
+						"displayName":         "Test (APB)",
+						"documentationUrl":    "https://www.test.org/wiki/Docs",
+						"longDescription":     "An apb that tests your test",
+						"providerDisplayName": "Test Inc.",
+					},
+					Image:       "%s/foo/test-apb:latest",
+					Description: "test apb implementation",
+					Async:       "optional",
+					Plans: []bundle.Plan{
+						{
+							Name: "default",
+							Metadata: map[string]interface{}{
+								"cost":            "$0.00",
+								"displayName":     "Default",
+								"longDescription": "This plan deploys a single test",
+							},
+							Description: "An APB that tests",
+							Free:        true,
+							Parameters: []bundle.ParameterDescriptor{
+								{
+									Name:     "test_param",
+									Title:    "Test Parameter",
+									Type:     "string",
+									Default:  "test",
+									Pattern:  "^[a-zA-Z_][a-zA-Z0-9_]*$",
+									Required: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, quayTestManifestResponse)
+				}
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, quayTestDigestResponse)
+				}
+			},
+		},
+		{
+			name:        "no images in, should return no specs",
+			c:           Configuration{Org: "foo"},
+			input:       []string{},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				t.Fatal("No request should be made")
+			},
+		},
+		{
+			name:        "invalid digest should return empty specs",
+			c:           Configuration{Org: "foo"},
+			input:       []string{"test-apb"},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, `{"invalid":"response"`)
+				}
+			},
+		},
+		{
+			name:        "empty digest should return empty specs",
+			c:           Configuration{Org: "foo"},
+			input:       []string{"test-apb"},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, "{}")
+				}
+			},
+		},
+		{
+			name:        "invalid manifest response should log error, but pass",
+			c:           Configuration{Org: "foo"},
+			input:       []string{"test-apb"},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, `{"invalid":"response"`)
+				}
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, quayTestDigestResponse)
+				}
+			},
+		},
+		{
+			name:        "incorrect encoded spec should simply return empty spec",
+			c:           Configuration{Org: "foo"},
+			input:       []string{"test-apb"},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.URL.String(), "/manifest") {
+					resp := map[string][]map[string]string{
+						"labels": {
+							{
+								// pass in invalid base64 encoding
+								"value":       "aW52YWxpZCByZXNwb25z==",
+								"media_type":  "text/plain",
+								"id":          "ed22acaf-c68d-4361-ae3e-fda1b0105888",
+								"key":         "com.redhat.apb.spec",
+								"source_type": "manifest",
+							},
+						},
+					}
+					respdata, _ := json.Marshal(resp)
+					fmt.Fprintf(w, string(respdata))
+				}
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, quayTestDigestResponse)
+				}
+			},
+		},
+		{
+			name:        "empty encoded spec should simply return empty spec",
+			c:           Configuration{Org: "foo"},
+			input:       []string{"test-apb"},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.URL.String(), "/manifest") {
+					resp := map[string][]map[string]string{
+						"labels": {
+							{
+								"value":       "",
+								"media_type":  "text/plain",
+								"id":          "ed22acaf-c68d-4361-ae3e-fda1b0105888",
+								"key":         "com.redhat.apb.spec",
+								"source_type": "manifest",
+							},
+						},
+					}
+					respdata, _ := json.Marshal(resp)
+					fmt.Fprintf(w, string(respdata))
+				}
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, quayTestDigestResponse)
+				}
+			},
+		},
+		{
+			name:        "invalid yaml properly encoded should return empty spec",
+			c:           Configuration{Org: "foo"},
+			input:       []string{"test-apb"},
+			expected:    []*bundle.Spec{},
+			expectederr: false,
+			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.URL.String(), "/manifest") {
+					resp := map[string][]map[string]string{
+						"labels": {
+							{
+								// encoded the string "invalid response"
+								"value":       "aW52YWxpZCByZXNwb25zZQ==",
+								"media_type":  "text/plain",
+								"id":          "ed22acaf-c68d-4361-ae3e-fda1b0105888",
+								"key":         "com.redhat.apb.spec",
+								"source_type": "manifest",
+							},
+						},
+					}
+					respdata, _ := json.Marshal(resp)
+					fmt.Fprintf(w, string(respdata))
+				}
+				if !strings.Contains(r.URL.String(), "namespace") &&
+					!strings.Contains(r.URL.String(), "/manifest") {
+					fmt.Fprintf(w, quayTestDigestResponse)
+				}
+			},
+		},
 	}
 
-	ft.Equal(t, 1, len(s), "image names returned did not match expected config")
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			serv := httptest.NewServer(tc.handlerFunc)
+			defer serv.Close()
 
-func getQuayServer(t *testing.T) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			t.Errorf("Expected `GET` request, got `%s`", r.Method)
-		}
-		if strings.Contains(r.URL.String(), "namespace") {
-			fmt.Fprintf(w, quayTestCatalogResponse)
-		}
-		if strings.Contains(r.URL.String(), "/manifest") {
-			fmt.Fprintf(w, quayTestManifestResponse)
-		}
-		if !strings.Contains(r.URL.String(), "namespace") &&
-			!strings.Contains(r.URL.String(), "/manifest") {
-			fmt.Fprintf(w, quayTestDigestResponse)
-		}
-	}))
+			tc.c.URL = getQuayURL(t, serv)
+
+			// Fix the expected URL
+			for _, s := range tc.expected {
+				s.Image = strings.Replace(fmt.Sprintf(s.Image, serv.URL), "http://", "", 1)
+			}
+
+			// create the adapter we want to test
+			qa := NewQuayAdapter(tc.c)
+
+			// test the FetchSpecs method
+			output, err := qa.FetchSpecs(tc.input)
+			if tc.expectederr {
+				if !assert.Error(t, err) {
+					t.Fatal(err)
+				}
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			errmsg := fmt.Sprintf("%s returned the wrong value", tc.name)
+			assert.Equal(t, tc.expected, output, errmsg)
+		})
+	}
 }
 
 func getQuayURL(t *testing.T, s *httptest.Server) *url.URL {
