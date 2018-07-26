@@ -128,9 +128,9 @@ func (r Registry) LoadSpecs() ([]*bundle.Spec, int, error) {
 
 	if len(filteredNames) != 0 {
 		var buffer bytes.Buffer
-		buffer.WriteString("Bundles filtered by white/blacklist filter:")
+		buffer.WriteString("Bundles filtered by white/blacklist filter:\n")
 		for _, name := range filteredNames {
-			buffer.WriteString(fmt.Sprintf("-> %s", name))
+			buffer.WriteString(fmt.Sprintf("\t-> %s\n", name))
 		}
 		log.Infof(buffer.String())
 	}
