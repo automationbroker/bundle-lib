@@ -26,7 +26,9 @@ import (
 	"testing"
 
 	"github.com/pborman/uuid"
-	ft "github.com/stretchr/testify/assert"
+	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
+	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -273,16 +275,16 @@ func TestSpecLoadJSON(t *testing.T) {
 		panic(err)
 	}
 
-	ft.Equal(t, s.Description, SpecDescription)
-	ft.Equal(t, s.FQName, SpecName)
-	ft.Equal(t, s.Version, SpecVersion)
-	ft.Equal(t, s.Runtime, SpecRuntime)
-	ft.Equal(t, s.Image, SpecImage)
-	ft.Equal(t, s.Bindable, SpecBindable)
-	ft.Equal(t, s.Async, SpecAsync)
-	ft.Equal(t, s.Delete, SpecDelete)
-	ft.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
-	ft.True(t, reflect.DeepEqual(s.Alpha, SpecAlpha))
+	assert.Equal(t, s.Description, SpecDescription)
+	assert.Equal(t, s.FQName, SpecName)
+	assert.Equal(t, s.Version, SpecVersion)
+	assert.Equal(t, s.Runtime, SpecRuntime)
+	assert.Equal(t, s.Image, SpecImage)
+	assert.Equal(t, s.Bindable, SpecBindable)
+	assert.Equal(t, s.Async, SpecAsync)
+	assert.Equal(t, s.Delete, SpecDelete)
+	assert.True(t, reflect.DeepEqual(s.Plans[0].Parameters, expectedPlanParameters))
+	assert.True(t, reflect.DeepEqual(s.Alpha, SpecAlpha))
 }
 
 func EncodedApb() string {
@@ -313,7 +315,7 @@ func TestSpecDumpJSON(t *testing.T) {
 
 	json.Unmarshal([]byte(SpecJSON), &knownMap)
 	json.Unmarshal([]byte(raw), &subjectMap)
-	ft.True(t, reflect.DeepEqual(knownMap, subjectMap))
+	assert.True(t, reflect.DeepEqual(knownMap, subjectMap))
 }
 
 func TestEncodedParameters(t *testing.T) {
@@ -327,20 +329,20 @@ func TestEncodedParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("%#v", spec)
-	ft.Equal(t, spec.FQName, "mediawiki123-apb")
-	ft.Equal(t, len(spec.Plans[0].Parameters), 5)
+	assert.Equal(t, spec.FQName, "mediawiki123-apb")
+	assert.Equal(t, len(spec.Plans[0].Parameters), 5)
 
 	// picking something other than the first one
 	sitelang := spec.Plans[0].Parameters[2] // mediawiki_site_lang
 
-	ft.Equal(t, sitelang.Name, "mediawiki_site_lang")
-	ft.Equal(t, sitelang.Title, "Mediawiki Site Language")
-	ft.Equal(t, sitelang.Type, "string")
-	ft.Equal(t, sitelang.Description, "")
-	ft.Equal(t, sitelang.Default, "en")
-	ft.Equal(t, sitelang.DeprecatedMaxlength, 0)
-	ft.Equal(t, sitelang.Pattern, "")
-	ft.Equal(t, len(sitelang.Enum), 0)
+	assert.Equal(t, sitelang.Name, "mediawiki_site_lang")
+	assert.Equal(t, sitelang.Title, "Mediawiki Site Language")
+	assert.Equal(t, sitelang.Type, "string")
+	assert.Equal(t, sitelang.Description, "")
+	assert.Equal(t, sitelang.Default, "en")
+	assert.Equal(t, sitelang.DeprecatedMaxlength, 0)
+	assert.Equal(t, sitelang.Pattern, "")
+	assert.Equal(t, len(sitelang.Enum), 0)
 }
 
 func TestBindInstanceUserParamsNil(t *testing.T) {
@@ -349,7 +351,7 @@ func TestBindInstanceUserParamsNil(t *testing.T) {
 		ServiceID: uuid.NewUUID(),
 	}
 	up := a.UserParameters()
-	ft.True(t, up == nil)
+	assert.True(t, up == nil)
 }
 
 func TestBindInstanceUserParams(t *testing.T) {
@@ -367,12 +369,12 @@ func TestBindInstanceUserParams(t *testing.T) {
 	up := a.UserParameters()
 
 	// Make sure the "foo" key is still included
-	ft.True(t, up["foo"] == "bar")
+	assert.True(t, up["foo"] == "bar")
 
 	// Make sure all of these got filtered out
 	for _, key := range []string{"cluster", "namespace", "_apb_provision_creds"} {
 		_, ok := up[key]
-		ft.False(t, ok)
+		assert.False(t, ok)
 	}
 
 }
@@ -455,8 +457,8 @@ func TestBindInstanceEqual(t *testing.T) {
 		ServiceID:  a.ServiceID,
 		Parameters: &Parameters{"foo": "bar"},
 	}
-	ft.True(t, a.IsEqual(&b))
-	ft.True(t, b.IsEqual(&a))
+	assert.True(t, a.IsEqual(&b))
+	assert.True(t, b.IsEqual(&a))
 }
 
 func TestBindInstanceNotEqual(t *testing.T) {
@@ -502,10 +504,10 @@ func TestBindInstanceNotEqual(t *testing.T) {
 func TestBuildExtractedCredentials(t *testing.T) {
 	output := []byte(`{"db": "fusor_guestbook_db", "user": "duder_two", "pass" :"dog8two"}`)
 	bd, _ := buildExtractedCredentials(output)
-	ft.NotNil(t, bd, "credential is nil")
-	ft.Equal(t, bd.Credentials["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
-	ft.Equal(t, bd.Credentials["user"], "duder_two", "user is not duder_two")
-	ft.Equal(t, bd.Credentials["pass"], "dog8two", "password is not dog8two")
+	assert.NotNil(t, bd, "credential is nil")
+	assert.Equal(t, bd.Credentials["db"], "fusor_guestbook_db", "db is not fusor_guestbook_db")
+	assert.Equal(t, bd.Credentials["user"], "duder_two", "user is not duder_two")
+	assert.Equal(t, bd.Credentials["pass"], "dog8two", "password is not dog8two")
 }
 
 func TestAlphaParser(t *testing.T) {
@@ -530,7 +532,7 @@ func TestAlphaParser(t *testing.T) {
 		t.Error(`spec.Alpha["dashboard_redirect"] should assert to bool`)
 	}
 
-	ft.True(t, dr)
+	assert.True(t, dr)
 }
 
 func TestAddRemoveBinding(t *testing.T) {
@@ -540,10 +542,386 @@ func TestAddRemoveBinding(t *testing.T) {
 
 	bID := uuid.NewUUID()
 	si.AddBinding(bID)
-	ft.True(t, si.BindingIDs[bID.String()], "binding not added")
+	assert.True(t, si.BindingIDs[bID.String()], "binding not added")
 
 	si.RemoveBinding(bID)
 	toDelete, ok := si.BindingIDs[bID.String()]
-	ft.True(t, ok, "binding has been removed, should be marked only")
-	ft.False(t, toDelete, "binding not marked as deleted")
+	assert.True(t, ok, "binding has been removed, should be marked only")
+	assert.False(t, toDelete, "binding not marked as deleted")
+}
+
+func TestGetParameter(t *testing.T) {
+	testCases := []struct {
+		name     string
+		plan     *Plan
+		input    string
+		expected *ParameterDescriptor
+	}{
+		{
+			name:     "no parameters on empty plan should return nil",
+			plan:     &Plan{},
+			input:    "does_not_exist",
+			expected: nil,
+		},
+		{
+			name: "if name does not match should return nil",
+			plan: &Plan{
+				Name: "plan b",
+				Parameters: []ParameterDescriptor{
+					{
+						Name:        "vncpass",
+						Title:       "VNC Password",
+						Type:        "string",
+						DisplayType: "password",
+						Required:    true,
+					},
+				},
+			},
+			input:    "does_not_match",
+			expected: nil,
+		},
+		{
+			name: "if name matches we should return the ParameterDecriptor",
+			plan: &Plan{
+				Name: "plan b",
+				Parameters: []ParameterDescriptor{
+					{
+						Name:        "vncpass",
+						Title:       "VNC Password",
+						Type:        "string",
+						DisplayType: "password",
+						Required:    true,
+					},
+				},
+			},
+			input: "vncpass",
+			expected: &ParameterDescriptor{
+				Name:        "vncpass",
+				Title:       "VNC Password",
+				Type:        "string",
+				DisplayType: "password",
+				Required:    true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := tc.plan.GetParameter(tc.input)
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
+
+func TestSpecGetPlan(t *testing.T) {
+	testCases := []struct {
+		name      string
+		spec      *Spec
+		input     string
+		expplan   Plan
+		expstatus bool
+	}{
+		{
+			name:      "no plans on empty spec should return false",
+			spec:      &Spec{},
+			input:     "does_not_exist",
+			expplan:   Plan{},
+			expstatus: false,
+		},
+		{
+			name: "if name does not match should return false",
+			spec: &Spec{
+				FQName: "spec b",
+				Plans: []Plan{
+					{
+						Name: "plan b",
+					},
+				},
+			},
+			input:     "does_not_match",
+			expplan:   Plan{},
+			expstatus: false,
+		},
+		{
+			name: "if name matches we should return the Plan",
+			spec: &Spec{
+				FQName: "spec b",
+				Plans: []Plan{
+					{
+						Name: "plan b",
+					},
+				},
+			},
+			input: "plan b",
+			expplan: Plan{
+				Name: "plan b",
+			},
+			expstatus: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, ok := tc.spec.GetPlan(tc.input)
+			assert.Equal(t, tc.expstatus, ok)
+			assert.Equal(t, tc.expplan, output)
+		})
+	}
+}
+
+func TestSpecGetPlanFromID(t *testing.T) {
+	testCases := []struct {
+		name      string
+		spec      *Spec
+		input     string
+		expplan   Plan
+		expstatus bool
+	}{
+		{
+			name:      "no plans on empty spec should return false",
+			spec:      &Spec{},
+			input:     "does_not_exist",
+			expplan:   Plan{},
+			expstatus: false,
+		},
+		{
+			name: "if name does not match should return false",
+			spec: &Spec{
+				FQName: "spec b",
+				Plans: []Plan{
+					{
+						ID: "plan b",
+					},
+				},
+			},
+			input:     "does_not_match",
+			expplan:   Plan{},
+			expstatus: false,
+		},
+		{
+			name: "if name matches we should return the Plan",
+			spec: &Spec{
+				FQName: "spec b",
+				Plans: []Plan{
+					{
+						ID: "plan b",
+					},
+				},
+			},
+			input: "plan b",
+			expplan: Plan{
+				ID: "plan b",
+			},
+			expstatus: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, ok := tc.spec.GetPlanFromID(tc.input)
+			assert.Equal(t, tc.expstatus, ok)
+			assert.Equal(t, tc.expplan, output)
+		})
+	}
+}
+
+func TestSpecsLogDump(t *testing.T) {
+	testCases := []struct {
+		name            string
+		input           []*Spec
+		expectedrows    int
+		expectedentries []string
+	}{
+		{
+			name: "spec with no plans",
+			input: []*Spec{
+				{
+					ID:          "abcdef",
+					FQName:      "test-spec",
+					Image:       "test-image",
+					Bindable:    true,
+					Description: "test description",
+					Async:       "optional",
+				},
+			},
+			expectedrows: 8,
+			expectedentries: []string{
+				"============================================================",
+				"Spec: abcdef",
+				"============================================================",
+				"Name: test-spec",
+				"Image: test-image",
+				"Bindable: true",
+				"Description: test description",
+				"Async: optional",
+			},
+		},
+		{
+			name: "spec with a plan and no parameters",
+			input: []*Spec{
+				{
+					ID:          "abcdef",
+					FQName:      "test-spec",
+					Image:       "test-image",
+					Bindable:    true,
+					Description: "test description",
+					Async:       "optional",
+					Plans: []Plan{
+						{
+							ID:   "plan b",
+							Name: "plan b",
+						},
+					},
+				},
+			},
+			expectedrows: 9,
+			expectedentries: []string{
+				"============================================================",
+				"Spec: abcdef",
+				"============================================================",
+				"Name: test-spec",
+				"Image: test-image",
+				"Bindable: true",
+				"Description: test description",
+				"Async: optional",
+				"Plan: plan b",
+			},
+		},
+		{
+			name: "spec with a plan and parameters",
+			input: []*Spec{
+				{
+					ID:          "abcdef",
+					FQName:      "test-spec",
+					Image:       "test-image",
+					Bindable:    true,
+					Description: "test description",
+					Async:       "optional",
+					Plans: []Plan{
+						{
+							ID:   "plan b",
+							Name: "plan b",
+							Parameters: []ParameterDescriptor{
+								{
+									Name:        "vncpass",
+									Title:       "VNC Password",
+									Type:        "string",
+									DisplayType: "password",
+									Required:    true,
+									Updatable:   true,
+									MaxLength:   20,
+									MinLength:   8,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedrows: 25,
+			expectedentries: []string{
+				"============================================================",
+				"Spec: abcdef",
+				"============================================================",
+				"Name: test-spec",
+				"Image: test-image",
+				"Bindable: true",
+				"Description: test description",
+				"Async: optional",
+				"Plan: plan b",
+				"  Name: vncpass",
+				"  Title: VNC Password",
+				"  Type: string",
+				"  Description: ",
+				"  Default: <nil>",
+				"  DeprecatedMaxlength: 0",
+				"  MaxLength: 20",
+				"  MinLength: 8",
+				"  Pattern: ",
+				"  MultipleOf: 0.000000",
+				"  Minimum: (*bundle.NilableNumber)(nil)",
+				"  Maximum: (*bundle.NilableNumber)(nil)",
+				"  ExclusiveMinimum: (*bundle.NilableNumber)(nil)",
+				"  ExclusiveMaximum: (*bundle.NilableNumber)(nil)",
+				"  Required: true",
+				"  Enum: []",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// capture the logs
+			logger, hook := test.NewNullLogger()
+
+			// need to log the debug level from the SpecLogDump
+			log.SetLevel(log.DebugLevel)
+
+			// don't print it out during the run
+			log.SetOutput(logger.Out)
+
+			// capture and verify
+			log.AddHook(hook)
+
+			// test the dump
+			SpecsLogDump(tc.input)
+
+			assert.Equal(t, tc.expectedrows, len(hook.Entries))
+			for i, entry := range hook.Entries {
+				assert.Equal(t, log.DebugLevel, hook.LastEntry().Level)
+				assert.Equal(t, tc.expectedentries[i], entry.Message)
+			}
+
+			hook.Reset()
+			assert.Nil(t, hook.LastEntry())
+		})
+	}
+}
+
+func TestNewSpecManifest(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    []*Spec
+		expected SpecManifest
+	}{
+		{
+			name:     "empty spec list should return empty SpecManifest",
+			input:    []*Spec{},
+			expected: SpecManifest{},
+		},
+		{
+			name:     "spec list with nils should return nil",
+			input:    []*Spec{nil},
+			expected: nil,
+		},
+		{
+			name: "given a list of specs, manifest should contain them",
+			input: []*Spec{
+				{
+					ID:     "abcdef",
+					FQName: "test-spec-a",
+				},
+				{
+					ID:     "ghijk",
+					FQName: "test-spec-b",
+				},
+			},
+			expected: SpecManifest{
+				"abcdef": &Spec{
+					ID:     "abcdef",
+					FQName: "test-spec-a",
+				},
+				"ghijk": &Spec{
+					ID:     "ghijk",
+					FQName: "test-spec-b",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, NewSpecManifest(tc.input))
+		})
+	}
 }
