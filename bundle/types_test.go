@@ -26,6 +26,8 @@ import (
 	"testing"
 
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -719,6 +721,159 @@ func TestSpecGetPlanFromID(t *testing.T) {
 			output, ok := tc.spec.GetPlanFromID(tc.input)
 			assert.Equal(t, tc.expstatus, ok)
 			assert.Equal(t, tc.expplan, output)
+		})
+	}
+}
+
+func TestSpecsLogDump(t *testing.T) {
+	testCases := []struct {
+		name            string
+		input           []*Spec
+		expectedrows    int
+		expectedentries []string
+	}{
+		{
+			name: "spec with no plans",
+			input: []*Spec{
+				{
+					ID:          "abcdef",
+					FQName:      "test-spec",
+					Image:       "test-image",
+					Bindable:    true,
+					Description: "test description",
+					Async:       "optional",
+				},
+			},
+			expectedrows: 8,
+			expectedentries: []string{
+				"============================================================",
+				"Spec: abcdef",
+				"============================================================",
+				"Name: test-spec",
+				"Image: test-image",
+				"Bindable: true",
+				"Description: test description",
+				"Async: optional",
+			},
+		},
+		{
+			name: "spec with a plan and no parameters",
+			input: []*Spec{
+				{
+					ID:          "abcdef",
+					FQName:      "test-spec",
+					Image:       "test-image",
+					Bindable:    true,
+					Description: "test description",
+					Async:       "optional",
+					Plans: []Plan{
+						{
+							ID:   "plan b",
+							Name: "plan b",
+						},
+					},
+				},
+			},
+			expectedrows: 9,
+			expectedentries: []string{
+				"============================================================",
+				"Spec: abcdef",
+				"============================================================",
+				"Name: test-spec",
+				"Image: test-image",
+				"Bindable: true",
+				"Description: test description",
+				"Async: optional",
+				"Plan: plan b",
+			},
+		},
+		{
+			name: "spec with a plan and parameters",
+			input: []*Spec{
+				{
+					ID:          "abcdef",
+					FQName:      "test-spec",
+					Image:       "test-image",
+					Bindable:    true,
+					Description: "test description",
+					Async:       "optional",
+					Plans: []Plan{
+						{
+							ID:   "plan b",
+							Name: "plan b",
+							Parameters: []ParameterDescriptor{
+								{
+									Name:        "vncpass",
+									Title:       "VNC Password",
+									Type:        "string",
+									DisplayType: "password",
+									Required:    true,
+									Updatable:   true,
+									MaxLength:   20,
+									MinLength:   8,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedrows: 25,
+			expectedentries: []string{
+				"============================================================",
+				"Spec: abcdef",
+				"============================================================",
+				"Name: test-spec",
+				"Image: test-image",
+				"Bindable: true",
+				"Description: test description",
+				"Async: optional",
+				"Plan: plan b",
+				"  Name: vncpass",
+				"  Title: VNC Password",
+				"  Type: string",
+				"  Description: ",
+				"  Default: <nil>",
+				"  DeprecatedMaxlength: 0",
+				"  MaxLength: 20",
+				"  MinLength: 8",
+				"  Pattern: ",
+				"  MultipleOf: 0.000000",
+				"  Minimum: (*bundle.NilableNumber)(nil)",
+				"  Maximum: (*bundle.NilableNumber)(nil)",
+				"  ExclusiveMinimum: (*bundle.NilableNumber)(nil)",
+				"  ExclusiveMaximum: (*bundle.NilableNumber)(nil)",
+				"  Required: true",
+				"  Enum: []",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// capture the logs
+			logger, hook := test.NewNullLogger()
+
+			// need to log the debug level from the SpecLogDump
+			log.SetLevel(log.DebugLevel)
+
+			// don't print it out during the run
+			log.SetOutput(logger.Out)
+
+			// capture and verify
+			log.AddHook(hook)
+
+			// test the dump
+			SpecsLogDump(tc.input)
+
+			assert.Equal(t, tc.expectedrows, len(hook.Entries))
+			for i, entry := range hook.Entries {
+				assert.Equal(t, log.DebugLevel, hook.LastEntry().Level)
+				assert.Equal(t, tc.expectedentries[i], entry.Message)
+			}
+
+			hook.Reset()
+			assert.Nil(t, hook.LastEntry())
 		})
 	}
 }
