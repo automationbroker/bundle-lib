@@ -98,7 +98,7 @@ func TestProvision(t *testing.T) {
 				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
-				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "provision", "apbName": "new-fq-name"}).Return(nil)
+				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"bundleAction": "provision", "bundleName": "new-fq-name"}).Return(nil)
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 2 {
@@ -155,7 +155,7 @@ func TestProvision(t *testing.T) {
 				}).Return(nil)
 				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
-				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "provision", "apbName": "new-fq-name"}).Return(nil)
+				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"bundleAction": "provision", "bundleName": "new-fq-name"}).Return(nil)
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 3 {
@@ -371,7 +371,7 @@ func TestProvision(t *testing.T) {
 				rt.On("WatchRunningBundle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				rt.On("DestroySandbox", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 				rt.On("ExtractCredentials", mock.Anything, mock.Anything, mock.Anything).Return([]byte(`{"test": "testingcreds"}`), nil)
-				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"apbAction": "provision", "apbName": "new-fq-name"}).Return(fmt.Errorf("unable to create extracted creds"))
+				rt.On("CreateExtractedCredential", u.String(), mock.Anything, map[string]interface{}{"test": "testingcreds"}, map[string]string{"bundleAction": "provision", "bundleName": "new-fq-name"}).Return(fmt.Errorf("unable to create extracted creds"))
 			},
 			validateMessage: func(m []StatusMessage) bool {
 				if len(m) != 2 {
