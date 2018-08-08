@@ -214,11 +214,11 @@ func TestNewTransport(t *testing.T) {
 				}
 			}
 			if tc.Config.EtcdClientKey != "" && tc.Config.EtcdClientCert != "" {
-				if len(transport.TLSClientConfig.Certificates) == 0 {
+				if len(transport.TLSClientConfig.Certificates) == 0 && transport.TLSClientConfig.GetCertificate == nil {
 					t.Fatal("Should have created a certificate")
 				}
 			} else {
-				if len(transport.TLSClientConfig.Certificates) != 0 {
+				if len(transport.TLSClientConfig.Certificates) != 0 && transport.TLSClientConfig.GetCertificate != nil {
 					t.Fatal("Should not have created a certificate")
 				}
 			}
