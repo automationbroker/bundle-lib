@@ -66,18 +66,14 @@ func RegisterCollector() {
 
 // SandboxCreated - Counter for how many sandbox created.
 func SandboxCreated() {
-	if collector != nil {
-		defer recoverMetricPanic()
-		collector.Sandbox.Inc()
-	}
+	defer recoverMetricPanic()
+	collector.Sandbox.Inc()
 }
 
 // SandboxDeleted - Counter for how many sandbox deleted.
 func SandboxDeleted() {
-	if collector != nil {
-		defer recoverMetricPanic()
-		collector.Sandbox.Dec()
-	}
+	defer recoverMetricPanic()
+	collector.Sandbox.Dec()
 }
 
 // Describe - returns all the descriptions of the collector
