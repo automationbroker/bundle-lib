@@ -1064,12 +1064,14 @@ func TestRetrieveRegistryAuth(t *testing.T) {
 			input: Config{
 				AuthName: "empty",
 				AuthType: "",
+				User:     "duder",
+				Pass:     "topsecret",
 			},
 			expected: Config{
 				AuthName: "empty",
 				AuthType: "",
-				User:     "",
-				Pass:     "",
+				User:     "duder",
+				Pass:     "topsecret",
 			},
 		},
 		{
