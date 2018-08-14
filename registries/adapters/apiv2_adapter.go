@@ -121,7 +121,7 @@ func (r APIV2Adapter) GetImageNames() ([]string, error) {
 	discoveredImages, err := r.discoverImages(fmt.Sprintf(apiV2CatalogURL, r.config.URL))
 	if err != nil && len(imageList) == 0 {
 		// This means no images specified in config and discovered no images. Erroring out
-		return nil, errors.New(fmt.Sprintf("failed to fetch catalog response: [%v] and failed to find images in configuration", err))
+		return nil, fmt.Errorf("failed to fetch catalog response: [%v] and failed to find images in configuration", err)
 	}
 	if len(discoveredImages) > 0 {
 		log.Debugf("Discovered images: %v", discoveredImages)
