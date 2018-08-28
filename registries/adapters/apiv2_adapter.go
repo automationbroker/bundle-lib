@@ -109,6 +109,14 @@ func (r APIV2Adapter) GetImageNames() ([]string, error) {
 	log.Debugf("%s - GetImageNames", r.config.AdapterName)
 	log.Debugf("BundleSpecLabel: %s", BundleSpecLabel)
 
+	// Need to call GetV2() here to ensure we don't have a stale token
+	// GetImageNames() is the first call in LoadSpecs which is called at beginning of Bootstrap
+	err := r.client.Getv2()
+	if err != nil {
+		log.Errorf("Failed to GET /v2 at %s - %v", r.config.URL, err)
+		return nil, err
+	}
+
 	var imageList []string
 
 	// check if we're configured for specific images
