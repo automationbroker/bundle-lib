@@ -704,7 +704,7 @@ func TestNewRegistry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// HACK: if we need a url for testing the server, then set it here
 			if tc.c.URL == "NEEDSURL" {
-				s := adaptertest.GetAPIV2Server(t)
+				s := adaptertest.GetAPIV2Server(t, true)
 				defer s.Close()
 				tc.c.URL = adaptertest.GetURL(t, s).String()
 			}
