@@ -94,7 +94,7 @@ const schema1Ct = "application/vnd.docker.distribution.manifest.v1+json"
 
 // GetAPIV2Server returns an httptest Server useful for testing APIV2 type
 // adapters. Instead of having to write your own you can simply get this
-func GetAPIV2Server(t *testing.T) *httptest.Server {
+func GetAPIV2Server(t *testing.T, supportDiscovery bool) *httptest.Server {
 	authServ := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("Expected `GET` request, got `%s`", r.Method)
@@ -112,7 +112,9 @@ func GetAPIV2Server(t *testing.T) *httptest.Server {
 			w.Header().Add("Www-Authenticate", fmt.Sprintf("Bearer realm=\"%v/v2/auth/realms/foo-docker-v2/auth\",service=\"docker-registry\"", authServ.URL))
 		}
 		if strings.Contains(r.URL.EscapedPath(), "_catalog") {
-			fmt.Fprintf(w, apiV2TestCatalogResponse)
+			if supportDiscovery {
+				fmt.Fprintf(w, apiV2TestCatalogResponse)
+			}
 		}
 		if strings.Contains(r.URL.EscapedPath(), "manifests/") {
 			name := strings.Split(r.URL.EscapedPath(), "manifests/")[1]

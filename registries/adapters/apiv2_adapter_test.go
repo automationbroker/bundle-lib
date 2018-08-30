@@ -17,7 +17,6 @@
 package adapters
 
 import (
-	"net/url"
 	"sort"
 	"testing"
 
@@ -100,7 +99,7 @@ const apiV2AuthResponse = `
 }`
 
 func TestAPIV2NewAPIV2Adapter(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
+	serv := adaptertest.GetAPIV2Server(t, true)
 	defer serv.Close()
 	testConfig.URL = adaptertest.GetURL(t, serv)
 
@@ -113,7 +112,7 @@ func TestAPIV2NewAPIV2Adapter(t *testing.T) {
 }
 
 func TestNewOpenShiftAdapter(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
+	serv := adaptertest.GetAPIV2Server(t, true)
 	defer serv.Close()
 	testConfig.URL = adaptertest.GetURL(t, serv)
 
@@ -125,7 +124,7 @@ func TestNewOpenShiftAdapter(t *testing.T) {
 }
 
 func TestNewPartnerRhccAdapter(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
+	serv := adaptertest.GetAPIV2Server(t, true)
 	defer serv.Close()
 	testConfig.URL = adaptertest.GetURL(t, serv)
 
@@ -137,7 +136,7 @@ func TestNewPartnerRhccAdapter(t *testing.T) {
 }
 
 func TestAPIV2GetImageNames(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
+	serv := adaptertest.GetAPIV2Server(t, true)
 	defer serv.Close()
 	testConfig.URL = adaptertest.GetURL(t, serv)
 	apiv2a, _ := NewAPIV2Adapter(testConfig)
@@ -154,7 +153,9 @@ func TestAPIV2GetImageNames(t *testing.T) {
 func TestAPIV2GetImageNamesBadURL(t *testing.T) {
 	// This test also covers the test case of a registry that does not implement discovery
 	// AKA <url>/v2/_catalog returns 404
-	testConfig.URL, _ = url.Parse("https://www.google.com")
+	serv := adaptertest.GetAPIV2Server(t, false)
+	defer serv.Close()
+	testConfig.URL = adaptertest.GetURL(t, serv)
 	apiv2a := APIV2Adapter{
 		config: testConfig,
 		client: oauth.NewClient("user", "pass", true, testConfig.URL),
@@ -170,7 +171,7 @@ func TestAPIV2GetImageNamesBadURL(t *testing.T) {
 }
 
 func TestAPIV2FetchSpecs(t *testing.T) {
-	serv := adaptertest.GetAPIV2Server(t)
+	serv := adaptertest.GetAPIV2Server(t, true)
 	defer serv.Close()
 	testConfig.URL = adaptertest.GetURL(t, serv)
 	apiv2a, _ := NewAPIV2Adapter(testConfig)
