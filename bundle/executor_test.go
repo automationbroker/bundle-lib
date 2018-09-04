@@ -18,7 +18,11 @@ package bundle
 
 import (
 	"errors"
+	"os"
 	"testing"
+
+	"github.com/automationbroker/bundle-lib/runtime"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExecutor(t *testing.T) {
@@ -88,6 +92,91 @@ func TestExecutor(t *testing.T) {
 			if !tc.validate(&tc.e) {
 				t.Fatalf("executor creation failed")
 			}
+		})
+	}
+}
+
+func TestGetProxyConfig(t *testing.T) {
+	testCases := []*struct {
+		name     string
+		setupEnv func()
+		expected *runtime.ProxyConfig
+	}{
+		{
+			name:     "no proxy vars",
+			expected: nil,
+			setupEnv: func() {
+				// make sure variables aren't set
+				os.Unsetenv("HTTP_PROXY")
+				os.Unsetenv("HTTPS_PROXY")
+				os.Unsetenv("NO_PROXY")
+			},
+		},
+		{
+			name:     "no proxy set, but no proxy configured",
+			expected: nil,
+			setupEnv: func() {
+				// make sure variables aren't set
+				os.Unsetenv("HTTP_PROXY")
+				os.Unsetenv("HTTPS_PROXY")
+				// ensure the NO_PROXY is set though
+				os.Setenv("NO_PROXY", "*.aventail.com,home.com,.seanet.com")
+			},
+		},
+		{
+			name: "all configs are set",
+			expected: &runtime.ProxyConfig{
+				HTTPProxy:  "http://user:password@prox-server:3128",
+				HTTPSProxy: "https://user:password@secure-prox-server:3128",
+				NoProxy:    "*.aventail.com,home.com,.seanet.com",
+			},
+			setupEnv: func() {
+				os.Setenv("HTTP_PROXY", "http://user:password@prox-server:3128")
+				os.Setenv("HTTPS_PROXY", "https://user:password@secure-prox-server:3128")
+				os.Setenv("NO_PROXY", "*.aventail.com,home.com,.seanet.com")
+			},
+		},
+		{
+			name: "only http is set",
+			expected: &runtime.ProxyConfig{
+				HTTPProxy:  "http://user:password@prox-server:3128",
+				HTTPSProxy: "",
+				NoProxy:    "",
+			},
+			setupEnv: func() {
+				os.Setenv("HTTP_PROXY", "http://user:password@prox-server:3128")
+				os.Unsetenv("HTTPS_PROXY")
+				os.Unsetenv("NO_PROXY")
+			},
+		},
+		{
+			name: "only https is set",
+			expected: &runtime.ProxyConfig{
+				HTTPProxy:  "",
+				HTTPSProxy: "https://user:password@secure-prox-server:3128",
+				NoProxy:    "",
+			},
+			setupEnv: func() {
+				os.Unsetenv("HTTP_PROXY")
+				os.Setenv("HTTPS_PROXY", "https://user:password@secure-prox-server:3128")
+				os.Unsetenv("NO_PROXY")
+			},
+		},
+		{
+			name:     "proxy vars set but empty",
+			expected: nil,
+			setupEnv: func() {
+				os.Setenv("HTTP_PROXY", "")
+				os.Setenv("HTTPS_PROXY", "")
+				os.Unsetenv("NO_PROXY")
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.setupEnv()
+			assert.Equal(t, tc.expected, getProxyConfig())
 		})
 	}
 }
