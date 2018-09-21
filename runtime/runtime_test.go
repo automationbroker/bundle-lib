@@ -27,6 +27,7 @@ import (
 	"github.com/automationbroker/bundle-lib/clients"
 	"github.com/automationbroker/bundle-lib/runtime/mocks"
 	apicorev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -88,9 +89,10 @@ func TestCreateSandbox(t *testing.T) {
 		targets   []string
 		apbRole   string
 		metadata  map[string]string
+		netpolicy *networkingv1.NetworkPolicy
 	}{
 		{
-			name:      "Test Create Sandbox with namespace in target",
+			name:      "Test Create Sandbox with ns in target no net policy",
 			podName:   "pod-name",
 			client:    fake.NewSimpleClientset(),
 			namespace: "foo-ns",
@@ -98,12 +100,40 @@ func TestCreateSandbox(t *testing.T) {
 			apbRole:   "edit",
 		},
 		{
-			name:      "Test Create Sandbox with namespace not in target",
+			name:      "Test Create Sandbox with ns not in target no net policy",
 			podName:   "pod-name",
 			client:    fake.NewSimpleClientset(),
 			namespace: "bar-ns",
 			targets:   []string{"satoshi-ns", "nakamoto-ns"},
 			apbRole:   "edit",
+		},
+		{
+			name:      "Test Create Sandbox with ns in target with net policy",
+			podName:   "pod-name",
+			client:    fake.NewSimpleClientset(),
+			namespace: "foo-ns",
+			targets:   []string{"foo-ns"},
+			apbRole:   "edit",
+			netpolicy: &networkingv1.NetworkPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "foo-ns",
+				},
+				Spec: networkingv1.NetworkPolicySpec{},
+			},
+		},
+		{
+			name:      "Test Create Sandbox with ns not in target with net policy",
+			podName:   "pod-name",
+			client:    fake.NewSimpleClientset(),
+			namespace: "bar-ns",
+			targets:   []string{"satoshi-ns", "nakamoto-ns"},
+			apbRole:   "edit",
+			netpolicy: &networkingv1.NetworkPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "bar-ns",
+				},
+				Spec: networkingv1.NetworkPolicySpec{},
+			},
 		},
 	}
 	k, err := clients.Kubernetes()
@@ -158,22 +188,53 @@ func TestCreateSandbox(t *testing.T) {
 					t.Fatalf("Failed to create ns: %v", err)
 				}
 			}
+
+			// create any network policies that might exist
+			if tc.netpolicy != nil {
+				_, err := k.Client.NetworkingV1().NetworkPolicies(tc.namespace).Create(tc.netpolicy)
+				if err != nil {
+					t.Fatalf("Failed to create net policy: %v", err)
+				}
+			}
+
+			// Perform the test
 			NewRuntime(Configuration{})
 			p := Provider.(*provider)
 			_, _, err = p.CreateSandbox(tc.podName, tc.namespace, tc.targets, tc.apbRole, tc.metadata)
 			if err != nil {
 				t.Fatalf("Failed to create sandbox: %v", err)
 			}
+
+			// Validation
 			list, err := k.Client.NetworkingV1().NetworkPolicies(tc.targets[0]).List(metav1.ListOptions{})
 			if err != nil {
 				t.Fatalf("Failed to get list of network policies: %v", err)
 			}
-			// Test case where we are deploying to target
-			if isNamespaceInTargets(tc.namespace, tc.targets) && len(list.Items) > 0 {
+			t.Logf("policies: %v\n", list.Items)
+
+			// Validate the following matrix:
+			//
+			//               ns in targets  ns !in targets
+			// np present          N               Y
+			// np !present         N               N
+
+			// we should not add a NEW network policy beyond the one that was
+			// already added to the namespace
+			if isNamespaceInTargets(tc.namespace, tc.targets) && tc.netpolicy != nil && len(list.Items) > 1 {
 				t.Fatalf("Found a network policy when namespace is in target")
 			}
-			// Test case where we are not deploying to target
-			if !isNamespaceInTargets(tc.namespace, tc.targets) && len(list.Items) == 0 {
+			// no existing net policy, we should not add a new one.
+			if isNamespaceInTargets(tc.namespace, tc.targets) && tc.netpolicy == nil && len(list.Items) > 0 {
+				t.Fatalf("Found a network policy when namespace is in target")
+			}
+			// if we already had a network policy, and namespace is not in
+			// target, we should add a NEW network policy
+			if !isNamespaceInTargets(tc.namespace, tc.targets) && tc.netpolicy != nil && len(list.Items) == 1 {
+				t.Fatalf("Namespace is not in target and found no network policies")
+			}
+			// if we had no network policy, and namespace is not in target, we
+			// should NOT add any network policy
+			if !isNamespaceInTargets(tc.namespace, tc.targets) && tc.netpolicy == nil && len(list.Items) > 0 {
 				t.Fatalf("Namespace is not in target and found no network policies")
 			}
 		})
