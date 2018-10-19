@@ -188,6 +188,10 @@ func (p provider) CreateSandbox(podName string,
 	targets []string,
 	apbRole string) (string, error) {
 
+	if len(targets) < 1 {
+		return "", fmt.Errorf("Must supply at least one target namespace")
+	}
+
 	for i, f := range p.preSandboxCreate {
 		log.Debugf("Running pre create sandbox function: %v", i+1)
 		err := f(podName, namespace, targets, apbRole)
@@ -310,6 +314,12 @@ func (p provider) DestroySandbox(podName string,
 	}
 
 	log.Info("Destroying APB sandbox...")
+
+	if len(targets) < 1 {
+		log.Error("Must supply at least one target namespace")
+		return
+	}
+
 	if podName == "" {
 		log.Info("Requested destruction of APB sandbox with empty handle, skipping.")
 		return
