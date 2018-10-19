@@ -380,6 +380,10 @@ func (p provider) CreateSandbox(podName string,
 }
 
 func validateTargets(targets []string) error {
+	if len(targets) < 1 {
+		return fmt.Errorf("Must supply at least one target namespace")
+	}
+
 	k8scli, err := clients.Kubernetes()
 	if err != nil {
 		return err
