@@ -35,6 +35,20 @@ var headerErrorCases = map[string]string{
 	"Bearer realm=\"\"":      "",
 }
 
+var tokenCases = map[string]string{
+	"{\"access_token\": \"abc123\"}":                        "abc123",
+	"{\"token\": \"abc123\"}":                               "abc123",
+	"{\"access_token\": \"abc123\", \"token\": \"def456\"}": "abc123",
+	"{}": "",
+}
+
+var tokenErrorCases = map[string]string{
+	"{\"token\": {}":          "unexpected end of JSON input",
+	"{\"access_token\": {}":   "unexpected end of JSON input",
+	"{\"token\": null":        "unexpected end of JSON input",
+	"{\"access_token\": null": "unexpected end of JSON input",
+}
+
 func TestParseAuthHeader(t *testing.T) {
 	for in, out := range headerCases {
 		result, err := parseAuthHeader(in)
@@ -50,6 +64,29 @@ func TestParseAuthHeader(t *testing.T) {
 func TestParseAuthHeaderErrors(t *testing.T) {
 	for in, out := range headerErrorCases {
 		_, err := parseAuthHeader(in)
+		if err == nil {
+			t.Errorf("Expected an error parsing %s", in)
+		} else if strings.HasPrefix(err.Error(), out) == false {
+			t.Errorf("Expected prefix %s, got %s", out, err.Error())
+		}
+	}
+}
+
+func TestParseAuthToken(t *testing.T) {
+	for in, out := range tokenCases {
+		result, err := parseAuthToken([]byte(in))
+		if err != nil {
+			t.Error(err.Error())
+		}
+		if result != out {
+			t.Errorf("Expected %s, got %s", out, result)
+		}
+	}
+}
+
+func TestParseAuthTokenErrors(t *testing.T) {
+	for in, out := range tokenErrorCases {
+		_, err := parseAuthToken([]byte(in))
 		if err == nil {
 			t.Errorf("Expected an error parsing %s", in)
 		} else if strings.HasPrefix(err.Error(), out) == false {
