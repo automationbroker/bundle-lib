@@ -101,7 +101,7 @@ func NewRuntime(config Configuration) {
 			log.Error(err.Error())
 			panic(err.Error())
 		}
-		log.Info("OpenShift version: %v", kubeServerInfo)
+		log.Infof("OpenShift version: %v", kubeServerInfo)
 		cluster = newOpenshift()
 	case kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err):
 		cluster = newKubernetes()
@@ -172,7 +172,7 @@ func (p provider) ValidateRuntime() error {
 		if err != nil && len(body) > 0 {
 			return err
 		}
-		log.Info("Kubernetes version: %v", kubeServerInfo)
+		log.Infof("Kubernetes version: %v", kubeServerInfo)
 	case kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err):
 		log.Error("the server could not find the requested resource")
 		return err
@@ -211,7 +211,7 @@ func (p provider) CreateSandbox(podName string,
 		return "", err
 	}
 
-	log.Debug("Trying to create apb sandbox: [ %s ], with %s permissions in namespace %s", podName, apbRole, namespace)
+	log.Debugf("Trying to create apb sandbox: [ %s ], with %s permissions in namespace %s", podName, apbRole, namespace)
 
 	subjects := []rbac.Subject{
 		rbac.Subject{
@@ -280,7 +280,7 @@ func (p provider) CreateSandbox(podName string,
 		log.Info("No network policies found. Assuming things are open, skip network policy creation")
 	}
 
-	log.Info("Successfully created apb sandbox: [ %s ], with %s permissions in namespace %s", podName, apbRole, namespace)
+	log.Infof("Successfully created apb sandbox: [ %s ], with %s permissions in namespace %s", podName, apbRole, namespace)
 	log.Info("Running post create sandbox fuctions if defined.")
 	for i, f := range p.postSandboxCreate {
 		log.Debugf("Running post create sandbox function: %v", i+1)
@@ -336,7 +336,7 @@ func (p provider) DestroySandbox(podName string,
 	}
 	if shouldDeleteNamespace(keepNamespace, keepNamespaceOnError, pod, err) {
 		if configNamespace != namespace {
-			log.Debug("Deleting namespace %s", namespace)
+			log.Debugf("Deleting namespace %s", namespace)
 			k8scli.Client.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
 			// This is keeping track of namespaces.
 		} else {
