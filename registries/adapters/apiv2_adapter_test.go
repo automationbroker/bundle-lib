@@ -17,6 +17,7 @@
 package adapters
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
@@ -185,5 +186,61 @@ func TestAPIV2FetchSpecs(t *testing.T) {
 	}
 	if len(specs) != 3 {
 		t.Fatal("Error: did not find 3 expected specs, only found: ", len(specs))
+	}
+}
+
+func TestGetNextImageURL(t *testing.T) {
+
+	serv := adaptertest.GetAPIV2Server(t, true)
+	defer serv.Close()
+	testConfig.URL = adaptertest.GetURL(t, serv)
+	apiv2a, err := NewAPIV2Adapter(testConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty link",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "no semicolon",
+			input:    "blah blah blah",
+			expected: fmt.Sprintf("%sblah blah blah", testConfig.URL.String()),
+		},
+		{
+			name:     "proper link header",
+			input:    "</v2/_catalog?last=ansibleplaybookbundle%2Fetherpad-apb&n=3>; rel=\"next\"",
+			expected: fmt.Sprintf("%s/v2/_catalog?last=ansibleplaybookbundle%%2Fetherpad-apb&n=3", testConfig.URL.String()),
+		},
+		{
+			name:     "starts with semicolon",
+			input:    "; rel=\"next\"",
+			expected: "",
+		},
+		{
+			name:     "spaces around the url",
+			input:    "      </v2/_catalog?last=ansibleplaybookbundle&n=3>     ; rel=\"next\"",
+			expected: fmt.Sprintf("%s/v2/_catalog?last=ansibleplaybookbundle&n=3", testConfig.URL.String()),
+		},
+		{
+			name:     "missing <> brackets",
+			input:    "/v2/_catalog?last=ansibleplaybookbundle&n=3; rel=\"next\"",
+			expected: fmt.Sprintf("%s/v2/_catalog?last=ansibleplaybookbundle&n=3", testConfig.URL.String()),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := apiv2a.getNextImageURL(tc.input)
+			ft.Equal(t, tc.expected, output)
+		})
+
 	}
 }
