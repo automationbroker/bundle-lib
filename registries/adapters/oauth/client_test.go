@@ -20,6 +20,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var headerCases = map[string]string{
@@ -95,7 +97,33 @@ func TestParseAuthTokenErrors(t *testing.T) {
 	}
 }
 
+/*
 func TestNewRequest(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       string
+		expected    *http.Request
+		expectederr bool
+	}{
+		{
+			name:     "fully qualified url",
+			input:    "http://automationbroker.io",
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := c.NewRequest(tc.input)
+			if tc.expectederr {
+				assert.Error(t, err)
+				assert.NotEmpty(t, err.Error())
+			} else {
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+		})
+	}
+
 	u, _ := url.Parse("http://automationbroker.io")
 	c := NewClient("foo", "bar", false, u)
 	c.token = "letmein"
@@ -113,5 +141,81 @@ func TestNewRequest(t *testing.T) {
 	if authh != "Bearer letmein" {
 		t.Errorf("incorrect or missing authorization header: %s", authh)
 		return
+	}
+}
+*/
+
+func TestNewClient(t *testing.T) {
+	testCases := []struct {
+		name       string
+		username   string
+		password   string
+		skipVerify bool
+		url        func() *url.URL
+	}{
+		{
+			name:       "fully qualified url",
+			username:   "foo",
+			password:   "bar",
+			skipVerify: false,
+			url: func() *url.URL {
+				daurl, err := url.Parse("http://automationbroker.io")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return daurl
+			},
+		},
+		{
+			name:       "nil url",
+			username:   "foo",
+			password:   "bar",
+			skipVerify: false,
+			url: func() *url.URL {
+				return nil
+			},
+		},
+		{
+			name:       "empty username and password",
+			username:   "",
+			password:   "",
+			skipVerify: false,
+			url: func() *url.URL {
+				daurl, err := url.Parse("http://automationbroker.io")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return daurl
+			},
+		},
+		{
+			name:       "skip verify true",
+			username:   "user",
+			password:   "pass",
+			skipVerify: true,
+			url: func() *url.URL {
+				daurl, err := url.Parse("http://automationbroker.io")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return daurl
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fullURL := tc.url()
+
+			output := NewClient(tc.username, tc.password, tc.skipVerify, fullURL)
+
+			assert.NotNil(t, output)
+			assert.Equal(t, tc.username, output.user)
+			assert.Equal(t, tc.password, output.pass)
+			assert.Equal(t, fullURL, output.url)
+			assert.NotNil(t, output.client)
+			// token should always be empty after NewClient is called
+			assert.Equal(t, "", output.token)
+		})
 	}
 }
