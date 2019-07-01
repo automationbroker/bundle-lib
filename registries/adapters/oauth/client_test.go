@@ -17,9 +17,12 @@
 package oauth
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var headerCases = map[string]string{
@@ -96,22 +99,146 @@ func TestParseAuthTokenErrors(t *testing.T) {
 }
 
 func TestNewRequest(t *testing.T) {
-	u, _ := url.Parse("http://automationbroker.io")
-	c := NewClient("foo", "bar", false, u)
-	c.token = "letmein"
-	req, err := c.NewRequest("/v2/")
+	u, err := url.Parse("http://automationbroker.io")
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatal("invalid url", err)
 	}
-	accepth := req.Header.Get("Accept")
-	if accepth != "application/json" {
-		t.Errorf("incorrect or missing accept header: %s", accepth)
-		return
+	c := NewClient("foo", "bar", false, u)
+
+	testCases := []struct {
+		name        string
+		input       string
+		token       string
+		expectederr bool
+	}{
+		{
+			name:  "relative path",
+			input: "/v2/",
+			token: "letmein",
+		},
+		{
+			name:  "relative path without trailing slash",
+			input: "/v2",
+		},
+		{
+			name:  "relative path with multiple paths",
+			input: "/v2/foobar/baz",
+		},
+		{
+			name:  "relative path with hook",
+			input: "v2/_catalog/?n=5&last=mediawiki-apb",
+		},
+		{
+			name:  "fully qualified url with hook",
+			input: "https://example.com/v2/_catalog/?n=5&last=mediawiki-apb",
+		},
 	}
-	authh := req.Header.Get("Authorization")
-	if authh != "Bearer letmein" {
-		t.Errorf("incorrect or missing authorization header: %s", authh)
-		return
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// set the token before calling NewRequest
+			c.token = tc.token
+
+			output, err := c.NewRequest(tc.input)
+			if tc.expectederr {
+				assert.Error(t, err)
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				fmt.Println(err.Error())
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+
+			assert.Equal(t, "application/json", output.Header.Get("Accept"))
+			if tc.token != "" {
+				assert.Equal(t, fmt.Sprintf("Bearer %s", tc.token), output.Header.Get("Authorization"))
+			} else {
+				assert.Equal(t, "", output.Header.Get("Authorization"))
+			}
+
+			expectedurl, err := url.Parse(tc.input)
+			if err != nil {
+				t.Fatalf("Invalid input url %s; %v\n", tc.input, err)
+			}
+
+			assert.Equal(t, c.url.Scheme, output.URL.Scheme)
+			assert.Equal(t, c.url.Host, output.URL.Host)
+			assert.Equal(t, expectedurl.Path, output.URL.Path)
+			assert.Equal(t, expectedurl.Query(), output.URL.Query())
+		})
+	}
+}
+
+func TestNewClient(t *testing.T) {
+	testCases := []struct {
+		name       string
+		username   string
+		password   string
+		skipVerify bool
+		url        func() *url.URL
+	}{
+		{
+			name:       "fully qualified url",
+			username:   "foo",
+			password:   "bar",
+			skipVerify: false,
+			url: func() *url.URL {
+				daurl, err := url.Parse("http://automationbroker.io")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return daurl
+			},
+		},
+		{
+			name:       "nil url",
+			username:   "foo",
+			password:   "bar",
+			skipVerify: false,
+			url: func() *url.URL {
+				return nil
+			},
+		},
+		{
+			name:       "empty username and password",
+			username:   "",
+			password:   "",
+			skipVerify: false,
+			url: func() *url.URL {
+				daurl, err := url.Parse("http://automationbroker.io")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return daurl
+			},
+		},
+		{
+			name:       "skip verify true",
+			username:   "user",
+			password:   "pass",
+			skipVerify: true,
+			url: func() *url.URL {
+				daurl, err := url.Parse("http://automationbroker.io")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return daurl
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fullURL := tc.url()
+
+			output := NewClient(tc.username, tc.password, tc.skipVerify, fullURL)
+
+			assert.NotNil(t, output)
+			assert.Equal(t, tc.username, output.user)
+			assert.Equal(t, tc.password, output.pass)
+			assert.Equal(t, fullURL, output.url)
+			assert.NotNil(t, output.client)
+			// token should always be empty after NewClient is called
+			assert.Equal(t, "", output.token)
+		})
 	}
 }
