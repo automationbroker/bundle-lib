@@ -84,13 +84,13 @@ func (c *Client) NewRequest(path string) (*http.Request, error) {
 
 	// path might be a fully qualified URL and we only want the path
 	// and query bits
-	pathAsUrl, err := url.Parse(path)
+	pathAsURL, err := url.Parse(path)
 	if err != nil {
 		return nil, err
 	}
 
-	req.URL.Path = pathAsUrl.Path
-	req.URL.RawQuery = pathAsUrl.Query().Encode()
+	req.URL.Path = pathAsURL.Path
+	req.URL.RawQuery = pathAsURL.Query().Encode()
 	if c.token != "" {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.token))
 	}
