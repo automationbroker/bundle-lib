@@ -109,7 +109,52 @@ func TestAPIV2NewAPIV2Adapter(t *testing.T) {
 		t.Fatal("Error: ", err)
 	}
 
-	ft.NotEqual(t, apiv2a, APIV2Adapter{}, "adaptor returned is not valid")
+	ft.NotEqual(t, apiv2a, APIV2Adapter{}, "adapter returned is not valid")
+}
+
+func TestNewRegistryProxyAdapter(t *testing.T) {
+	serv := adaptertest.GetAPIV2Server(t, true)
+	defer serv.Close()
+
+	testCases := []struct {
+		name        string
+		expectederr bool
+		config      Configuration
+	}{
+		{
+			name:        "Registry Proxy Adapter created with no errors",
+			expectederr: false,
+			config: Configuration{
+				URL:    adaptertest.GetURL(t, serv),
+				Images: []string{"foo/bar", "foo/baz"},
+			},
+		},
+		{
+			name:        "Registry Proxy Adapter failed to create",
+			expectederr: true,
+			config: Configuration{
+				URL:    adaptertest.GetURL(t, serv),
+				Images: []string{},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rpAdapter, err := NewRegistryProxyAdapter(tc.config)
+			if tc.expectederr {
+				ft.Error(t, err)
+				ft.NotEmpty(t, err.Error())
+			} else if err != nil {
+				fmt.Println(err)
+				t.Fatalf("unexpected error during test: %v\n", err)
+			} else {
+				// no errors, make sure we returned the right type
+				ft.NotEqual(t, rpAdapter, RegistryProxyAdapter{},
+					"Registry Proxy adapter returned is not valid")
+			}
+		})
+	}
 }
 
 func TestNewOpenShiftAdapter(t *testing.T) {
@@ -121,7 +166,7 @@ func TestNewOpenShiftAdapter(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
-	ft.NotEqual(t, osAdapter, OpenShiftAdapter{}, "OpenShift adaptor returned is not valid")
+	ft.NotEqual(t, osAdapter, OpenShiftAdapter{}, "OpenShift adapter returned is not valid")
 }
 
 func TestNewPartnerRhccAdapter(t *testing.T) {
@@ -133,7 +178,7 @@ func TestNewPartnerRhccAdapter(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
-	ft.NotEqual(t, prAdapter, PartnerRhccAdapter{}, "Partner RHCC adaptor returned is not valid")
+	ft.NotEqual(t, prAdapter, PartnerRhccAdapter{}, "Partner RHCC adapter returned is not valid")
 }
 
 func TestAPIV2GetImageNames(t *testing.T) {
