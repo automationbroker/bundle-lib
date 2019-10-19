@@ -80,6 +80,7 @@ func NewPartnerRhccAdapter(config Configuration) (PartnerRhccAdapter, error) {
 	return PartnerRhccAdapter{apiV2}, nil
 }
 
+// NewRegistryProxyAdapter - create a new Registry Proxy Adapter
 func NewRegistryProxyAdapter(config Configuration) (RegistryProxyAdapter, error) {
 	// we want to use a different token for this adapter, so do not call
 	// NewAPIV2Adapter directly

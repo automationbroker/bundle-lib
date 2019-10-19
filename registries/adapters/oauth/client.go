@@ -104,7 +104,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
-// Getv2WithScopes - makes a GET request to the registry's /v2/ endpoint. If a
+// Getv2WithScope - makes a GET request to the registry's /v2/ endpoint. If a
 // 401 Unauthorized response is received, this method attempts to obtain an
 // oauth token with the given imageNames as scopes and tries again with the
 // new token. If a username and password are available, they are used with
