@@ -18,12 +18,21 @@ package oauth
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+var apiV2AuthResponse = `
+{
+  "token": "%s",
+  "expires_in": 300,
+  "issued_at": "2018-03-27T19:54:19Z"
+}`
 
 var headerCases = map[string]string{
 	"Bearer realm=\"http://foo/a/b/c\",service=\"bar\"":  "http://foo/a/b/c?service=bar",
@@ -95,6 +104,62 @@ func TestParseAuthTokenErrors(t *testing.T) {
 		} else if strings.HasPrefix(err.Error(), out) == false {
 			t.Errorf("Expected prefix %s, got %s", out, err.Error())
 		}
+	}
+}
+
+func TestGetTokenWithScope(t *testing.T) {
+	authServ := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("Expected 'GET' request, got '%s'", r.Method)
+		}
+
+		// see if we have any scopes
+		u, _ := url.Parse(r.RequestURI)
+		count := strings.Count(u.RawQuery, "scope")
+		token := fmt.Sprintf("fake.tokenTbTRUN3VZWHEwRW9oMEM2cEd-%d-scopes", count)
+		fmt.Fprintf(w, fmt.Sprintf(apiV2AuthResponse, token))
+	}))
+	defer authServ.Close()
+
+	hdr := fmt.Sprintf("Bearer realm=\"%s/v2/auth\"", authServ.URL)
+	u, err := url.Parse("http://automationbroker.io")
+	if err != nil {
+		t.Fatal("invalid url", err)
+	}
+	c := NewClient("", "", false, u)
+
+	testCases := []struct {
+		name          string
+		imageNames    []string
+		expectederr   bool
+		expectedtoken string
+	}{
+		{
+			name:          "no images",
+			imageNames:    []string{},
+			expectederr:   false,
+			expectedtoken: "fake.tokenTbTRUN3VZWHEwRW9oMEM2cEd-0-scopes",
+		},
+		{
+			name:          "2 images",
+			imageNames:    []string{"rh-osbs/postgresql", "rh-osbs/mysql"},
+			expectederr:   false,
+			expectedtoken: "fake.tokenTbTRUN3VZWHEwRW9oMEM2cEd-2-scopes",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := c.getTokenWithScope(hdr, tc.imageNames)
+			if tc.expectederr {
+				assert.Error(t, err)
+				assert.NotEmpty(t, err.Error())
+			} else if err != nil {
+				fmt.Println(err.Error())
+				t.Fatalf("unexpected error during test: %v\n", err)
+			}
+			assert.Equal(t, c.token, tc.expectedtoken)
+		})
 	}
 }
 
